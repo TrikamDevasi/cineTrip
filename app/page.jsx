@@ -5,9 +5,9 @@ import TraktRow from "@/components/TraktRow";
 import HeroBanner from "@/components/HeroBanner";
 import InfiniteTrending from "@/components/InfiniteTrending";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { Globe } from "lucide-react";
+import HomeMoodWidget from "@/components/HomeMoodWidget";
+import HomePlannerCTA from "@/components/HomePlannerCTA";
 import { getTraktTrending, getTraktAnticipated, getTraktBoxOffice } from "@/lib/trakt";
-
 
 // Valid TMDB region codes — must stay in sync with RegionSwitcher.jsx
 const VALID_REGIONS = new Set(["IN", "US", "GB", "AU", "CA", "DE", "FR", "JP", "KR", "SG", "AE", "BR", "MX"]);
@@ -35,7 +35,7 @@ export default async function HomePage({ searchParams }) {
 
   let data = {
     trending: [],
-    topRated: [],
+    popular: [],
     comingThisWeek: [],
     comingThisMonth: [],
     ottThisMonth: [],
@@ -44,13 +44,13 @@ export default async function HomePage({ searchParams }) {
   try {
     const [
       trending,
-      topRated,
+      popular,
       comingThisWeek,
       comingThisMonth,
       ottThisMonth,
     ] = await Promise.all([
       fetchTMDB("/trending/movie/week").then(d => d.results || []),
-      fetchTMDB("/movie/top_rated").then(d => d.results || []),
+      fetchTMDB("/movie/popular").then(d => d.results || []),
 
       // Theatrical – coming this week
       fetchTMDB("/discover/movie", {
@@ -80,7 +80,7 @@ export default async function HomePage({ searchParams }) {
       }).then(d => d.results || []),
     ]);
 
-    data = { trending, topRated, comingThisWeek, comingThisMonth, ottThisMonth };
+    data = { trending, popular, comingThisWeek, comingThisMonth, ottThisMonth };
   } catch (err) {
     console.error("Home page fetch error:", err);
   }
@@ -98,12 +98,8 @@ export default async function HomePage({ searchParams }) {
   const anticipated = anticipatedRes.status === "fulfilled" ? anticipatedRes.value : [];
   const boxOffice = boxOfficeRes.status === "fulfilled" ? boxOfficeRes.value : [];
 
-  const { trending, topRated, comingThisWeek, comingThisMonth, ottThisMonth } = data;
+  const { trending, popular, comingThisWeek, comingThisMonth, ottThisMonth } = data;
 
-
-  /* =======================
-     RELEASING TODAY
-  ======================= */
   const releasingToday = comingThisWeek.filter(
     (m) => m.release_date === todayStr
   );
@@ -118,7 +114,6 @@ export default async function HomePage({ searchParams }) {
 
   if (heroMovie) {
     try {
-      // Fetch full details to get imdb_id and videos
       const fullData = await fetchTMDB(`/movie/${heroMovie.id}`, { append_to_response: "videos" });
       fullHeroMovie = fullData;
       
@@ -138,12 +133,12 @@ export default async function HomePage({ searchParams }) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Cinephiles Watch",
-    url: process.env.NEXT_PUBLIC_BASE_URL || "https://cinephiles-watch-react-js.onrender.com",
+    name: "CineTrip",
+    url: process.env.NEXT_PUBLIC_BASE_URL || "https://cinetrip.vercel.app",
     potentialAction: {
       "@type": "SearchAction",
       target:
-        `${process.env.NEXT_PUBLIC_BASE_URL || "https://cinephiles-watch-react-js.onrender.com"}/search?q={search_term_string}`,
+        `${process.env.NEXT_PUBLIC_BASE_URL || "https://cinetrip.vercel.app"}/discover?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };
@@ -166,6 +161,12 @@ export default async function HomePage({ searchParams }) {
           <RegionSwitcher />
         </div>
 
+        {/* 🍿 CINETRIP PLANNER CTA BANNER */}
+        <HomePlannerCTA />
+
+        {/* 🎯 MOOD RECOMMENDATIONS */}
+        <HomeMoodWidget />
+
         {/* RELEASING TODAY */}
         {releasingToday.length > 0 && (
           <ErrorBoundary label="Releasing Today">
@@ -173,32 +174,33 @@ export default async function HomePage({ searchParams }) {
           </ErrorBoundary>
         )}
 
-        <ErrorBoundary label="Trending Now">
-          <Row title="Trending Now" movies={trending} />
+        {/* 🏠 TRENDING */}
+        <ErrorBoundary label="Trending Movies">
+          <Row title="🔥 Trending This Week" movies={trending} />
         </ErrorBoundary>
 
-        <ErrorBoundary label="Top Rated">
-          <Row title="Top Rated Movies" movies={topRated} />
+        {/* 🏠 POPULAR */}
+        <ErrorBoundary label="Popular Movies">
+          <Row title="⭐ Most Popular" movies={popular} />
         </ErrorBoundary>
 
-        {/* COMING THIS WEEK */}
+        {/* 🏠 UPCOMING */}
         {comingThisWeek.length > 0 && (
           <ErrorBoundary label="Theatrical Releases: This Week">
-            <Row title="Theatrical Releases: This Week" movies={comingThisWeek} />
+            <Row title="🎬 Theatrical Releases: This Week" movies={comingThisWeek} />
           </ErrorBoundary>
         )}
 
-        {/* COMING THIS MONTH */}
         {comingThisMonth.length > 0 && (
-          <ErrorBoundary label="Theatrical Releases: This Month">
-            <Row title="Theatrical Releases: This Month" movies={comingThisMonth} />
+          <ErrorBoundary label="Upcoming Theatrical Releases">
+            <Row title="📅 Upcoming Theatrical: This Month" movies={comingThisMonth} />
           </ErrorBoundary>
         )}
 
         {/* OTT THIS MONTH */}
         {ottThisMonth.length > 0 && (
           <ErrorBoundary label="OTT Releases">
-            <Row title="OTT Releases: This Month" movies={ottThisMonth} />
+            <Row title="📺 OTT Streaming Releases" movies={ottThisMonth} />
           </ErrorBoundary>
         )}
 
@@ -207,7 +209,7 @@ export default async function HomePage({ searchParams }) {
           <ErrorBoundary label="Trakt Live Trending">
             <TraktRow
               title="Trakt Live Trending"
-              subtitle="Movies being watched right now"
+              subtitle="Movies being watched right now across globe"
               items={traktTrending}
               showWatchers={true}
             />
@@ -224,7 +226,7 @@ export default async function HomePage({ searchParams }) {
 
           <ErrorBoundary label="US Box Office">
             <TraktRow
-              title="US Box Office"
+              title="Box Office Leaderboard"
               subtitle="Top theatrical performers this weekend"
               items={boxOffice}
               showWatchers={false}
@@ -242,4 +244,3 @@ export default async function HomePage({ searchParams }) {
     </div>
   );
 }
-

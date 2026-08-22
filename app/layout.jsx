@@ -1,63 +1,50 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Outfit, Inter } from "next/font/google";
 import ThemeWrapper from "@/components/ThemeWrapper";
 import { RegionProvider } from "@/context/RegionContext";
 
-const outfit = Outfit({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-display",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-body",
-  weight: ["400", "500", "600"],
-});
-
 export const metadata = {
   title: {
-    default: "Cinephiles Watch — Premium Movie Discovery",
-    template: "%s | Cinephiles Watch",
+    default: "CineTrip — Cinema Outing Planner, Movie Discovery & Memories",
+    template: "%s | CineTrip",
   },
   description:
-    "Discover, track, and explore movies and series with AI-powered recommendations. Your premium movie companion powered by TMDB and Trakt.",
+    "Plan cinema outings with friends, discover movies by mood and genre, track upcoming theater releases, and capture your movie night memories with CineTrip.",
   keywords: [
-    "movies",
-    "series",
-    "streaming",
-    "movie recommendations",
-    "AI movie analysis",
+    "CineTrip",
+    "movie outing planner",
+    "cinema planner",
+    "movie tickets",
+    "movie nights",
+    "AI movie recommendations",
+    "film memories",
     "watchlist",
-    "film discovery",
+    "IMAX",
   ],
-  authors: [{ name: "Cinephiles Watch" }],
-  creator: "Cinephiles Watch",
+  authors: [{ name: "CineTrip" }],
+  creator: "CineTrip",
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "Cinephiles Watch",
-    title: "Cinephiles Watch — Premium Movie Discovery",
+    siteName: "CineTrip",
+    title: "CineTrip — Cinema Outing Planner, Movie Discovery & Memories",
     description:
-      "Discover, track, and explore movies and series with AI-powered recommendations.",
+      "Plan cinema outings with friends, discover movies by mood and genre, and capture your movie night memories.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Cinephiles Watch",
+        alt: "CineTrip",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cinephiles Watch — Premium Movie Discovery",
+    title: "CineTrip — Cinema Outing Planner & Discovery",
     description:
-      "Discover, track, and explore movies and series with AI-powered recommendations.",
+      "Plan cinema outings with friends, discover movies by mood, and capture movie night memories.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -75,8 +62,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${outfit.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

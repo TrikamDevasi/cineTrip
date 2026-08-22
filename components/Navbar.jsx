@@ -5,22 +5,26 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { 
-  Film, 
-  Bookmark, 
-  Sparkles, 
+  Home,
+  Compass,
+  CalendarDays,
+  Heart,
+  History,
+  User,
   Search, 
   Menu, 
   X, 
   Sun, 
   Moon,
+  Sparkles,
   ChevronRight,
-  Play,
-  ShieldCheck,
-  Compass
+  Film,
+  MapPin
 } from "lucide-react";
 import AiRecommendations from "./AIPanelRecommend";
 import AIWhatToWatchModal from "./AIWhatToWatchModal";
 import useWatchlistStore from "@/store/useWatchlistStore";
+import { usePlannerStore } from "@/store/usePlannerStore";
 import { useThemeStore } from "@/store/useThemeStore";
 
 let cachedPopular = null;
@@ -49,6 +53,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { watchlist } = useWatchlistStore();
+  const { plans } = usePlannerStore();
   const { theme, toggleTheme } = useThemeStore();
 
   const abortRef = useRef(null);
@@ -56,9 +61,11 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const upcomingPlansCount = plans?.filter((p) => p.status === "upcoming").length || 0;
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -67,159 +74,143 @@ export default function Navbar() {
       setPopular(cachedPopular);
       return;
     }
-    async function fetchPopular() {
-      try {
-        const res = await fetch("/api/tmdb/trending");
-        const data = await res.json();
-        const movies = (data.data?.results || data.data || []).slice(0, 6);
-        cachedPopular = movies;
-        setPopular(movies);
-      } catch {
-        setPopular([]);
-      }
-    }
-    fetchPopular();
+    fetch("/api/tmdb/trending?page=1")
+      .then((r) => r.json())
+      .then((d) => {
+        const top = (d.results || []).slice(0, 5);
+        cachedPopular = top;
+        setPopular(top);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-    if (cachedSearch[query]) {
-      setResults(cachedSearch[query]);
-      return;
-    }
+    const handleClickOutside = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) {
+        setResults([]);
+        setActiveIndex(-1);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+    if (cachedSearch[q]) {
+      setResults(cachedSearch[q]);
+      setLoading(false);
+      return;
+    }
     if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    setLoading(true);
 
     const timer = setTimeout(async () => {
       try {
-        setLoading(true);
-        const res = await fetch(
-          `/api/tmdb/search?q=${encodeURIComponent(query)}`,
-          { signal: controller.signal }
-        );
-        const json = await res.json();
-        const movies = (json.data?.results || []).slice(0, 6);
-        cachedSearch[query] = movies;
-        setResults(movies);
+        const res = await fetch(`/api/tmdb/search?query=${encodeURIComponent(q)}&page=1`, {
+          signal: ctrl.signal,
+        });
+        const data = await res.json();
+        const items = (data.results || []).slice(0, 6);
+        cachedSearch[q] = items;
+        setResults(items);
       } catch (e) {
         if (e.name !== "AbortError") setResults([]);
       } finally {
         setLoading(false);
-        setActiveIndex(-1);
       }
-    }, 350);
+    }, 280);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
   }, [query]);
 
-  function handleKeyDown(e) {
+  const handleKeyDown = (e) => {
     const list = results.length > 0 ? results : popular;
     if (!list.length) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => (i + 1) % list.length);
-    }
-    if (e.key === "ArrowUp") {
+      setActiveIndex((prev) => (prev < list.length - 1 ? prev + 1 : 0));
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActiveIndex((i) => (i - 1 + list.length) % list.length);
-    }
-    if (e.key === "Enter") {
-      if (activeIndex >= 0) {
+      setActiveIndex((prev) => (prev > 0 ? prev - 1 : list.length - 1));
+    } else if (e.key === "Enter") {
+      if (activeIndex >= 0 && list[activeIndex]) {
+        e.preventDefault();
         selectMovie(list[activeIndex]);
       } else if (query.trim()) {
-        router.push(`/search?q=${encodeURIComponent(query)}`);
+        router.push(`/discover?q=${encodeURIComponent(query)}`);
         setResults([]);
         setQuery("");
       }
+    } else if (e.key === "Escape") {
+      setResults([]);
+      setActiveIndex(-1);
     }
-  }
+  };
 
-  function selectMovie(item) {
-    setQuery("");
+  const selectMovie = (m) => {
     setResults([]);
+    setQuery("");
     setActiveIndex(-1);
-    setMobileMenuOpen(false);
-    router.push(item.media_type === "tv" ? `/series/${item.id}` : `/movie/${item.id}`);
-  }
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (boxRef.current && !boxRef.current.contains(e.target)) {
-        setResults([]);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    router.push(m.media_type === "tv" ? `/series/${m.id}` : `/movie/${m.id}`);
+  };
 
   return (
     <>
-      <nav
-        className="navbar"
-        style={{
-          background: scrolled ? "var(--navbar-bg)" : "rgba(10,10,15,0.7)",
-          backdropFilter: "blur(16px)",
-          borderBottomColor: scrolled ? "var(--color-border)" : "transparent",
-        }}
-      >
-        <div className="nav-content">
-          {/* LOGO */}
-          <Link href="/" className="logo">
-            <div className="logo-icon" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-accent)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-              <Film size={18} />
+      <nav className={`main-navbar ${scrolled ? "scrolled" : ""}`}>
+        <div className="navbar-container">
+          {/* BRAND LOGO */}
+          <Link href="/" className="navbar-brand">
+            <div className="brand-icon-wrapper">
+              <Film size={20} className="brand-film-icon" />
+              <span className="brand-dot" />
             </div>
-            <span className="logo-text">CINEPHILES <span className="logo-watch">WATCH</span></span>
+            <div className="brand-text-container">
+              <span className="brand-name">Cine<span className="brand-accent">Trip</span></span>
+              <span className="brand-tagline">CINEMA & OUTING COMPANION</span>
+            </div>
           </Link>
 
-          {/* SEARCH BAR */}
-          <div className="search-container" ref={boxRef}>
-            <Search className="search-icon" size={18} />
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search movies, series, cast..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-
-            {/* SEARCH DROPDOWN */}
-            {query && (results.length > 0 || popular.length > 0) && (
-              <div 
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 12px)",
-                  left: 0,
-                  right: 0,
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "var(--radius-lg)",
-                  boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
-                  overflow: "hidden",
-                  zIndex: 200
+          {/* SEARCH BAR (Desktop) */}
+          <div className="navbar-search-wrapper" ref={boxRef}>
+            <div className="navbar-search-input-box">
+              <Search size={16} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search movies, series, cinemas..."
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActiveIndex(-1);
                 }}
-              >
-                <div style={{ padding: "8px 0" }}>
+                onKeyDown={handleKeyDown}
+                className="navbar-search-input"
+              />
+              {loading && <div className="search-spinner" />}
+            </div>
+
+            {/* AUTOCOMPLETE DROPDOWN */}
+            {(results.length > 0 || (query.trim() && popular.length > 0)) && (
+              <div className="search-dropdown-menu">
+                <div className="search-dropdown-list">
                   {(results.length > 0 ? results : popular).map((m, i) => (
                     <div
                       key={m.id}
                       onClick={() => selectMovie(m)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        padding: "10px 16px",
-                        cursor: "pointer",
-                        background: i === activeIndex ? "var(--color-surface-2)" : "transparent",
-                      }}
+                      className={`search-dropdown-item ${i === activeIndex ? "active" : ""}`}
                     >
-                      <div style={{ width: 36, height: 50, flexShrink: 0, position: "relative", borderRadius: "6px", overflow: "hidden" }}>
+                      <div className="search-item-poster">
                         <Image
                           src={m.poster_path ? `https://image.tmdb.org/t/p/w92${m.poster_path}` : "/default-1778606634.jpg"}
                           alt={m.title || m.name || "Poster"}
@@ -227,15 +218,15 @@ export default function Navbar() {
                           style={{ objectFit: "cover" }}
                         />
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--color-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <div className="search-item-info">
+                        <div className="search-item-title">
                           {m.title || m.name}
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
-                          <span style={{ color: "var(--color-accent)", fontSize: "0.7rem", fontWeight: 700 }}>
+                        <div className="search-item-meta">
+                          <span className="search-item-genre">
                             {GENRES[m.genre_ids?.[0]] || (m.media_type === "tv" ? "TV Series" : "Movie")}
                           </span>
-                          <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
+                          <span className="search-item-year">
                             {(m.release_date || m.first_air_date)?.slice(0, 4)}
                           </span>
                         </div>
@@ -245,23 +236,13 @@ export default function Navbar() {
                 </div>
                 <div 
                   onClick={() => {
-                    router.push(`/search?q=${encodeURIComponent(query)}`);
+                    router.push(`/discover?q=${encodeURIComponent(query)}`);
                     setResults([]);
                     setQuery("");
                   }}
-                  style={{ 
-                    padding: "10px 16px", 
-                    borderTop: "1px solid var(--color-border)", 
-                    fontSize: "0.75rem", 
-                    color: "var(--color-text-muted)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    background: "var(--color-surface-2)",
-                    cursor: "pointer"
-                  }}
+                  className="search-dropdown-footer"
                 >
-                  <span>Press Enter to view all results</span>
+                  <span>Explore all results in Discover</span>
                   <ChevronRight size={14} />
                 </div>
               </div>
@@ -270,73 +251,59 @@ export default function Navbar() {
 
           {/* NAV LINKS (Desktop) */}
           <div className="nav-links">
-            <Link href="/series" className={`nav-link ${pathname.startsWith("/series") ? "active" : ""}`}>
-              <Play size={17} />
-              <span>Series</span>
+            <Link href="/" className={`nav-link ${pathname === "/" ? "active" : ""}`}>
+              <Home size={17} />
+              <span>Home</span>
+            </Link>
+
+            <Link href="/discover" className={`nav-link ${pathname.startsWith("/discover") || pathname.startsWith("/search") ? "active" : ""}`}>
+              <Compass size={17} />
+              <span>Discover</span>
+            </Link>
+
+            <Link href="/planner" className={`nav-link ${pathname.startsWith("/planner") ? "active" : ""}`}>
+              <CalendarDays size={17} />
+              <span>Planner</span>
+              {upcomingPlansCount > 0 && (
+                <span className="nav-badge count-badge">
+                  {upcomingPlansCount}
+                </span>
+              )}
             </Link>
 
             <Link href="/watchlist" className={`nav-link ${pathname === "/watchlist" ? "active" : ""}`}>
-              <Bookmark size={17} />
+              <Heart size={17} />
               <span>Watchlist</span>
               {watchlist.length > 0 && (
-                <span style={{ 
-                  background: "var(--color-accent)", 
-                  color: "white", 
-                  fontSize: "10px", 
-                  padding: "1px 6px", 
-                  borderRadius: "var(--radius-pill)",
-                  marginLeft: "-4px"
-                }}>
+                <span className="nav-badge count-badge">
                   {watchlist.length}
                 </span>
               )}
             </Link>
 
-            <button
-              onClick={() => setWhatToWatchOpen(true)}
-              className="nav-link"
-              style={{ background: "none", border: "none", cursor: "pointer" }}
-            >
-              <Compass size={17} />
-              <span>Wizard</span>
-            </button>
+            <Link href="/history" className={`nav-link ${pathname === "/history" ? "active" : ""}`}>
+              <History size={17} />
+              <span>History</span>
+            </Link>
 
-            <Link href="/admin" className={`nav-link ${pathname === "/admin" ? "active" : ""}`}>
-              <ShieldCheck size={17} />
-              <span>Admin</span>
+            <Link href="/profile" className={`nav-link ${pathname === "/profile" ? "active" : ""}`}>
+              <User size={17} />
+              <span>Profile</span>
             </Link>
             
             <button
-              onClick={() => setAiOpen(true)}
-              className="btn-primary"
-              style={{
-                padding: "8px 16px",
-                height: "36px",
-                borderRadius: "var(--radius-pill)",
-                background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                fontSize: "0.8rem",
-                fontWeight: 700
-              }}
+              onClick={() => setWhatToWatchOpen(true)}
+              className="btn-primary mood-btn"
+              title="AI Mood Recommendations"
             >
               <Sparkles size={15} />
-              <span className="btn-text">AI Curate</span>
+              <span className="btn-text">AI Moods</span>
             </button>
 
             <button
               className="theme-toggle-btn"
               onClick={toggleTheme}
-              aria-label="Toggle Dark/Light Mode"
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                background: "var(--color-surface-2)",
-                color: "var(--color-text-primary)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "1px solid var(--color-border)"
-              }}
+              aria-label="Toggle Theme"
             >
               {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
             </button>
@@ -357,40 +324,50 @@ export default function Navbar() {
           <div className="mobile-drawer-overlay" onClick={() => setMobileMenuOpen(false)} />
           <div className="mobile-drawer">
             <div className="drawer-header">
-              <div className="drawer-title">Navigation Menu</div>
+              <div className="drawer-title">CineTrip Menu</div>
               <button className="close-drawer-btn" onClick={() => setMobileMenuOpen(false)} aria-label="Close menu">
                 <X size={24} />
               </button>
             </div>
             
-            <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-              <Film size={20} />
-              <span>Browse Movies</span>
+            <Link href="/" onClick={() => setMobileMenuOpen(false)} className={pathname === "/" ? "active" : ""}>
+              <Home size={20} />
+              <span>Home (Trending & Popular)</span>
             </Link>
 
-            <Link href="/series" onClick={() => setMobileMenuOpen(false)}>
-              <Play size={20} />
-              <span>TV Series</span>
-            </Link>
-
-            <Link href="/watchlist" onClick={() => setMobileMenuOpen(false)}>
-              <Bookmark size={20} />
-              <span>My Watchlist ({watchlist.length})</span>
-            </Link>
-
-            <button onClick={() => { setWhatToWatchOpen(true); setMobileMenuOpen(false); }}>
+            <Link href="/discover" onClick={() => setMobileMenuOpen(false)} className={pathname.startsWith("/discover") ? "active" : ""}>
               <Compass size={20} />
-              <span>What Should I Watch?</span>
-            </button>
+              <span>Discover (Genres & Search)</span>
+            </Link>
 
-            <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
-              <ShieldCheck size={20} />
-              <span>Admin Dashboard</span>
+            <Link href="/planner" onClick={() => setMobileMenuOpen(false)} className={pathname.startsWith("/planner") ? "active" : ""}>
+              <CalendarDays size={20} />
+              <span>Trip Planner {upcomingPlansCount > 0 ? `(${upcomingPlansCount})` : ""}</span>
+            </Link>
+
+            <Link href="/watchlist" onClick={() => setMobileMenuOpen(false)} className={pathname === "/watchlist" ? "active" : ""}>
+              <Heart size={20} />
+              <span>Watchlist ({watchlist.length})</span>
+            </Link>
+
+            <Link href="/history" onClick={() => setMobileMenuOpen(false)} className={pathname === "/history" ? "active" : ""}>
+              <History size={20} />
+              <span>History (Nights & Memories)</span>
+            </Link>
+
+            <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className={pathname === "/profile" ? "active" : ""}>
+              <User size={20} />
+              <span>Profile & Settings</span>
             </Link>
             
+            <button onClick={() => { setWhatToWatchOpen(true); setMobileMenuOpen(false); }}>
+              <Sparkles size={20} />
+              <span>AI Mood Matcher</span>
+            </button>
+
             <button onClick={() => { setAiOpen(true); setMobileMenuOpen(false); }}>
               <Sparkles size={20} />
-              <span>Magic AI Recommendations</span>
+              <span>Magic AI Film Breakdowns</span>
             </button>
             
             <button onClick={() => { toggleTheme(); setMobileMenuOpen(false); }}>
@@ -406,4 +383,3 @@ export default function Navbar() {
     </>
   );
 }
-

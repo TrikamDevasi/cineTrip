@@ -6,9 +6,11 @@ import useSeriesStore from "@/store/seriesStore";
 import MovieCard from "@/components/MovieCard";
 import SeriesCard from "@/components/SeriesCard";
 import Link from "next/link";
-import { Bookmark, Trash2, ArrowUpDown, Film } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Heart, Trash2, ArrowUpDown, Film, CalendarDays, Sparkles } from "lucide-react";
 
 export default function WatchlistPage() {
+  const router = useRouter();
   const { watchlist, removeFromWatchlist } = useWatchlistStore();
   const { seriesList, fetchSeriesList, removeSeries } = useSeriesStore();
   const [sortBy, setSortBy] = useState("dateAdded");
@@ -18,14 +20,13 @@ export default function WatchlistPage() {
     fetchSeriesList();
   }, []);
 
-  // Combine lists with content type flag
   const combined = [
     ...watchlist.map((m) => ({ ...m, contentType: "movie" })),
     ...seriesList.map((s) => ({
       ...s,
       contentType: "series",
-      id: s.tmdbId, // Map for key/id consistency
-      vote_average: s.userRating || 0, // Fallback for sorting
+      id: s.tmdbId,
+      vote_average: s.userRating || 0,
     })),
   ];
 
@@ -45,6 +46,10 @@ export default function WatchlistPage() {
     );
   });
 
+  const handlePlanOuting = (item) => {
+    router.push(`/planner?movieId=${item.id}&title=${encodeURIComponent(item.title || item.name)}`);
+  };
+
   return (
     <div
       className="container animate-in"
@@ -52,7 +57,7 @@ export default function WatchlistPage() {
     >
       <div className="watchlist-toolbar flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-8">
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Bookmark size={28} style={{ color: "var(--color-accent)" }} />
+          <Heart size={28} style={{ color: "var(--color-accent)", fill: "var(--color-accent)" }} />
           <h1
             style={{
               fontSize: "clamp(1.5rem, 4vw, 2.5rem)",
@@ -86,7 +91,7 @@ export default function WatchlistPage() {
                 onClick={() => setFilter(t)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors ${
                   filter === t
-                    ? "bg-[#e50914] text-white"
+                    ? "bg-[#7c3aed] text-white"
                     : "text-gray-400 hover:text-white"
                 }`}
                 style={{ minHeight: "auto", minWidth: "auto" }}
@@ -166,11 +171,11 @@ export default function WatchlistPage() {
             You haven't added any {filter === "all" ? "items" : filter} yet.
           </p>
           <Link
-            href={filter === "series" ? "/series" : "/"}
+            href="/discover"
             className="btn-primary"
             style={{ display: "inline-flex", width: "fit-content" }}
           >
-            Browse {filter === "series" ? "Series" : "Movies"}
+            Explore Discover Catalog
           </Link>
         </div>
       ) : (
@@ -178,7 +183,7 @@ export default function WatchlistPage() {
           {sorted.map((item) => (
             <div
               key={item.id}
-              className="watchlist-item"
+              className="watchlist-item group"
               style={{ position: "relative" }}
             >
               {item.contentType === "movie" ? (
@@ -186,33 +191,74 @@ export default function WatchlistPage() {
               ) : (
                 <SeriesCard series={item} />
               )}
-              <button
-                onClick={() => {
-                  if (item.contentType === "movie") {
-                    removeFromWatchlist(item.id);
-                  } else {
-                    removeSeries(item.tmdbId);
-                  }
-                }}
-                className="remove-btn"
-                title="Remove from watchlist"
-                style={{ minHeight: "36px", minWidth: "36px" }}
-              >
-                <Trash2 size={16} />
-              </button>
+
+              {/* ACTION BUTTONS ON HOVER */}
+              <div className="watchlist-action-buttons">
+                {item.contentType === "movie" && (
+                  <button
+                    onClick={() => handlePlanOuting(item)}
+                    className="plan-outing-btn"
+                    title="Plan CineTrip Outing for this movie"
+                  >
+                    <CalendarDays size={15} />
+                    <span>Plan Trip</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (item.contentType === "movie") {
+                      removeFromWatchlist(item.id);
+                    } else {
+                      removeSeries(item.tmdbId);
+                    }
+                  }}
+                  className="remove-btn"
+                  title="Remove from watchlist"
+                  style={{ minHeight: "36px", minWidth: "36px" }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
       <style jsx>{`
-        .remove-btn {
+        .watchlist-action-buttons {
           position: absolute;
           top: 8px;
-          left: 8px;
-          width: 36px;
-          height: 36px;
-          background: rgba(10, 10, 15, 0.8);
+          right: 8px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          z-index: 10;
+        }
+        .plan-outing-btn {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 12px;
+          background: rgba(124, 58, 237, 0.9);
+          backdrop-filter: blur(8px);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: var(--radius-pill);
+          font-size: 0.75rem;
+          font-weight: 700;
+          cursor: pointer;
+          opacity: 0;
+          transform: translateY(-4px);
+          transition: var(--transition);
+        }
+        .watchlist-item:hover .plan-outing-btn {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .remove-btn {
+          width: 34px;
+          height: 34px;
+          background: rgba(10, 10, 15, 0.85);
           backdrop-filter: blur(8px);
           color: var(--color-text-muted);
           border: 1px solid var(--color-border);
@@ -220,9 +266,9 @@ export default function WatchlistPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 10;
+          cursor: pointer;
           opacity: 0;
-          transform: scale(0.8);
+          transform: scale(0.85);
           transition: var(--transition);
         }
         .watchlist-item:hover .remove-btn {
@@ -230,14 +276,15 @@ export default function WatchlistPage() {
           transform: scale(1);
         }
         .remove-btn:hover {
-          background: var(--color-accent);
+          background: #ef4444;
           color: white;
-          border-color: var(--color-accent);
+          border-color: #ef4444;
         }
         @media (max-width: 768px) {
+          .plan-outing-btn,
           .remove-btn {
             opacity: 1;
-            transform: scale(1);
+            transform: none;
           }
         }
       `}</style>
