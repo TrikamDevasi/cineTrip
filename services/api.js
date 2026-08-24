@@ -1,15 +1,36 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { getToken } from './auth';
 
 const getBaseUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
+
+  // On Web / PC browser: localhost is directly accessible
+  if (Platform.OS === 'web') {
+    return 'http://localhost:5000';
+  }
+
+  // If running in Expo Go (physical device or emulator connected to Metro bundler):
+  const debuggerHost =
+    Constants.expoConfig?.hostUri ||
+    Constants.manifest2?.extra?.expoGo?.debuggerHost ||
+    Constants.manifest?.debuggerHost;
+
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:5000`;
+    }
+  }
+
   if (Platform.OS === 'android') {
-    // Android emulator standard localhost loopback
+    // Android emulator fallback loopback
     return 'http://10.0.2.2:5000';
   }
-  // iOS simulator, macOS, and Web/PC browser
+
+  // iOS simulator fallback
   return 'http://localhost:5000';
 };
 
@@ -72,7 +93,7 @@ const request = async (method, path, body = null, options = {}) => {
     if (!error.statusCode) {
       const err = new Error(
         error.message.includes('fetch')
-          ? 'Unable to reach backend server. Please verify backend is running on http://localhost:5000.'
+          ? `Unable to reach backend server at ${BASE_URL}.`
           : error.message
       );
       err.statusCode = 0;

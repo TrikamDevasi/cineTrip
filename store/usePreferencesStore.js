@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
+import { getToken } from '../services/auth';
 
 export const usePreferencesStore = create(
   persist(
@@ -37,9 +38,14 @@ export const usePreferencesStore = create(
       },
 
       updateProfile: async (profileData) => {
+        // Update local state immediately
         set((state) => ({ ...state, ...profileData }));
 
+        // Only attempt backend sync if user is authenticated with a token
         try {
+          const token = await getToken();
+          if (!token) return;
+
           const payload = {};
           if (profileData.userName) payload.name = profileData.userName;
 
@@ -64,23 +70,42 @@ export const usePreferencesStore = create(
             await api.put('/api/profile', payload);
           }
         } catch (error) {
-          console.warn('Profile sync failed:', error.message);
+          // Gracefully suppress network failure for background preference sync
+          if (!error.isNetworkError) {
+            console.warn('Profile sync failed:', error.message);
+          }
         }
       },
 
-      toggleGenre: (genre) =>
-        set((state) => {
-          const exists = state.favoriteGenres.includes(genre);
-          const favoriteGenres = exists
-            ? state.favoriteGenres.filter((g) => g !== genre)
-            : [...state.favoriteGenres, genre];
-          api.put('/api/profile', { profile: { favoriteGenres } }).catch(() => {});
-          return { favoriteGenres };
-        }),
+      toggleGenre: async (genre) => {
+        const state = get();
+        const exists = state.favoriteGenres.includes(genre);
+        const favoriteGenres = exists
+          ? state.favoriteGenres.filter((g) => g !== genre)
+          : [...state.favoriteGenres, genre];
 
-      setThemeMode: (themeMode) => {
+        set({ favoriteGenres });
+
+        try {
+          const token = await getToken();
+          if (token) {
+            await api.put('/api/profile', { profile: { favoriteGenres } });
+          }
+        } catch {
+          // Silent local fallback
+        }
+      },
+
+      setThemeMode: async (themeMode) => {
         set({ themeMode });
-        api.put('/api/profile', { profile: { themeMode } }).catch(() => {});
+        try {
+          const token = await getToken();
+          if (token) {
+            await api.put('/api/profile', { profile: { themeMode } });
+          }
+        } catch {
+          // Silent local fallback
+        }
       },
 
       clearProfile: () =>
