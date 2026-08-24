@@ -1,16 +1,20 @@
+import { Platform } from 'react-native';
 import { getToken } from './auth';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-const REQUEST_TIMEOUT_MS = 15000;
+const getBaseUrl = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  if (Platform.OS === 'android') {
+    // Android emulator standard localhost loopback
+    return 'http://10.0.2.2:5000';
+  }
+  // iOS simulator, macOS, and Web/PC browser
+  return 'http://localhost:5000';
+};
 
-/**
- * Normalize API errors into a consistent shape
- */
-const normalizeError = (error, statusCode = 0) => ({
-  message: error.message || 'An unexpected error occurred.',
-  statusCode,
-  isNetworkError: statusCode === 0,
-});
+const BASE_URL = getBaseUrl();
+const REQUEST_TIMEOUT_MS = 15000;
 
 /**
  * Core fetch wrapper with:
@@ -66,10 +70,9 @@ const request = async (method, path, body = null, options = {}) => {
     }
 
     if (!error.statusCode) {
-      // Network failure (no internet)
       const err = new Error(
         error.message.includes('fetch')
-          ? 'Unable to reach server. Please check your connection.'
+          ? 'Unable to reach backend server. Please verify backend is running on http://localhost:5000.'
           : error.message
       );
       err.statusCode = 0;
@@ -89,6 +92,7 @@ const api = {
   put: (path, body, options) => request('PUT', path, body, options),
   patch: (path, body, options) => request('PATCH', path, body, options),
   delete: (path, options) => request('DELETE', path, null, options),
+  getBaseUrl: () => BASE_URL,
 };
 
 export default api;

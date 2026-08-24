@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const App = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default App;
-  const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -30,16 +20,19 @@ const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:8081',
   'http://localhost:8081',
   'http://localhost:19006',
+  'http://localhost:3000',
+  'http://127.0.0.1:8081',
   'exp://',
 ];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman)
-      if (!origin || allowedOrigins.some((o) => origin.startsWith(o))) {
+      // Allow requests with no origin (mobile apps, Postman) or matching allowed origins
+      if (!origin || allowedOrigins.some((o) => origin.startsWith(o)) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
         callback(null, true);
       } else {
-        callback(null, true); // Be permissive for mobile dev
+        callback(null, true); // Permissive for local dev
       }
     },
     credentials: true,
@@ -55,7 +48,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: 100, // More permissive in development
   message: { message: 'Too many requests from this IP. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -64,7 +57,7 @@ const authLimiter = rateLimit({
 // General API rate limiter
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 200,
+  max: 500,
   message: { message: 'Rate limit exceeded. Please slow down.' },
 });
 

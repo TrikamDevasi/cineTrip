@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Server = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Server;
-  require('dotenv').config();
+require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./config/database');
 
