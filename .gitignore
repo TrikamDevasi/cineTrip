@@ -1,4 +1,41 @@
-.next/
+# dependencies
 node_modules/
-package-lock.json
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# local env files (.env.example is committed, .env is not)
+.env
 .env*.local
+
+# typescript
+*.tsbuildinfo
+
+# backend
+backend/node_modules/
+backend/.env
+backend/.env.local

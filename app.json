@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "CineTrip",
+    "slug": "cinetrip",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "cinetrip",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "com.cinetrip.app",
+      "icon": "./assets/images/icon.png",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.cinetrip.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#0B0F1A"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0B0F1A",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "CineTrip uses your location to find cinemas near you and plan your movie night."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "CineTrip uses your contacts to add friends to your movie night. Contacts stay on your device."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "CineTrip uses your camera to capture memories from your movie nights.",
+          "microphonePermission": "CineTrip uses your microphone to record video memories from movie nights."
+        }
+      ],
+      "expo-font",
+      "expo-secure-store"
+    ]
+  }
+}

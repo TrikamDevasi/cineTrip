@@ -1,120 +1,82 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../services/api';
 
-/**
- * Watchlist store — Zustand as optimistic local cache, synced to MongoDB.
- *
- * Pattern:
- *  1. All mutations update local state IMMEDIATELY (optimistic UI).
- *  2. The mutation is then mirrored to the /api/watchlist DB endpoint.
- *  3. On login, call hydrateFromDB() to merge DB state into local state.
- *
- * Requires user to be signed in for DB sync. Local-only operations
- * (add/remove) still work for guests; they just won't persist across devices.
- */
-
-async function syncAdd(movie) {
-  try {
-    await fetch("/api/watchlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mediaId: movie.id,
-        mediaType: movie.media_type || "movie",
-        title: movie.title || movie.name,
-        posterPath: movie.poster_path,
-        backdropPath: movie.backdrop_path,
-        voteAverage: movie.vote_average,
-        releaseDate: movie.release_date || movie.first_air_date,
-        genres: movie.genre_ids || [],
-      }),
-    });
-  } catch (err) {
-    console.warn("[Watchlist] DB sync (add) failed:", err.message);
-  }
-}
-
-async function syncRemove(movieId, mediaType = "movie") {
-  try {
-    await fetch(
-      `/api/watchlist?mediaId=${movieId}&mediaType=${mediaType}`,
-      { method: "DELETE" }
-    );
-  } catch (err) {
-    console.warn("[Watchlist] DB sync (remove) failed:", err.message);
-  }
-}
-
-const useWatchlistStore = create(
+export const useWatchlistStore = create(
   persist(
     (set, get) => ({
       watchlist: [],
+      isLoading: false,
+      error: null,
+      isSynced: false,
 
-      /** Add a movie/series — updates local state then mirrors to DB */
-      addToWatchlist: (movie) => {
-        const { watchlist } = get();
-        if (!watchlist.find((m) => m.id === movie.id)) {
-          set({ watchlist: [...watchlist, { ...movie, addedAt: Date.now() }] });
-          syncAdd(movie);
+      fetchWatchlist: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await api.get('/api/watchlist');
+          const watchlist = data.data.map((item) => ({
+            ...item.movieData,
+            _id: item._id,
+            preferredFormat: item.preferredFormat,
+            addedAt: item.addedAt,
+          }));
+          set({ watchlist, isLoading: false, isSynced: true });
+        } catch (error) {
+          set({ isLoading: false, error: error.message });
         }
       },
 
-      /** Remove by TMDB id — updates local state then mirrors to DB */
-      removeFromWatchlist: (movieId, mediaType = "movie") => {
+      addToWatchlist: async (movie, preferredFormat = 'IMAX Laser') => {
         const { watchlist } = get();
-        set({ watchlist: watchlist.filter((m) => m.id !== movieId) });
-        syncRemove(movieId, mediaType);
+        if (watchlist.some((m) => m.id === movie.id)) return;
+
+        const newItem = { ...movie, addedAt: Date.now(), preferredFormat };
+        set({ watchlist: [newItem, ...watchlist] });
+
+        try {
+          await api.post('/api/watchlist', {
+            movieId: movie.id,
+            movieData: movie,
+            preferredFormat,
+          });
+        } catch (error) {
+          if (!error.isNetworkError) {
+            set({ watchlist });
+          }
+        }
       },
 
-      /** Returns true if a movie/series is in the local watchlist */
+      removeFromWatchlist: async (movieId) => {
+        const previous = get().watchlist;
+        set({ watchlist: previous.filter((m) => m.id !== movieId) });
+
+        try {
+          await api.delete(`/api/watchlist/${movieId}`);
+        } catch (error) {
+          if (!error.isNetworkError) {
+            set({ watchlist: previous });
+          }
+        }
+      },
+
+      toggleWatchlist: async (movie) => {
+        const { watchlist } = get();
+        if (watchlist.some((m) => m.id === movie.id)) {
+          await get().removeFromWatchlist(movie.id);
+        } else {
+          await get().addToWatchlist(movie);
+        }
+      },
+
       isInWatchlist: (movieId) => get().watchlist.some((m) => m.id === movieId),
 
-      /**
-       * Hydrate local state from MongoDB after sign-in.
-       * Merges DB items with any local-only items the user added as a guest.
-       * DB items take precedence for conflicts (same mediaId).
-       */
-      hydrateFromDB: async () => {
-        try {
-          const res = await fetch("/api/watchlist");
-          if (!res.ok) return;
-          const { items } = await res.json();
-          if (!Array.isArray(items)) return;
-
-          const { watchlist: local } = get();
-
-          // Build a map from DB items (DB wins on conflict)
-          const dbMap = new Map(items.map((item) => [item.mediaId, {
-            id: item.mediaId,
-            media_type: item.mediaType,
-            title: item.title,
-            poster_path: item.posterPath,
-            backdrop_path: item.backdropPath,
-            vote_average: item.voteAverage,
-            release_date: item.releaseDate,
-            genre_ids: item.genres,
-            addedAt: new Date(item.addedAt).getTime(),
-          }]));
-
-          // Add local-only items that aren't in the DB yet
-          local.forEach((item) => {
-            if (!dbMap.has(item.id)) {
-              dbMap.set(item.id, item);
-              // Sync the local-only item to DB in the background
-              syncAdd(item);
-            }
-          });
-
-          set({ watchlist: Array.from(dbMap.values()) });
-        } catch (err) {
-          console.warn("[Watchlist] Hydration from DB failed:", err.message);
-        }
-      },
+      clearWatchlist: () => set({ watchlist: [], isSynced: false }),
     }),
     {
-      name: "cinephiles-watchlist",
+      name: 'cinetrip-watchlist-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ watchlist: state.watchlist }),
     }
   )
 );
-
-export default useWatchlistStore;
