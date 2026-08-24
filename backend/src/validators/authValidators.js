@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const AuthValidators = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default AuthValidators;
-  const { z } = require('zod');
+const { z } = require('zod');
 
 const registerSchema = z.object({
   name: z

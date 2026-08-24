@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Watchlist = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Watchlist;
-  const express = require('express');
+const express = require('express');
 const router = express.Router();
 const {
   getWatchlist,

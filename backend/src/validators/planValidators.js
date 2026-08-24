@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const PlanValidators = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default PlanValidators;
-  const { z } = require('zod');
+const { z } = require('zod');
 
 const createPlanSchema = z.object({
   movie: z.object({

@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const ProfileController = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default ProfileController;
-  const User = require('../models/User');
+const User = require('../models/User');
 
 // GET /api/profile
 const getProfile = async (req, res) => {

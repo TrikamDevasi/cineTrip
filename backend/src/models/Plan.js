@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Plan = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Plan;
-  const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
 const planSchema = new mongoose.Schema(
   {

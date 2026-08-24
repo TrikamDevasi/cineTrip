@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Planner = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Planner;
-  const express = require('express');
+const express = require('express');
 const router = express.Router();
 const {
   getPlans,

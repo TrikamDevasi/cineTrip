@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const WatchlistController = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default WatchlistController;
-  const Watchlist = require('../models/Watchlist');
+const Watchlist = require('../models/Watchlist');
 
 // GET /api/watchlist
 const getWatchlist = async (req, res, next) => {

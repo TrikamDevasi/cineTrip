@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const AuthController = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default AuthController;
-  const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const generateToken = (userId) => {

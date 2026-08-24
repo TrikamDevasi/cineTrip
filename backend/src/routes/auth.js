@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Auth = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Auth;
-  const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { register, login, getMe } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');

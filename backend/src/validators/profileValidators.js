@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const ProfileValidators = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default ProfileValidators;
-  const { z } = require('zod');
+const { z } = require('zod');
 
 const updateProfileSchema = z.object({
   name: z.string().min(2).max(100).trim().optional(),

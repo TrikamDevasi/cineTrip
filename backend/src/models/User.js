@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const User = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default User;
-  const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(

@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const MemoryValidators = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default MemoryValidators;
-  const { z } = require('zod');
+const { z } = require('zod');
 
 const createMemorySchema = z.object({
   movie: z.object({

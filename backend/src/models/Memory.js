@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Memory = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Memory;
-  const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
 const memorySchema = new mongoose.Schema(
   {

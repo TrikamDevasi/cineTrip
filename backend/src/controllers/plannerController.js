@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const PlannerController = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default PlannerController;
-  const Plan = require('../models/Plan');
+const Plan = require('../models/Plan');
 
 // GET /api/plans
 const getPlans = async (req, res, next) => {

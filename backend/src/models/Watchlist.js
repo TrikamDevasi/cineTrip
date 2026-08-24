@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Watchlist = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Watchlist;
-  const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
 const watchlistSchema = new mongoose.Schema(
   {

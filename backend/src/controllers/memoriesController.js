@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const MemoriesController = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default MemoriesController;
-  const Memory = require('../models/Memory');
+const Memory = require('../models/Memory');
 
 // GET /api/memories
 const getMemories = async (req, res, next) => {

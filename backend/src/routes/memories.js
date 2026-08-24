@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Memories = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Memories;
-  const express = require('express');
+const express = require('express');
 const router = express.Router();
 const {
   getMemories,

@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const Database = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default Database;
-  const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
 let isConnected = false;
 

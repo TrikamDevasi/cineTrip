@@ -1,14 +1,4 @@
-import React from 'react';
-  
-  const ErrorHandler = () =>  {
-	return (
-	  <div>
-	  </div>
-	);
-  }
-  
-  export default ErrorHandler;
-  const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, req, res, next) => {
   console.error('Error:', err.message);
 
   // Mongoose validation error
