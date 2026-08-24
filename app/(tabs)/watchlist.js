@@ -6,34 +6,31 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Plus, Film, Search, Bookmark } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import MovieCard from '../../components/MovieCard';
+import EmptyState from '../../components/ui/EmptyState';
 import { useWatchlistStore } from '../../store/useWatchlistStore';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 
 export default function WatchlistScreen() {
   const router = useRouter();
-  const [filterType, setFilterType] = useState('all'); // 'all' | 'imax' | 'recent'
+  const [filterType, setFilterType] = useState('all'); // 'all' | 'imax'
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   const {
     watchlist,
     isLoading,
-    error,
     fetchWatchlist,
-    removeFromWatchlist,
   } = useWatchlistStore();
-  const setDraftMovie = usePlannerStore((s) => s.setDraftMovie);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
@@ -66,18 +63,6 @@ export default function WatchlistScreen() {
     return true;
   });
 
-  const handlePlanMovie = (movie) => {
-    setDraftMovie(movie);
-    router.push('/(tabs)/planner');
-  };
-
-  const handleRemove = (movie) => {
-    Alert.alert('Remove Film', `Remove "${movie.title}" from your watchlist?`, [
-      { text: 'Keep' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeFromWatchlist(movie.id) },
-    ]);
-  };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -94,8 +79,11 @@ export default function WatchlistScreen() {
         <TouchableOpacity
           style={styles.exploreBtn}
           onPress={() => router.push('/(tabs)/discover')}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Discover more movies to add to watchlist"
         >
-          <Ionicons name="add" size={16} color="#07090E" />
+          <Plus size={15} color="#07090E" strokeWidth={2.4} />
           <Text style={styles.exploreBtnText}>Add More</Text>
         </TouchableOpacity>
       </View>
@@ -105,6 +93,10 @@ export default function WatchlistScreen() {
         <TouchableOpacity
           style={[styles.filterTab, filterType === 'all' && styles.filterTabActive]}
           onPress={() => setFilterType('all')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Show all queued films"
+          accessibilityState={{ selected: filterType === 'all' }}
         >
           <Text style={[styles.filterTabText, filterType === 'all' && styles.filterTabTextActive]}>
             All Queued ({watchlist.length})
@@ -114,12 +106,16 @@ export default function WatchlistScreen() {
         <TouchableOpacity
           style={[styles.filterTab, filterType === 'imax' && styles.filterTabActive]}
           onPress={() => setFilterType('imax')}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Show IMAX and premium screens only"
+          accessibilityState={{ selected: filterType === 'imax' }}
         >
-          <MaterialCommunityIcons
-            name="filmstrip"
+          <Film
             size={13}
             color={filterType === 'imax' ? '#07090E' : COLORS.primary}
-            style={{ marginRight: 4 }}
+            strokeWidth={2}
+            style={{ marginRight: 5 }}
           />
           <Text style={[styles.filterTabText, filterType === 'imax' && styles.filterTabTextActive]}>
             IMAX & Premium
@@ -130,7 +126,7 @@ export default function WatchlistScreen() {
       {/* Search Filter in Watchlist */}
       {watchlist.length > 3 && (
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={15} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+          <Search size={15} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Filter saved films..."
@@ -143,24 +139,19 @@ export default function WatchlistScreen() {
 
       {/* Loading state */}
       {isLoading && !refreshing && watchlist.length === 0 ? (
-        <View style={styles.emptyState}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={[styles.emptySubtitle, { marginTop: 12 }]}>Loading your watchlist...</Text>
+          <Text style={styles.loadingText}>Loading your watchlist...</Text>
         </View>
       ) : filteredList.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="bookmark-outline" size={56} color={COLORS.textMuted} />
-          <Text style={styles.emptyTitle}>Your Watchlist is Empty</Text>
-          <Text style={styles.emptySubtitle}>
-            Save films from Discover or Home to easily plan movie trips later.
-          </Text>
-          <TouchableOpacity
-            style={styles.discoverCTA}
-            onPress={() => router.push('/(tabs)/discover')}
-          >
-            <Text style={styles.discoverCTAText}>Explore Trending Films</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon="Bookmark"
+          title="Your Watchlist is Empty"
+          description="Save films from Discover or Home to easily plan movie trips later."
+          actionLabel="Explore Trending Films"
+          onAction={() => router.push('/(tabs)/discover')}
+          actionIcon="Compass"
+        />
       ) : (
         <FlatList
           data={filteredList}
@@ -185,7 +176,6 @@ export default function WatchlistScreen() {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -217,12 +207,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: RADIUS.sm,
+    gap: 4,
   },
   exploreBtnText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#07090E',
-    marginLeft: 3,
   },
   filterRow: {
     flexDirection: 'row',
@@ -277,34 +267,15 @@ const styles = StyleSheet.create({
   itemWrapper: {
     position: 'relative',
   },
-  emptyState: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.xxl,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 13,
+  loadingText: {
     color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 18,
-  },
-  discoverCTA: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: RADIUS.md,
-  },
-  discoverCTAText: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#07090E',
+    marginTop: 12,
   },
 });

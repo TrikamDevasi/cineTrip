@@ -9,10 +9,11 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Camera, AlertCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import MemoryCard from '../../components/MemoryCard';
+import EmptyState from '../../components/ui/EmptyState';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
@@ -75,8 +76,10 @@ export default function MemoriesScreen() {
             style={styles.logBtn}
             onPress={() => router.push('/memory/create')}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Log a new movie night memory"
           >
-            <Ionicons name="camera" size={16} color="#07090E" />
+            <Camera size={16} color="#07090E" strokeWidth={2.2} />
             <Text style={styles.logBtnText}>Log Memory</Text>
           </TouchableOpacity>
         </View>
@@ -112,9 +115,13 @@ export default function MemoriesScreen() {
         {/* Error Retry Banner */}
         {error && (
           <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
+            <AlertCircle size={16} color={COLORS.danger} strokeWidth={2} />
             <Text style={styles.errorBannerText}>{error}</Text>
-            <TouchableOpacity onPress={() => fetchMemories(1)}>
+            <TouchableOpacity
+              onPress={() => fetchMemories(1)}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading memories"
+            >
               <Text style={styles.retryText}>Retry</Text>
             </TouchableOpacity>
           </View>
@@ -122,19 +129,14 @@ export default function MemoriesScreen() {
 
         {/* Memories Feed */}
         {!isLoading && memories.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="camera-outline" size={56} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>No Movie Memories Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Capture your next movie night experience, tag your squad, and log the highlight scenes.
-            </Text>
-            <TouchableOpacity
-              style={styles.firstLogBtn}
-              onPress={() => router.push('/memory/create')}
-            >
-              <Text style={styles.firstLogBtnText}>Log Your First Movie Night</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon="Camera"
+            title="No Movie Memories Yet"
+            description="Capture your next movie night experience, tag your squad, and log the highlight scenes."
+            actionLabel="Log Your First Movie Night"
+            onAction={() => router.push('/memory/create')}
+            actionIcon="Plus"
+          />
         ) : (
           <View style={styles.feedWrapper}>
             {memories.map((m) => (
@@ -142,7 +144,12 @@ export default function MemoriesScreen() {
             ))}
 
             {hasNextPage && (
-              <TouchableOpacity style={styles.loadMoreBtn} onPress={loadNextPage}>
+              <TouchableOpacity
+                style={styles.loadMoreBtn}
+                onPress={loadNextPage}
+                accessibilityRole="button"
+                accessibilityLabel="Load older journal memories"
+              >
                 <Text style={styles.loadMoreBtnText}>Load Older Memories</Text>
               </TouchableOpacity>
             )}
@@ -154,7 +161,6 @@ export default function MemoriesScreen() {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -189,16 +195,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: RADIUS.md,
+    gap: 6,
     ...SHADOWS.glowCyan,
   },
   logBtnText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#07090E',
-    marginLeft: 5,
   },
-
-  // Stats Banner
   statsBanner: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -230,40 +234,8 @@ const styles = StyleSheet.create({
     height: 24,
     backgroundColor: COLORS.cardBorder,
   },
-
   feedWrapper: {
     paddingTop: 4,
-  },
-
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.xxl,
-    marginTop: SPACING.xl,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 18,
-  },
-  firstLogBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: RADIUS.md,
-  },
-  firstLogBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#07090E',
   },
   loadingBox: {
     alignItems: 'center',
@@ -315,4 +287,3 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
 });
-

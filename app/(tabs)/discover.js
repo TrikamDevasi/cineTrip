@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Search, X, CloudOff } from 'lucide-react-native';
 import Header from '../../components/Header';
 import MovieCard from '../../components/MovieCard';
-import FormatBadge from '../../components/FormatBadge';
+import EmptyState from '../../components/ui/EmptyState';
+import Icon from '../../components/ui/Icon';
 import {
   searchMovies,
   getTrendingMovies,
@@ -21,7 +22,7 @@ import {
   FALLBACK_GENRES,
 } from '../../services/tmdb';
 import { useDebounce } from '../../hooks/useDebounce';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 
 const FORMAT_FILTERS = ['All Formats', 'IMAX Laser', 'Dolby Cinema', '4DX', 'RealD 3D'];
 
@@ -93,7 +94,7 @@ export default function DiscoverScreen() {
     }
     setLoading(true);
     setError(null);
-    setHasMore(false); // Disable pagination for search results
+    setHasMore(false);
     try {
       const results = await searchMovies(text);
       setMovies(results && results.length > 0 ? results : []);
@@ -130,19 +131,24 @@ export default function DiscoverScreen() {
       {/* Search Input Bar */}
       <View style={styles.searchBarWrapper}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={18} color={COLORS.primary} style={styles.searchIcon} />
+          <Search size={18} color={COLORS.primary} strokeWidth={2} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search films, actors, directors, IMAX..."
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
-            onChangeText={handleSearch}
+            onChangeText={setSearchQuery}
             returnKeyType="search"
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
+            <TouchableOpacity
+              onPress={clearSearch}
+              style={styles.clearBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search text"
+            >
+              <X size={18} color={COLORS.textSecondary} strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
@@ -159,6 +165,9 @@ export default function DiscoverScreen() {
                 onPress={() => setSelectedFormat(fmt)}
                 style={[styles.filterChip, isSelected && styles.filterChipActive]}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Format filter: ${fmt}`}
+                accessibilityState={{ selected: isSelected }}
               >
                 <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
                   {fmt}
@@ -176,6 +185,9 @@ export default function DiscoverScreen() {
             onPress={() => setSelectedGenre(null)}
             style={[styles.genrePill, !selectedGenre && styles.genrePillActive]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Filter by all genres"
+            accessibilityState={{ selected: !selectedGenre }}
           >
             <Text style={[styles.genrePillText, !selectedGenre && styles.genrePillTextActive]}>
               All Genres
@@ -190,12 +202,15 @@ export default function DiscoverScreen() {
                 onPress={() => setSelectedGenre(isSelected ? null : g.id)}
                 style={[styles.genrePill, isSelected && styles.genrePillActive]}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by genre: ${g.name}`}
+                accessibilityState={{ selected: isSelected }}
               >
-                <Ionicons
-                  name={g.icon || 'film'}
+                <Icon
+                  name={g.icon || 'Film'}
                   size={13}
                   color={isSelected ? '#07090E' : COLORS.textSecondary}
-                  style={{ marginRight: 4 }}
+                  style={{ marginRight: 5 }}
                 />
                 <Text style={[styles.genrePillText, isSelected && styles.genrePillTextActive]}>
                   {g.name}
@@ -213,14 +228,18 @@ export default function DiscoverScreen() {
           <Text style={styles.loadingText}>Searching cinematic archives...</Text>
         </View>
       ) : filteredMovies.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="film-outline" size={48} color={COLORS.textMuted} />
-          <Text style={styles.emptyTitle}>No matching films found</Text>
-          <Text style={styles.emptySubtitle}>Try searching for Dune, Oppenheimer, or reset filters.</Text>
-          <TouchableOpacity onPress={() => { setSelectedFormat('All Formats'); setSelectedGenre(null); clearSearch(); }} style={styles.resetBtn}>
-            <Text style={styles.resetBtnText}>Reset All Filters</Text>
-          </TouchableOpacity>
-        </View>
+        <EmptyState
+          icon="Film"
+          title="No matching films found"
+          description="Try searching for Dune, Oppenheimer, or reset your current filters."
+          actionLabel="Reset All Filters"
+          onAction={() => {
+            setSelectedFormat('All Formats');
+            setSelectedGenre(null);
+            clearSearch();
+          }}
+          actionIcon="RotateCcw"
+        />
       ) : (
         <FlatList
           data={filteredMovies}
@@ -234,7 +253,7 @@ export default function DiscoverScreen() {
             <View style={styles.resultsHeader}>
               {error && (
                 <View style={styles.offlineBanner}>
-                  <Ionicons name="cloud-offline-outline" size={13} color={COLORS.secondary} />
+                  <CloudOff size={13} color={COLORS.secondary} strokeWidth={2} />
                   <Text style={styles.offlineBannerText}>{error}</Text>
                 </View>
               )}
@@ -288,7 +307,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   clearBtn: {
-    padding: 4,
+    padding: 6,
   },
   filtersContainer: {
     paddingVertical: 6,
@@ -298,7 +317,7 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: RADIUS.sm,
     backgroundColor: COLORS.surface,
     marginRight: 8,
@@ -306,7 +325,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
   },
   filterChipActive: {
-    backgroundColor: COLORS.primaryMuted,
+    backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
   filterChipText: {
@@ -315,7 +334,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   filterChipTextActive: {
-    color: COLORS.primary,
+    color: '#07090E',
   },
   genreContainer: {
     paddingBottom: 8,
@@ -326,11 +345,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: RADIUS.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: COLORS.surface,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   genrePillActive: {
     backgroundColor: COLORS.secondary,
+    borderColor: COLORS.secondary,
   },
   genrePillText: {
     fontSize: 12,
@@ -345,44 +367,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.xl,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginTop: 12,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: SPACING.xxl,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: COLORS.text,
-    marginTop: 12,
-  },
-  emptySubtitle: {
-    fontSize: 13,
+  loadingText: {
     color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 16,
-  },
-  resetBtn: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  resetBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontSize: 13,
+    marginTop: 12,
   },
   resultsList: {
     paddingTop: 8,

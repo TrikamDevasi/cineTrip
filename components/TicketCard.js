@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Share } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ticket, Film, User, QrCode, Share2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import FormatBadge from './FormatBadge';
@@ -16,11 +16,11 @@ export default function TicketCard({ plan, isFullPass = false }) {
   const friends = plan.friends || [];
 
   const handleOpenTicket = () => {
-    router.push(`/ticket/${plan._id}`);
+    router.push(`/ticket/${plan._id || plan.id}`);
   };
 
   const handleShare = async () => {
-    const message = `🎬 CineTrip Invite!\nWe're watching "${movie.title}" at ${cinema.name || 'Cinema'}!\n📅 Date: ${plan.date} at ${plan.time}\n💺 Seats: ${plan.seats || 'General Admission'}\nJoin our squad on CineTrip!`;
+    const message = `CineTrip Invite!\nWe're watching "${movie.title}" at ${cinema.name || 'Cinema'}!\nDate: ${plan.date} at ${plan.time}\nSeats: ${plan.seats || 'General Admission'}\nJoin our squad on CineTrip!`;
     try {
       await Share.share({ message });
     } catch (err) {
@@ -34,7 +34,7 @@ export default function TicketCard({ plan, isFullPass = false }) {
       <View style={styles.topSection}>
         <View style={styles.headerRow}>
           <View style={styles.brandingRow}>
-            <MaterialCommunityIcons name="ticket-confirmation" size={16} color={COLORS.primary} />
+            <Ticket size={16} color={COLORS.primary} strokeWidth={2.2} />
             <Text style={styles.passHeaderTitle}>CINETRIP DIGITAL PASS</Text>
           </View>
           <View style={styles.statusBadge}>
@@ -47,7 +47,7 @@ export default function TicketCard({ plan, isFullPass = false }) {
         </Text>
 
         <View style={styles.cinemaRow}>
-          <Ionicons name="film-outline" size={13} color={COLORS.secondary} />
+          <Film size={13} color={COLORS.secondary} strokeWidth={2} />
           <Text style={styles.cinemaName} numberOfLines={1}>
             {cinema.name || 'IMAX Laser Experience'}
           </Text>
@@ -89,9 +89,9 @@ export default function TicketCard({ plan, isFullPass = false }) {
           <View style={styles.squadRow}>
             <Text style={styles.squadLabel}>SQUAD:</Text>
             <View style={styles.avatarList}>
-              {friends.map((f, i) => (
+              {friends.slice(0, 5).map((f, i) => (
                 <View key={i} style={styles.avatarBubble}>
-                  <Text style={styles.avatarEmoji}>{f.avatar || '🍿'}</Text>
+                  <User size={12} color={COLORS.primary} strokeWidth={2} />
                 </View>
               ))}
             </View>
@@ -105,8 +105,10 @@ export default function TicketCard({ plan, isFullPass = false }) {
             style={styles.viewPassBtn}
             onPress={handleOpenTicket}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`View digital pass for ${movie.title}`}
           >
-            <Ionicons name="qr-code-outline" size={14} color="#07090E" />
+            <QrCode size={14} color="#07090E" strokeWidth={2.2} />
             <Text style={styles.viewPassText}>View Ticket Pass</Text>
           </TouchableOpacity>
 
@@ -114,8 +116,10 @@ export default function TicketCard({ plan, isFullPass = false }) {
             style={styles.shareBtn}
             onPress={handleShare}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Share pass for ${movie.title} with squad`}
           >
-            <Ionicons name="share-social-outline" size={16} color={COLORS.primary} />
+            <Share2 size={16} color={COLORS.primary} strokeWidth={2} />
           </TouchableOpacity>
         </View>
       </View>
@@ -128,16 +132,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorderGlow,
+    borderColor: COLORS.cardBorder,
     overflow: 'hidden',
-    ...SHADOWS.glowCyan,
+    ...SHADOWS.card,
   },
   fullPassContainer: {
     marginHorizontal: 0,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
   },
   topSection: {
     padding: SPACING.lg,
@@ -152,84 +154,82 @@ const styles = StyleSheet.create({
   brandingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   passHeaderTitle: {
-    fontSize: 10,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '900',
     color: COLORS.primary,
-    letterSpacing: 1,
-    marginLeft: 5,
+    letterSpacing: 1.2,
   },
   statusBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: RADIUS.xs,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
   },
   statusText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800',
     color: COLORS.success,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   movieTitle: {
     fontSize: 20,
     fontWeight: '900',
     color: '#FFFFFF',
-    marginVertical: 4,
+    marginBottom: 4,
   },
   cinemaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    gap: 5,
   },
   cinemaName: {
     fontSize: 13,
     color: COLORS.textSecondary,
-    marginLeft: 5,
     fontWeight: '600',
   },
   formatRow: {
     flexDirection: 'row',
-    marginTop: 2,
+    gap: 6,
   },
 
-  // Perforation Notch
+  // Perforation
   notchDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 24,
+    height: 20,
     backgroundColor: COLORS.card,
-    position: 'relative',
   },
   leftNotch: {
     width: 14,
-    height: 24,
+    height: 20,
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
     backgroundColor: COLORS.background,
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
   },
   dashedLine: {
     flex: 1,
     height: 1,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: COLORS.cardBorder,
     borderStyle: 'dashed',
-    marginHorizontal: 8,
   },
   rightNotch: {
     width: 14,
-    height: 24,
+    height: 20,
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
     backgroundColor: COLORS.background,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
   },
 
+  // Bottom section
   bottomSection: {
     padding: SPACING.lg,
-    paddingTop: 8,
     backgroundColor: COLORS.card,
   },
   metaGrid: {
@@ -242,18 +242,18 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.textMuted,
     letterSpacing: 0.8,
     marginBottom: 2,
   },
   metaValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: COLORS.text,
+    color: '#FFFFFF',
   },
   metaHighlight: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.primary,
     marginTop: 1,
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   bookingRefText: {
     fontSize: 11,
     color: COLORS.secondary,
-    fontWeight: '600',
+    fontWeight: '700',
     marginTop: 2,
   },
   squadRow: {
@@ -269,43 +269,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderBottomWidth: 1,
     borderColor: COLORS.cardBorder,
     marginBottom: 12,
   },
   squadLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: COLORS.textSecondary,
-    marginRight: 8,
+    color: COLORS.textMuted,
+    letterSpacing: 0.8,
+    marginRight: 6,
   },
   avatarList: {
     flexDirection: 'row',
-    marginRight: 8,
+    alignItems: 'center',
   },
   avatarBubble: {
-    width: 26,
-    height: 26,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surfaceHighlight,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: -6,
     borderWidth: 1.5,
     borderColor: COLORS.card,
   },
-  avatarEmoji: {
-    fontSize: 13,
-  },
   squadCount: {
     fontSize: 11,
     color: COLORS.textSecondary,
-    marginLeft: 10,
+    marginLeft: 12,
+    fontWeight: '600',
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    gap: 8,
   },
   viewPassBtn: {
     flex: 1,
@@ -313,15 +311,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    paddingVertical: 9,
+    paddingVertical: 10,
     borderRadius: RADIUS.sm,
-    marginRight: 10,
+    gap: 6,
   },
   viewPassText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#07090E',
-    marginLeft: 6,
   },
   shareBtn: {
     width: 38,
@@ -331,6 +328,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
+    borderColor: COLORS.cardBorder,
   },
 });

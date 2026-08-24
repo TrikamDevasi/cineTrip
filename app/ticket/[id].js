@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { X, QrCode, Copy, Share2 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import TicketCard from '../../components/TicketCard';
 import { usePlannerStore } from '../../store/usePlannerStore';
@@ -26,8 +26,13 @@ export default function TicketModalScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color="#FFFFFF" />
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.closeBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Close ticket pass"
+          >
+            <X size={22} color="#FFFFFF" strokeWidth={2} />
           </TouchableOpacity>
         </View>
         <View style={styles.centerContainer}>
@@ -46,7 +51,7 @@ export default function TicketModalScreen() {
   const handleSharePass = async () => {
     const movie = plan.movie || {};
     const cinema = plan.cinema || {};
-    const message = `🎟️ CineTrip Digital Pass\nMovie: ${movie.title}\nTheater: ${cinema.name}\nDate/Time: ${plan.date} at ${plan.time}\nSeats: ${plan.seats || 'General'}\nRef: ${plan.bookingRef || 'CIN-88429'}\nSee you at the movies!`;
+    const message = `CineTrip Digital Pass\nMovie: ${movie.title}\nTheater: ${cinema.name}\nDate/Time: ${plan.date} at ${plan.time}\nSeats: ${plan.seats || 'General'}\nRef: ${plan.bookingRef || 'CIN-88429'}\nSee you at the movies!`;
     try {
       await Share.share({ message });
     } catch (e) {}
@@ -57,8 +62,13 @@ export default function TicketModalScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Digital Cinema Pass</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <Ionicons name="close" size={22} color="#FFFFFF" />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.closeBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Close ticket pass"
+        >
+          <X size={20} color="#FFFFFF" strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
@@ -69,13 +79,18 @@ export default function TicketModalScreen() {
           {/* Barcode & QR Code Section */}
           <View style={styles.barcodeCard}>
             <View style={styles.qrCodePlaceholder}>
-              <Ionicons name="qr-code" size={130} color={COLORS.primary} />
+              <QrCode size={120} color={COLORS.primary} strokeWidth={1.6} />
             </View>
             <Text style={styles.scanText}>SCAN AT THEATER TURNSTILE</Text>
             <Text style={styles.bookingRef}>{plan.bookingRef || 'CIN-88429'}</Text>
 
-            <TouchableOpacity style={styles.copyRefBtn} onPress={handleCopyRef}>
-              <Ionicons name="copy-outline" size={13} color={COLORS.primary} />
+            <TouchableOpacity
+              style={styles.copyRefBtn}
+              onPress={handleCopyRef}
+              accessibilityRole="button"
+              accessibilityLabel="Copy booking reference code"
+            >
+              <Copy size={13} color={COLORS.primary} strokeWidth={2} />
               <Text style={styles.copyRefText}>Copy Code</Text>
             </TouchableOpacity>
           </View>
@@ -87,8 +102,10 @@ export default function TicketModalScreen() {
             style={styles.sharePassBtn}
             onPress={handleSharePass}
             activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel="Share cinema pass with movie squad"
           >
-            <Ionicons name="share-social-outline" size={18} color="#07090E" />
+            <Share2 size={18} color="#07090E" strokeWidth={2.2} />
             <Text style={styles.sharePassText}>Share Pass with Squad</Text>
           </TouchableOpacity>
         </View>
@@ -117,9 +134,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -143,12 +160,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
   },
   qrCodePlaceholder: {
-    padding: 12,
+    padding: 16,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: 'rgba(0, 240, 255, 0.3)',
     marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scanText: {
     fontSize: 10,
@@ -168,15 +187,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primaryMuted,
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: RADIUS.xs,
     marginTop: 8,
+    gap: 5,
   },
   copyRefText: {
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.primary,
-    marginLeft: 4,
   },
   actionsWrapper: {
     paddingHorizontal: SPACING.lg,
@@ -189,13 +208,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: 14,
     borderRadius: RADIUS.md,
+    gap: 8,
     ...SHADOWS.glowCyan,
   },
   sharePassText: {
     fontSize: 14,
     fontWeight: '900',
     color: '#07090E',
-    marginLeft: 8,
   },
   centerContainer: {
     flex: 1,

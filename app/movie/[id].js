@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ArrowLeft, Share2, Bookmark, Star, Ticket } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FormatBadge from '../../components/FormatBadge';
 import { getMovieDetails, getImageUri, FALLBACK_MOVIES } from '../../services/tmdb';
@@ -50,7 +50,7 @@ export default function MovieDetailScreen() {
     if (!movie) return;
     try {
       await Share.share({
-        message: `🎬 Check out "${movie.title}" on CineTrip! Let's plan a movie night!`,
+        message: `Check out "${movie.title}" on CineTrip! Let's plan a movie night!`,
       });
     } catch (e) {}
   };
@@ -86,26 +86,37 @@ export default function MovieDetailScreen() {
 
           {/* Floating Navigation Header */}
           <SafeAreaView style={styles.navHeader} edges={['top']}>
-            <TouchableOpacity style={styles.iconCircle} onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+            <TouchableOpacity
+              style={styles.iconCircle}
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <ArrowLeft size={20} color="#FFFFFF" strokeWidth={2.2} />
             </TouchableOpacity>
 
             <View style={styles.navActions}>
               <TouchableOpacity
                 style={[styles.iconCircle, { marginRight: 10 }]}
                 onPress={handleShare}
+                accessibilityRole="button"
+                accessibilityLabel={`Share ${movie.title}`}
               >
-                <Ionicons name="share-outline" size={19} color="#FFFFFF" />
+                <Share2 size={18} color="#FFFFFF" strokeWidth={2} />
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.iconCircle}
                 onPress={() => toggleWatchlist(movie)}
+                accessibilityRole="button"
+                accessibilityLabel={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Add ${movie.title} to watchlist`}
+                accessibilityState={{ selected: isInWatchlist }}
               >
-                <Ionicons
-                  name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
-                  size={19}
+                <Bookmark
+                  size={18}
                   color={isInWatchlist ? COLORS.primary : '#FFFFFF'}
+                  fill={isInWatchlist ? COLORS.primary : 'transparent'}
+                  strokeWidth={2}
                 />
               </TouchableOpacity>
             </View>
@@ -122,7 +133,7 @@ export default function MovieDetailScreen() {
           <View style={styles.metaInfo}>
             <View style={styles.ratingRow}>
               <View style={styles.ratingBadge}>
-                <Ionicons name="star" size={13} color={COLORS.secondary} />
+                <Star size={12} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
                 <Text style={styles.ratingText}>{rating}</Text>
               </View>
               <Text style={styles.yearText}>{year} • {runtime}</Text>
@@ -198,11 +209,14 @@ export default function MovieDetailScreen() {
           style={styles.watchlistToggleBtn}
           onPress={() => toggleWatchlist(movie)}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
         >
-          <Ionicons
-            name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
+          <Bookmark
             size={18}
             color={isInWatchlist ? COLORS.primary : '#FFFFFF'}
+            fill={isInWatchlist ? COLORS.primary : 'transparent'}
+            strokeWidth={2}
           />
           <Text style={[styles.watchlistToggleText, isInWatchlist && { color: COLORS.primary }]}>
             {isInWatchlist ? 'Saved' : 'Watchlist'}
@@ -213,8 +227,10 @@ export default function MovieDetailScreen() {
           style={styles.planMovieBtn}
           onPress={handlePlanTrip}
           activeOpacity={0.88}
+          accessibilityRole="button"
+          accessibilityLabel={`Plan movie night for ${movie.title}`}
         >
-          <MaterialCommunityIcons name="ticket-confirmation" size={18} color="#07090E" />
+          <Ticket size={18} color="#07090E" strokeWidth={2.2} />
           <Text style={styles.planMovieBtnText}>Plan Movie Night</Text>
         </TouchableOpacity>
       </View>
@@ -266,9 +282,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(7, 9, 14, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -311,12 +327,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
     marginRight: 8,
+    gap: 3,
   },
   ratingText: {
     fontSize: 12,
     fontWeight: '800',
     color: COLORS.secondary,
-    marginLeft: 3,
   },
   yearText: {
     fontSize: 12,
@@ -428,6 +444,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+    minHeight: 48,
+    minWidth: 64,
   },
   watchlistToggleText: {
     fontSize: 11,
@@ -443,13 +461,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: 14,
     borderRadius: RADIUS.md,
+    gap: 6,
+    minHeight: 48,
     ...SHADOWS.glowCyan,
   },
   planMovieBtnText: {
     fontSize: 14,
     fontWeight: '900',
     color: '#07090E',
-    marginLeft: 6,
     letterSpacing: 0.3,
   },
 });

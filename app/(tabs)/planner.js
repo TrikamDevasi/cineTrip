@@ -12,11 +12,29 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  Wrench,
+  Ticket,
+  Plus,
+  PlusCircle,
+  Check,
+  CheckCircle2,
+  Trash2,
+  Volume2,
+  ArrowLeftRight,
+  X,
+  Star,
+  User,
+  Utensils,
+  MapPin,
+  Clock,
+  Calendar,
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import TicketCard from '../../components/TicketCard';
 import FormatBadge from '../../components/FormatBadge';
+import EmptyState from '../../components/ui/EmptyState';
 import { FALLBACK_MOVIES, getImageUri } from '../../services/tmdb';
 import { SAMPLE_CINEMAS } from '../../services/location';
 import { getDeviceContacts, PRESET_SQUAD } from '../../services/contacts';
@@ -32,12 +50,12 @@ const TIME_SLOTS = [
 ];
 
 const SNACK_OPTIONS = [
-  '🍿 Giant Caramel Popcorn',
-  '🧀 Loaded Cheese Nachos',
-  '☕ Cold Brew Coffee',
-  '🥤 Cherry ICEE',
-  '🌭 Gourmet Hot Dog',
-  '🍫 Dark Chocolate Bites',
+  'Giant Caramel Popcorn',
+  'Loaded Cheese Nachos',
+  'Cold Brew Coffee',
+  'Cherry ICEE',
+  'Gourmet Hot Dog',
+  'Dark Chocolate Bites',
 ];
 
 export default function PlannerScreen() {
@@ -106,7 +124,6 @@ export default function PlannerScreen() {
     const newFriend = {
       id: `custom-${Date.now()}`,
       name: customFriendName.trim(),
-      avatar: ['🍿', '✨', '🎬', '🥤', '🚀'][Math.floor(Math.random() * 5)],
       status: 'invited',
     };
     addDraftFriend(newFriend);
@@ -135,7 +152,7 @@ export default function PlannerScreen() {
 
       setIsSaving(false);
       Alert.alert(
-        '🎉 Trip Plan Locked In!',
+        'Trip Plan Locked In!',
         `Your movie night for "${draft.movie.title}" has been saved. Ready to view your ticket pass?`,
         [
           {
@@ -165,11 +182,14 @@ export default function PlannerScreen() {
             style={[styles.modeTab, activeTab === 'builder' && styles.modeTabActive]}
             onPress={() => setActiveTab('builder')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Switch to Trip Builder"
+            accessibilityState={{ selected: activeTab === 'builder' }}
           >
-            <Ionicons
-              name="construct-outline"
+            <Wrench
               size={15}
               color={activeTab === 'builder' ? '#07090E' : COLORS.textSecondary}
+              strokeWidth={2}
               style={{ marginRight: 6 }}
             />
             <Text style={[styles.modeTabText, activeTab === 'builder' && styles.modeTabTextActive]}>
@@ -181,11 +201,14 @@ export default function PlannerScreen() {
             style={[styles.modeTab, activeTab === 'plans' && styles.modeTabActive]}
             onPress={() => setActiveTab('plans')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Switch to active plans. ${plans.length} plans available.`}
+            accessibilityState={{ selected: activeTab === 'plans' }}
           >
-            <Ionicons
-              name="ticket-outline"
+            <Ticket
               size={15}
               color={activeTab === 'plans' ? '#07090E' : COLORS.textSecondary}
+              strokeWidth={2}
               style={{ marginRight: 6 }}
             />
             <Text style={[styles.modeTabText, activeTab === 'plans' && styles.modeTabTextActive]}>
@@ -206,33 +229,30 @@ export default function PlannerScreen() {
           </View>
 
           {plans.length === 0 ? (
-            <View style={styles.emptyPlans}>
-              <MaterialCommunityIcons name="ticket-outline" size={56} color={COLORS.textMuted} />
-              <Text style={styles.emptyPlansTitle}>No Active Movie Nights</Text>
-              <Text style={styles.emptyPlansSubtitle}>
-                Use the Trip Builder to pick a film, cinema, and squad!
-              </Text>
-              <TouchableOpacity
-                style={styles.startPlanBtn}
-                onPress={() => setActiveTab('builder')}
-              >
-                <Text style={styles.startPlanBtnText}>Create New Plan</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyState
+              icon="Ticket"
+              title="No Active Movie Nights"
+              description="Use the Trip Builder to pick a film, cinema, and squad!"
+              actionLabel="Create New Plan"
+              onAction={() => setActiveTab('builder')}
+              actionIcon="Plus"
+            />
           ) : (
             plans.map((p) => (
-              <View key={p._id} style={styles.planCardWrapper}>
+              <View key={p._id || p.id} style={styles.planCardWrapper}>
                 <TicketCard plan={p} />
                 <TouchableOpacity
                   style={styles.deletePlanBtn}
                   onPress={() => {
                     Alert.alert('Cancel Trip', 'Are you sure you want to remove this trip plan?', [
                       { text: 'Keep' },
-                      { text: 'Remove', style: 'destructive', onPress: () => deletePlan(p._id) },
+                      { text: 'Remove', style: 'destructive', onPress: () => deletePlan(p._id || p.id) },
                     ]);
                   }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Cancel trip plan for ${p.movie ? p.movie.title : 'movie'}`}
                 >
-                  <Ionicons name="trash-outline" size={14} color={COLORS.danger} />
+                  <Trash2 size={13} color={COLORS.danger} strokeWidth={2} />
                   <Text style={styles.deletePlanText}>Cancel Plan</Text>
                 </TouchableOpacity>
               </View>
@@ -262,9 +282,16 @@ export default function PlannerScreen() {
                   <Text style={styles.selectedMovieTitle} numberOfLines={2}>
                     {draft.movie.title}
                   </Text>
-                  <Text style={styles.selectedMovieMeta}>
-                    {draft.movie.runtime || 165} min • ⭐ {draft.movie.vote_average ? draft.movie.vote_average.toFixed(1) : '8.2'}
-                  </Text>
+                  <View style={styles.selectedMovieMetaRow}>
+                    <Clock size={11} color={COLORS.textSecondary} strokeWidth={2} />
+                    <Text style={styles.selectedMovieMeta}>
+                      {draft.movie.runtime || 165} min
+                    </Text>
+                    <Star size={11} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} style={{ marginLeft: 6 }} />
+                    <Text style={styles.selectedMovieMeta}>
+                      {draft.movie.vote_average ? draft.movie.vote_average.toFixed(1) : '8.2'}
+                    </Text>
+                  </View>
                   <View style={styles.formatRow}>
                     {(draft.movie.formats || ['IMAX Laser', 'Dolby Cinema']).map((f, idx) => (
                       <FormatBadge key={idx} format={f} size="small" />
@@ -273,8 +300,10 @@ export default function PlannerScreen() {
                   <TouchableOpacity
                     style={styles.changeMovieBtn}
                     onPress={() => setMovieModalVisible(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change selected film"
                   >
-                    <Ionicons name="swap-horizontal" size={13} color={COLORS.primary} />
+                    <ArrowLeftRight size={13} color={COLORS.primary} strokeWidth={2} />
                     <Text style={styles.changeMovieText}>Change Film</Text>
                   </TouchableOpacity>
                 </View>
@@ -283,8 +312,10 @@ export default function PlannerScreen() {
               <TouchableOpacity
                 style={styles.pickMoviePlaceholder}
                 onPress={() => setMovieModalVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Select a movie for trip builder"
               >
-                <Ionicons name="add-circle-outline" size={28} color={COLORS.primary} />
+                <PlusCircle size={24} color={COLORS.primary} strokeWidth={2} />
                 <Text style={styles.pickMovieText}>Select a Movie to Experience</Text>
               </TouchableOpacity>
             )}
@@ -308,6 +339,9 @@ export default function PlannerScreen() {
                     style={[styles.cinemaPickCard, isSelected && styles.cinemaPickCardActive]}
                     onPress={() => handleSelectCinema(c)}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select cinema: ${c.name}`}
+                    accessibilityState={{ selected: isSelected }}
                   >
                     <View style={styles.cinemaPickTop}>
                       <FormatBadge format={c.screenType} size="small" />
@@ -319,10 +353,13 @@ export default function PlannerScreen() {
                     <Text style={styles.cinemaPickAddress} numberOfLines={1}>
                       {c.address}
                     </Text>
-                    <Text style={styles.cinemaPickSound}>🔊 {c.sound}</Text>
+                    <View style={styles.soundRow}>
+                      <Volume2 size={11} color={COLORS.secondary} strokeWidth={2} />
+                      <Text style={styles.cinemaPickSound}>{c.sound}</Text>
+                    </View>
                     {isSelected && (
                       <View style={styles.selectedCheck}>
-                        <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
+                        <CheckCircle2 size={15} color={COLORS.primary} strokeWidth={2.2} />
                         <Text style={styles.selectedCheckText}>Selected Screen</Text>
                       </View>
                     )}
@@ -350,6 +387,9 @@ export default function PlannerScreen() {
                     style={[styles.slotItem, isSelected && styles.slotItemActive]}
                     onPress={() => handleSelectTime(slot)}
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select showtime slot: ${slot.time} (${slot.label})`}
+                    accessibilityState={{ selected: isSelected }}
                   >
                     <View style={styles.slotTimeRow}>
                       <Text style={[styles.slotTime, isSelected && styles.slotTimeActive]}>
@@ -387,13 +427,16 @@ export default function PlannerScreen() {
                     style={[styles.friendChip, isInvited && styles.friendChipActive]}
                     onPress={() => toggleDraftFriend(friend)}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Invite friend: ${friend.name}`}
+                    accessibilityState={{ selected: isInvited }}
                   >
-                    <Text style={styles.friendAvatar}>{friend.avatar || '🍿'}</Text>
+                    <User size={12} color={isInvited ? '#07090E' : COLORS.primary} strokeWidth={2} style={{ marginRight: 4 }} />
                     <Text style={[styles.friendName, isInvited && styles.friendNameActive]}>
                       {friend.name}
                     </Text>
                     {isInvited && (
-                      <Ionicons name="checkmark" size={13} color="#07090E" style={{ marginLeft: 3 }} />
+                      <Check size={12} color="#07090E" strokeWidth={2.4} style={{ marginLeft: 4 }} />
                     )}
                   </TouchableOpacity>
                 );
@@ -412,8 +455,10 @@ export default function PlannerScreen() {
               <TouchableOpacity
                 style={styles.addFriendBtn}
                 onPress={handleAddCustomFriend}
+                accessibilityRole="button"
+                accessibilityLabel="Add friend by name"
               >
-                <Ionicons name="add" size={18} color="#07090E" />
+                <Plus size={18} color="#07090E" strokeWidth={2.4} />
               </TouchableOpacity>
             </View>
           </View>
@@ -446,7 +491,11 @@ export default function PlannerScreen() {
                     style={[styles.snackChip, isSelected && styles.snackChipActive]}
                     onPress={() => handleToggleSnack(snack)}
                     activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select snack: ${snack}`}
+                    accessibilityState={{ selected: isSelected }}
                   >
+                    <Utensils size={11} color={isSelected ? COLORS.secondary : COLORS.textSecondary} strokeWidth={2} style={{ marginRight: 4 }} />
                     <Text style={[styles.snackChipText, isSelected && styles.snackChipTextActive]}>
                       {snack}
                     </Text>
@@ -472,8 +521,10 @@ export default function PlannerScreen() {
             style={styles.lockInBtn}
             onPress={handleSavePlan}
             activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel="Lock in movie night plan and generate ticket pass"
           >
-            <MaterialCommunityIcons name="ticket-confirmation" size={20} color="#07090E" />
+            <Ticket size={20} color="#07090E" strokeWidth={2.2} />
             <Text style={styles.lockInBtnText}>Lock In Movie Night & Generate Pass</Text>
           </TouchableOpacity>
 
@@ -487,8 +538,13 @@ export default function PlannerScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Choose Movie to Plan</Text>
-              <TouchableOpacity onPress={() => setMovieModalVisible(false)} style={styles.modalCloseBtn}>
-                <Ionicons name="close" size={22} color={COLORS.text} />
+              <TouchableOpacity
+                onPress={() => setMovieModalVisible(false)}
+                style={styles.modalCloseBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Close movie selector modal"
+              >
+                <X size={20} color={COLORS.text} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
@@ -500,6 +556,8 @@ export default function PlannerScreen() {
                   style={styles.modalMovieItem}
                   onPress={() => handleSelectMovie(item)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select movie: ${item.title}`}
                 >
                   <Image
                     source={{ uri: getImageUri(item.poster_path, 'w185') }}
@@ -507,9 +565,15 @@ export default function PlannerScreen() {
                   />
                   <View style={styles.modalMovieInfo}>
                     <Text style={styles.modalMovieTitle}>{item.title}</Text>
-                    <Text style={styles.modalMovieYear}>
-                      {item.release_date ? item.release_date.split('-')[0] : '2026'} • ⭐ {item.vote_average.toFixed(1)}
-                    </Text>
+                    <View style={styles.modalMovieMetaRow}>
+                      <Text style={styles.modalMovieYear}>
+                        {item.release_date ? item.release_date.split('-')[0] : '2026'}
+                      </Text>
+                      <Star size={11} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} style={{ marginLeft: 6, marginRight: 2 }} />
+                      <Text style={styles.modalMovieRating}>
+                        {item.vote_average.toFixed(1)}
+                      </Text>
+                    </View>
                     <View style={styles.formatRow}>
                       {(item.formats || ['IMAX Laser']).slice(0, 2).map((f, i) => (
                         <FormatBadge key={i} format={f} size="small" />
@@ -624,11 +688,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
+  selectedMovieMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
   selectedMovieMeta: {
     fontSize: 12,
-    color: COLORS.secondary,
+    color: COLORS.textSecondary,
     fontWeight: '600',
-    marginTop: 2,
+    marginLeft: 3,
   },
   formatRow: {
     flexDirection: 'row',
@@ -643,12 +712,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: RADIUS.xs,
     alignSelf: 'flex-start',
+    gap: 4,
   },
   changeMovieText: {
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.primary,
-    marginLeft: 4,
   },
   pickMoviePlaceholder: {
     flexDirection: 'row',
@@ -660,12 +729,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(0, 240, 255, 0.3)',
     borderStyle: 'dashed',
+    gap: 8,
   },
   pickMovieText: {
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.primary,
-    marginLeft: 8,
   },
 
   // Cinema selection
@@ -707,10 +776,15 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
+  soundRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 4,
+  },
   cinemaPickSound: {
     fontSize: 11,
     color: COLORS.secondary,
-    marginTop: 6,
   },
   selectedCheck: {
     flexDirection: 'row',
@@ -719,12 +793,12 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     borderTopWidth: 1,
     borderColor: COLORS.cardBorder,
+    gap: 5,
   },
   selectedCheckText: {
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.primary,
-    marginLeft: 4,
   },
 
   // Slots
@@ -807,10 +881,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
     borderColor: COLORS.secondary,
   },
-  friendAvatar: {
-    fontSize: 13,
-    marginRight: 4,
-  },
   friendName: {
     fontSize: 12,
     fontWeight: '600',
@@ -871,9 +941,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   snackChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.surface,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: RADIUS.sm,
     marginRight: 6,
     marginBottom: 6,
@@ -904,13 +976,13 @@ const styles = StyleSheet.create({
     marginTop: SPACING.lg,
     paddingVertical: 15,
     borderRadius: RADIUS.md,
+    gap: 8,
     ...SHADOWS.glowCyan,
   },
   lockInBtnText: {
     fontSize: 14,
     fontWeight: '900',
     color: '#07090E',
-    marginLeft: 8,
     letterSpacing: 0.4,
   },
 
@@ -930,36 +1002,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  emptyPlans: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.xxl,
-    marginTop: SPACING.xl,
-  },
-  emptyPlansTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 12,
-  },
-  emptyPlansSubtitle: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 18,
-  },
-  startPlanBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: RADIUS.md,
-  },
-  startPlanBtnText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#07090E',
-  },
   planCardWrapper: {
     marginBottom: SPACING.sm,
   },
@@ -971,15 +1013,15 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 16,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: RADIUS.xs,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    gap: 5,
   },
   deletePlanText: {
     fontSize: 11,
     color: COLORS.danger,
     fontWeight: '700',
-    marginLeft: 4,
   },
 
   // Modal
@@ -1009,7 +1051,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   modalCloseBtn: {
-    padding: 4,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalMovieItem: {
     flexDirection: 'row',
@@ -1033,9 +1080,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
+  modalMovieMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
   modalMovieYear: {
     fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  modalMovieRating: {
+    fontSize: 11,
     color: COLORS.secondary,
-    marginVertical: 2,
+    fontWeight: '700',
   },
 });

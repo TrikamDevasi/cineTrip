@@ -1,12 +1,19 @@
 import * as Contacts from 'expo-contacts';
 
 export const PRESET_SQUAD = [
-  { id: 'squad-1', name: 'Alex Chen', avatar: '🍿', handle: '@alex_film', status: 'accepted' },
-  { id: 'squad-2', name: 'Sarah Miller', avatar: '✨', handle: '@sarah_m', status: 'accepted' },
-  { id: 'squad-3', name: 'Dev Patel', avatar: '🥤', handle: '@dev_cine', status: 'invited' },
-  { id: 'squad-4', name: 'Elena Vance', avatar: '🎬', handle: '@elena_v', status: 'invited' },
-  { id: 'squad-5', name: 'Marcus Brody', avatar: '🕶️', handle: '@marcus_b', status: 'invited' },
+  { id: 'squad-1', name: 'Alex Chen', initials: 'AC', handle: '@alex_film', status: 'accepted' },
+  { id: 'squad-2', name: 'Sarah Miller', initials: 'SM', handle: '@sarah_m', status: 'accepted' },
+  { id: 'squad-3', name: 'Dev Patel', initials: 'DP', handle: '@dev_cine', status: 'invited' },
+  { id: 'squad-4', name: 'Elena Vance', initials: 'EV', handle: '@elena_v', status: 'invited' },
+  { id: 'squad-5', name: 'Marcus Brody', initials: 'MB', handle: '@marcus_b', status: 'invited' },
 ];
+
+function getInitials(name) {
+  if (!name) return 'CT';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export async function getDeviceContacts() {
   try {
@@ -24,7 +31,7 @@ export async function getDeviceContacts() {
           .map((c, i) => ({
             id: c.id || `contact-${i}`,
             name: c.name,
-            avatar: ['🍿', '✨', '🎬', '🥤', '🕶️', '🚀', '🔥', '⚡'][i % 8],
+            initials: getInitials(c.name),
             phone: c.phoneNumbers && c.phoneNumbers[0] ? c.phoneNumbers[0].number : '',
             email: c.emails && c.emails[0] ? c.emails[0].email : '',
             status: 'invited',
@@ -64,4 +71,3 @@ export async function createDeviceContact({ firstName, lastName, phone, email })
     return null;
   }
 }
-

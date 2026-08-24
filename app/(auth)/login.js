@@ -12,13 +12,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Film, Mail, Lock, Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAuthStore();
+  const { login } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -67,7 +67,9 @@ export default function LoginScreen() {
         >
           {/* Logo / Header */}
           <View style={styles.heroSection}>
-            <Text style={styles.logoEmoji}>🎬</Text>
+            <View style={styles.logoBadge}>
+              <Film size={36} color={COLORS.primary} strokeWidth={2.2} />
+            </View>
             <Text style={styles.appName}>CineTrip</Text>
             <Text style={styles.tagline}>Your cinephile journey, personalized</Text>
           </View>
@@ -80,7 +82,7 @@ export default function LoginScreen() {
             {/* Email */}
             <Text style={styles.label}>Email</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+              <Mail size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={email}
@@ -98,7 +100,7 @@ export default function LoginScreen() {
             {/* Password */}
             <Text style={styles.label}>Password</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+              <Lock size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, styles.inputFlex]}
                 value={password}
@@ -113,20 +115,21 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeBtn}
+                accessibilityRole="button"
                 accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={18}
-                  color={COLORS.textMuted}
-                />
+                {showPassword ? (
+                  <EyeOff size={18} color={COLORS.textMuted} strokeWidth={2} />
+                ) : (
+                  <Eye size={18} color={COLORS.textMuted} strokeWidth={2} />
+                )}
               </TouchableOpacity>
             </View>
 
             {/* Error Message */}
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={15} color={COLORS.danger} />
+                <AlertCircle size={15} color={COLORS.danger} strokeWidth={2} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
@@ -137,13 +140,14 @@ export default function LoginScreen() {
               onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.85}
-              accessibilityLabel="Sign in"
+              accessibilityRole="button"
+              accessibilityLabel="Sign in to your account"
             >
               {loading ? (
                 <ActivityIndicator color="#07090E" size="small" />
               ) : (
                 <>
-                  <Ionicons name="log-in-outline" size={18} color="#07090E" />
+                  <LogIn size={18} color="#07090E" strokeWidth={2.2} style={{ marginRight: 8 }} />
                   <Text style={styles.loginBtnText}>Sign In</Text>
                 </>
               )}
@@ -158,7 +162,11 @@ export default function LoginScreen() {
 
             {/* Register Link */}
             <Link href="/(auth)/register" asChild>
-              <TouchableOpacity style={styles.registerBtn} accessibilityLabel="Create account">
+              <TouchableOpacity
+                style={styles.registerBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Create a new CineTrip account"
+              >
                 <Text style={styles.registerBtnText}>Create an Account</Text>
               </TouchableOpacity>
             </Link>
@@ -168,6 +176,8 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.skipBtn}
             onPress={() => router.replace('/(tabs)')}
+            accessibilityRole="button"
+            accessibilityLabel="Continue without signing in"
           >
             <Text style={styles.skipText}>Continue without account</Text>
           </TouchableOpacity>
@@ -190,13 +200,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
-  logoEmoji: { fontSize: 52 },
+  logoBadge: {
+    width: 68,
+    height: 68,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.surfaceHighlight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    ...SHADOWS.glowCyan,
+  },
   appName: {
     fontSize: 32,
     fontWeight: '900',
     color: COLORS.primary,
     letterSpacing: 1,
-    marginTop: 8,
+    marginTop: 10,
   },
   tagline: {
     fontSize: 13,
@@ -246,7 +266,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   inputFlex: { flex: 1 },
-  eyeBtn: { padding: 4 },
+  eyeBtn: { padding: 6 },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -278,7 +298,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#07090E',
-    marginLeft: 8,
   },
   divider: {
     flexDirection: 'row',

@@ -5,25 +5,31 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   ActivityIndicator,
   Alert,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  ArrowLeft,
+  Search,
+  X,
+  MapPin,
+  LocateFixed,
+  Navigation,
+  ChevronRight,
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useLocation } from '../hooks/useLocation';
 import { SAMPLE_CINEMAS } from '../services/location';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
 // MapView is conditionally imported — requires native dev build
-let MapView, Marker, PROVIDER_GOOGLE;
+let MapView, Marker;
 try {
   const Maps = require('react-native-maps');
   MapView = Maps.default;
   Marker = Maps.Marker;
-  PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
 } catch {
   MapView = null;
 }
@@ -35,8 +41,7 @@ export default function MapScreen() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedAddress, setSelectedAddress] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [cinemas, setCinemas] = useState(SAMPLE_CINEMAS);
+  const [cinemas] = useState(SAMPLE_CINEMAS);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -47,8 +52,7 @@ export default function MapScreen() {
     const coords = await getCurrentLocation();
     if (coords) {
       setSelectedLocation(coords);
-      // Move map to current location
-      if (mapRef.current && coords) {
+      if (mapRef.current) {
         mapRef.current.animateToRegion({
           latitude: coords.latitude,
           longitude: coords.longitude,
@@ -57,7 +61,6 @@ export default function MapScreen() {
         }, 1000);
       }
     } else {
-      // Try last known
       const last = await getLastKnownLocation();
       if (last) setSelectedLocation(last);
     }
@@ -82,7 +85,6 @@ export default function MapScreen() {
       return;
     }
 
-    // Filter cinemas as search results
     const results = SAMPLE_CINEMAS.filter((c) =>
       c.name.toLowerCase().includes(text.toLowerCase()) ||
       c.address.toLowerCase().includes(text.toLowerCase())
@@ -94,7 +96,6 @@ export default function MapScreen() {
     setSearchQuery(result.name);
     setSelectedAddress(`${result.name}, ${result.address}`);
     setSearchResults([]);
-    // For demo, we use a fake offset from user location
     if (location) {
       const fakeCoords = {
         latitude: location.latitude + (Math.random() - 0.5) * 0.02,
@@ -118,7 +119,7 @@ export default function MapScreen() {
     }
     Alert.alert(
       'Location Saved',
-      `📍 ${selectedAddress || address || 'Current Location'}\nCoords: ${selectedLocation.latitude.toFixed(4)}, ${selectedLocation.longitude.toFixed(4)}`,
+      `${selectedAddress || address || 'Current Location'}\nCoords: ${selectedLocation.latitude.toFixed(4)}, ${selectedLocation.longitude.toFixed(4)}`,
       [{ text: 'OK', onPress: () => router.back() }]
     );
   };
@@ -131,18 +132,28 @@ export default function MapScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <ArrowLeft size={22} color="#FFFFFF" strokeWidth={2} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Location</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSaveLocation}>
+        <Text style={styles.headerTitle}>Cinema Map & Locations</Text>
+        <TouchableOpacity
+          style={styles.saveBtn}
+          onPress={handleSaveLocation}
+          accessibilityRole="button"
+          accessibilityLabel="Save selected location"
+        >
           <Text style={styles.saveBtnText}>Save</Text>
         </TouchableOpacity>
       </View>
 
       {/* Search Bar */}
       <View style={styles.searchWrapper}>
-        <Ionicons name="search" size={16} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+        <Search size={16} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search cinemas or places..."
@@ -152,8 +163,12 @@ export default function MapScreen() {
           returnKeyType="search"
         />
         {searchQuery ? (
-          <TouchableOpacity onPress={() => { setSearchQuery(''); setSearchResults([]); }}>
-            <Ionicons name="close-circle" size={16} color={COLORS.textMuted} />
+          <TouchableOpacity
+            onPress={() => { setSearchQuery(''); setSearchResults([]); }}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search text"
+          >
+            <X size={16} color={COLORS.textMuted} strokeWidth={2} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -166,8 +181,10 @@ export default function MapScreen() {
               key={r.id}
               style={styles.searchResultItem}
               onPress={() => handleSelectSearchResult(r)}
+              accessibilityRole="button"
+              accessibilityLabel={`Select cinema ${r.name}`}
             >
-              <Ionicons name="location-outline" size={15} color={COLORS.primary} style={{ marginRight: 8 }} />
+              <MapPin size={15} color={COLORS.primary} strokeWidth={2} style={{ marginRight: 8 }} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.resultName}>{r.name}</Text>
                 <Text style={styles.resultAddr}>{r.address}</Text>
@@ -185,10 +202,15 @@ export default function MapScreen() {
         </View>
       ) : error && !location ? (
         <View style={styles.errorBox}>
-          <Ionicons name="location-outline" size={40} color={COLORS.textMuted} />
+          <MapPin size={40} color={COLORS.textMuted} strokeWidth={1.8} />
           <Text style={styles.errorTitle}>Location Unavailable</Text>
           <Text style={styles.errorSub}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={initLocation}>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={initLocation}
+            accessibilityRole="button"
+            accessibilityLabel="Retry fetching location"
+          >
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
@@ -233,15 +255,20 @@ export default function MapScreen() {
           </MapView>
 
           {/* My Location Button */}
-          <TouchableOpacity style={styles.myLocationBtn} onPress={handleGoToMyLocation}>
-            <Ionicons name="locate" size={22} color="#FFFFFF" />
+          <TouchableOpacity
+            style={styles.myLocationBtn}
+            onPress={handleGoToMyLocation}
+            accessibilityRole="button"
+            accessibilityLabel="Re-center to my current location"
+          >
+            <LocateFixed size={20} color="#07090E" strokeWidth={2.4} />
           </TouchableOpacity>
         </View>
       ) : (
         /* Fallback when react-native-maps is not available */
         <View style={styles.fallbackContainer}>
           <View style={styles.fallbackMap}>
-            <MaterialCommunityIcons name="map-marker-radius" size={56} color={COLORS.primary} />
+            <MapPin size={48} color={COLORS.primary} strokeWidth={1.8} />
             <Text style={styles.fallbackTitle}>Map View</Text>
             <Text style={styles.fallbackSubtitle}>
               Full map requires a native development build.
@@ -249,7 +276,7 @@ export default function MapScreen() {
             </Text>
             {coordStr && (
               <View style={styles.coordBadge}>
-                <Ionicons name="navigate" size={14} color={COLORS.primary} />
+                <Navigation size={13} color={COLORS.primary} strokeWidth={2} />
                 <Text style={styles.coordText}>{coordStr}</Text>
               </View>
             )}
@@ -261,12 +288,16 @@ export default function MapScreen() {
       {/* Location Info Banner */}
       {location && (
         <View style={styles.locationBanner}>
-          <Ionicons name="location" size={16} color={COLORS.primary} />
+          <MapPin size={15} color={COLORS.primary} strokeWidth={2} />
           <Text style={styles.locationText} numberOfLines={1}>
             {selectedAddress || address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
           </Text>
-          <TouchableOpacity onPress={handleGoToMyLocation}>
-            <Ionicons name="navigate" size={16} color={COLORS.primary} />
+          <TouchableOpacity
+            onPress={handleGoToMyLocation}
+            accessibilityRole="button"
+            accessibilityLabel="Locate current position"
+          >
+            <Navigation size={15} color={COLORS.primary} strokeWidth={2} />
           </TouchableOpacity>
         </View>
       )}
@@ -282,6 +313,8 @@ export default function MapScreen() {
               setSelectedAddress(`${c.name}, ${c.address}`);
               Alert.alert(c.name, `${c.screenType}\n${c.address}\n${c.distanceKm} km away`);
             }}
+            accessibilityRole="button"
+            accessibilityLabel={`${c.name}, ${c.screenType}, ${c.distanceKm} km away`}
           >
             <View style={styles.cinemaItemLeft}>
               <Text style={styles.cinemaItemName}>{c.name}</Text>
@@ -290,7 +323,7 @@ export default function MapScreen() {
             </View>
             <View style={styles.cinemaItemRight}>
               <Text style={styles.cinemaDistText}>{c.distanceKm} km</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+              <ChevronRight size={16} color={COLORS.textMuted} strokeWidth={2} />
             </View>
           </TouchableOpacity>
         ))}
@@ -306,10 +339,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
   saveBtn: {
-    backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 6,
+    backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: RADIUS.sm,
   },
   saveBtnText: { fontSize: 13, fontWeight: '800', color: '#07090E' },
@@ -376,8 +409,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryMuted,
     paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: RADIUS.xs, marginTop: 8,
+    gap: 4,
   },
-  coordText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, marginLeft: 4 },
+  coordText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
   addrText: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4, textAlign: 'center' },
   locationBanner: {
     flexDirection: 'row', alignItems: 'center',
@@ -400,6 +434,6 @@ const styles = StyleSheet.create({
   cinemaItemName: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
   cinemaItemAddr: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   cinemaItemType: { fontSize: 11, color: COLORS.primary, marginTop: 2, fontWeight: '600' },
-  cinemaItemRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  cinemaItemRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cinemaDistText: { fontSize: 12, fontWeight: '700', color: COLORS.secondary },
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Star, Ticket, Bookmark, BookmarkCheck, Calendar } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { getImageUri } from '../services/tmdb';
@@ -40,6 +40,8 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
         style={styles.horizontalCard}
         activeOpacity={0.85}
         onPress={handlePressCard}
+        accessibilityRole="button"
+        accessibilityLabel={`${movie.title}, rated ${rating}, released in ${year}`}
       >
         <Image
           source={{ uri: getImageUri(movie.poster_path, 'w342') }}
@@ -48,7 +50,7 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
         <View style={styles.horizontalContent}>
           <View style={styles.ratingRow}>
             <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={12} color={COLORS.secondary} />
+              <Star size={12} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
               <Text style={styles.ratingText}>{rating}</Text>
             </View>
             <Text style={styles.yearText}>{year}</Text>
@@ -69,8 +71,10 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
               style={styles.quickPlanBtn}
               onPress={handlePlanTrip}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Plan movie night for ${movie.title}`}
             >
-              <Ionicons name="ticket" size={13} color="#000" />
+              <Ticket size={13} color="#07090E" strokeWidth={2.2} />
               <Text style={styles.quickPlanText}>Plan Trip</Text>
             </TouchableOpacity>
 
@@ -78,12 +82,14 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
               style={styles.bookmarkBtn}
               onPress={handleToggleWatchlist}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Add ${movie.title} to watchlist`}
             >
-              <Ionicons
-                name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
-                size={16}
-                color={isInWatchlist ? COLORS.primary : COLORS.textSecondary}
-              />
+              {isInWatchlist ? (
+                <BookmarkCheck size={16} color={COLORS.primary} strokeWidth={2.2} />
+              ) : (
+                <Bookmark size={16} color={COLORS.textSecondary} strokeWidth={2} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -96,6 +102,8 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
       style={[styles.verticalCard, { width }]}
       activeOpacity={0.85}
       onPress={handlePressCard}
+      accessibilityRole="button"
+      accessibilityLabel={`${movie.title}, rated ${rating}`}
     >
       <View style={styles.posterContainer}>
         <Image
@@ -104,7 +112,7 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
           resizeMode="cover"
         />
         <LinearGradient
-          colors={['rgba(7, 9, 14, 0.0)', 'rgba(7, 9, 14, 0.8)']}
+          colors={['rgba(7, 9, 14, 0.0)', 'rgba(7, 9, 14, 0.85)']}
           style={styles.posterGradient}
         />
 
@@ -113,17 +121,19 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
           style={styles.floatingBookmark}
           onPress={handleToggleWatchlist}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Save ${movie.title} to watchlist`}
         >
-          <Ionicons
-            name={isInWatchlist ? 'bookmark' : 'bookmark-outline'}
-            size={14}
-            color={isInWatchlist ? COLORS.primary : '#FFFFFF'}
-          />
+          {isInWatchlist ? (
+            <BookmarkCheck size={16} color={COLORS.primary} strokeWidth={2.2} />
+          ) : (
+            <Bookmark size={16} color="#FFFFFF" strokeWidth={2} />
+          )}
         </TouchableOpacity>
 
         {/* Rating pill */}
         <View style={styles.floatingRating}>
-          <Ionicons name="star" size={11} color={COLORS.secondary} />
+          <Star size={11} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
           <Text style={styles.floatingRatingText}>{rating}</Text>
         </View>
       </View>
@@ -140,8 +150,10 @@ export default function MovieCard({ movie, layout = 'vertical', width = 160 }) {
           style={styles.verticalPlanBtn}
           onPress={handlePlanTrip}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`Plan movie night for ${movie.title}`}
         >
-          <Ionicons name="calendar-outline" size={12} color={COLORS.primary} />
+          <Calendar size={13} color={COLORS.primary} strokeWidth={2} />
           <Text style={styles.verticalPlanText}>Plan Night</Text>
         </TouchableOpacity>
       </View>
@@ -180,12 +192,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 30,
-    height: 30,
+    width: 36,
+    height: 36,
     borderRadius: RADIUS.full,
     backgroundColor: 'rgba(7, 9, 14, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   floatingRating: {
     position: 'absolute',
@@ -194,23 +208,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(7, 9, 14, 0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: RADIUS.xs,
+    gap: 3,
   },
   floatingRatingText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
-    marginLeft: 3,
   },
   verticalContent: {
     padding: 10,
   },
   verticalTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   verticalSubtitle: {
     fontSize: 11,
@@ -222,17 +236,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primaryMuted,
-    paddingVertical: 6,
-    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 7,
+    borderRadius: RADIUS.xs,
     borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
+    borderColor: COLORS.cardBorder,
+    gap: 5,
   },
   verticalPlanText: {
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.primary,
-    marginLeft: 4,
   },
 
   // Horizontal Card
@@ -240,12 +254,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.md,
+    marginBottom: 12,
+    marginHorizontal: SPACING.lg,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    marginHorizontal: SPACING.lg,
-    marginBottom: 12,
-    overflow: 'hidden',
-    ...SHADOWS.subtle,
+    ...SHADOWS.card,
   },
   horizontalPoster: {
     width: 100,
@@ -259,62 +273,63 @@ const styles = StyleSheet.create({
   },
   ratingRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.15)',
+    backgroundColor: COLORS.surface,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
-    marginRight: 8,
+    gap: 3,
   },
   ratingText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.secondary,
-    marginLeft: 3,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   yearText: {
     fontSize: 11,
     color: COLORS.textSecondary,
+    fontWeight: '600',
   },
   title: {
     fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontWeight: '800',
+    color: '#FFFFFF',
     marginVertical: 4,
   },
   formatRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginVertical: 2,
+    gap: 6,
+    marginBottom: 6,
   },
   horizontalActionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
+    justifyContent: 'space-between',
+    marginTop: 4,
   },
   quickPlanBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.primary,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.sm,
-    marginRight: 10,
+    paddingVertical: 7,
+    borderRadius: RADIUS.xs,
+    gap: 5,
   },
   quickPlanText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     color: '#07090E',
-    marginLeft: 4,
   },
   bookmarkBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.full,
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.xs,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',

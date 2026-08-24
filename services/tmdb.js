@@ -159,24 +159,25 @@ export const FALLBACK_MOVIES = [
 ];
 
 export const FALLBACK_GENRES = [
-  { id: 28, name: 'Action', icon: 'flash' },
-  { id: 12, name: 'Adventure', icon: 'compass' },
-  { id: 16, name: 'Animation', icon: 'color-palette' },
-  { id: 35, name: 'Comedy', icon: 'happy' },
-  { id: 18, name: 'Drama', icon: 'film' },
-  { id: 878, name: 'Sci-Fi', icon: 'planet' },
-  { id: 53, name: 'Thriller', icon: 'skull' },
-  { id: 27, name: 'Horror', icon: 'flame' },
-  { id: 10749, name: 'Romance', icon: 'heart' },
+  { id: 28, name: 'Action', icon: 'Zap' },
+  { id: 12, name: 'Adventure', icon: 'Compass' },
+  { id: 16, name: 'Animation', icon: 'Palette' },
+  { id: 35, name: 'Comedy', icon: 'Smile' },
+  { id: 18, name: 'Drama', icon: 'Film' },
+  { id: 878, name: 'Sci-Fi', icon: 'Sparkles' },
+  { id: 53, name: 'Thriller', icon: 'Eye' },
+  { id: 27, name: 'Horror', icon: 'Flame' },
+  { id: 10749, name: 'Romance', icon: 'Heart' },
 ];
 
 export const MOODS = [
-  { id: 'epic', label: 'Adrenaline & Epic', icon: 'rocket-outline', gradient: ['#FF2E63', '#FFB800'] },
-  { id: 'mindbending', label: 'Mind Benders', icon: 'sparkles-outline', gradient: ['#7928CA', '#00F0FF'] },
-  { id: 'laughs', label: 'Pure Laughs', icon: 'happy-outline', gradient: ['#00F0FF', '#00DFD8'] },
-  { id: 'cozy', label: 'Cozy & Chill', icon: 'cafe-outline', gradient: ['#FFB800', '#FF8E53'] },
-  { id: 'date', label: 'Date Night', icon: 'heart-outline', gradient: ['#FF2E63', '#9B51E0'] },
+  { id: 'epic', label: 'Adrenaline & Epic', icon: 'Flame', gradient: ['#FF2E63', '#FFB800'] },
+  { id: 'mindbending', label: 'Mind Benders', icon: 'Sparkles', gradient: ['#7928CA', '#00F0FF'] },
+  { id: 'laughs', label: 'Pure Laughs', icon: 'Smile', gradient: ['#00F0FF', '#00DFD8'] },
+  { id: 'cozy', label: 'Cozy & Chill', icon: 'Coffee', gradient: ['#FFB800', '#FF8E53'] },
+  { id: 'date', label: 'Date Night', icon: 'Heart', gradient: ['#FF2E63', '#9B51E0'] },
 ];
+
 
 export const CINEMA_CHAINS = [
   { id: 'imax', name: 'IMAX Laser 3D', brand: 'IMAX', tag: 'Ultimate Screen', color: '#0072CE' },

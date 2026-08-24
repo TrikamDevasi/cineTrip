@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Film, MapPin, Search, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
@@ -8,21 +8,31 @@ import { COLORS, RADIUS, SPACING } from '../constants/theme';
 export default function Header({ showSearch = true, onSearchPress }) {
   const router = useRouter();
   const city = usePreferencesStore((s) => s.city);
-  const userAvatar = usePreferencesStore((s) => s.userAvatar);
+  const userName = usePreferencesStore((s) => s.userName);
 
   return (
     <View style={styles.header}>
       <View style={styles.left}>
         <View style={styles.brandRow}>
-          <MaterialCommunityIcons name="movie-roll" size={24} color={COLORS.primary} />
+          <View style={styles.brandIconWrapper}>
+            <Film size={20} color={COLORS.primary} strokeWidth={2.2} />
+          </View>
           <Text style={styles.brandText}>
             CINE<Text style={styles.brandAccent}>TRIP</Text>
           </Text>
         </View>
-        <View style={styles.locationRow}>
-          <Ionicons name="location-sharp" size={12} color={COLORS.secondary} />
-          <Text style={styles.locationText}>{city || 'Mumbai Metro'}</Text>
-        </View>
+        <TouchableOpacity
+          style={styles.locationRow}
+          onPress={() => router.push('/map')}
+          accessibilityRole="button"
+          accessibilityLabel={`Current location: ${city || 'Select city'}. Tap to view cinema map.`}
+          activeOpacity={0.7}
+        >
+          <MapPin size={13} color={COLORS.secondary} strokeWidth={2} />
+          <Text style={styles.locationText} numberOfLines={1}>
+            {city || 'Mumbai Metro'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.right}>
@@ -31,8 +41,10 @@ export default function Header({ showSearch = true, onSearchPress }) {
             style={styles.iconButton}
             onPress={onSearchPress || (() => router.push('/(tabs)/discover'))}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Search movies and cinemas"
           >
-            <Ionicons name="search" size={19} color={COLORS.text} />
+            <Search size={18} color={COLORS.text} strokeWidth={2} />
           </TouchableOpacity>
         )}
 
@@ -40,8 +52,10 @@ export default function Header({ showSearch = true, onSearchPress }) {
           style={styles.avatarButton}
           onPress={() => router.push('/(tabs)/profile')}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={userName ? `Profile for ${userName}` : 'View profile and settings'}
         >
-          <Text style={styles.avatarEmoji}>{userAvatar || '🍿'}</Text>
+          <User size={18} color={COLORS.primary} strokeWidth={2} />
         </TouchableOpacity>
       </View>
     </View>
@@ -65,12 +79,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  brandIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.primaryMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   brandText: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 1.2,
-    marginLeft: 6,
+    marginLeft: 8,
   },
   brandAccent: {
     color: COLORS.primary,
@@ -78,12 +100,12 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 3,
   },
   locationText: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    marginLeft: 3,
+    marginLeft: 4,
     fontWeight: '600',
   },
   right: {
@@ -91,27 +113,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 8,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
   avatarButton: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surfaceHighlight,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.primary,
-  },
-  avatarEmoji: {
-    fontSize: 18,
   },
 });

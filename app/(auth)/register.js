@@ -12,7 +12,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  ArrowLeft,
+  Film,
+  User,
+  Mail,
+  Lock,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  UserPlus,
+} from 'lucide-react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
@@ -66,37 +77,6 @@ export default function RegisterScreen() {
     }
   };
 
-  const renderInput = ({ icon, value, onChange, placeholder, secure, showToggle, onToggle, keyboardType, returnKeyType, label, accessibilityLabel }) => (
-    <>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputWrapper}>
-        <Ionicons name={icon} size={18} color={COLORS.textMuted} style={styles.inputIcon} />
-        <TextInput
-          style={styles.input}
-          value={value}
-          onChangeText={(t) => { onChange(t); setError(''); }}
-          placeholder={placeholder}
-          placeholderTextColor={COLORS.textMuted}
-          secureTextEntry={!!secure}
-          keyboardType={keyboardType || 'default'}
-          autoCapitalize={keyboardType === 'email-address' ? 'none' : 'words'}
-          autoCorrect={false}
-          returnKeyType={returnKeyType || 'next'}
-          accessibilityLabel={accessibilityLabel || label}
-        />
-        {showToggle !== undefined && (
-          <TouchableOpacity onPress={onToggle} style={styles.eyeBtn}>
-            <Ionicons
-              name={!secure ? 'eye-off-outline' : 'eye-outline'}
-              size={18}
-              color={COLORS.textMuted}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-    </>
-  );
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -112,14 +92,17 @@ export default function RegisterScreen() {
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backBtn}
-            accessibilityLabel="Go back"
+            accessibilityRole="button"
+            accessibilityLabel="Go back to login screen"
           >
-            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+            <ArrowLeft size={22} color={COLORS.text} strokeWidth={2} />
           </TouchableOpacity>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.logoEmoji}>🎬</Text>
+            <View style={styles.logoBadge}>
+              <Film size={32} color={COLORS.primary} strokeWidth={2.2} />
+            </View>
             <Text style={styles.appName}>Join CineTrip</Text>
             <Text style={styles.tagline}>Start your cinephile journey</Text>
           </View>
@@ -129,54 +112,101 @@ export default function RegisterScreen() {
             <Text style={styles.cardTitle}>Create Account</Text>
             <Text style={styles.cardSubtitle}>Fill in the details below</Text>
 
-            {renderInput({
-              icon: 'person-outline',
-              value: name,
-              onChange: setName,
-              placeholder: 'Your full name',
-              label: 'Full Name',
-              accessibilityLabel: 'Full name',
-            })}
+            {/* Name */}
+            <Text style={styles.label}>Full Name</Text>
+            <View style={styles.inputWrapper}>
+              <User size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={(t) => { setName(t); setError(''); }}
+                placeholder="Your full name"
+                placeholderTextColor={COLORS.textMuted}
+                autoCorrect={false}
+                returnKeyType="next"
+                accessibilityLabel="Full name"
+              />
+            </View>
 
-            {renderInput({
-              icon: 'mail-outline',
-              value: email,
-              onChange: setEmail,
-              placeholder: 'your@email.com',
-              keyboardType: 'email-address',
-              label: 'Email',
-              accessibilityLabel: 'Email address',
-            })}
+            {/* Email */}
+            <Text style={styles.label}>Email</Text>
+            <View style={styles.inputWrapper}>
+              <Mail size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={(t) => { setEmail(t); setError(''); }}
+                placeholder="your@email.com"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="next"
+                accessibilityLabel="Email address"
+              />
+            </View>
 
-            {renderInput({
-              icon: 'lock-closed-outline',
-              value: password,
-              onChange: setPassword,
-              placeholder: 'Min. 6 characters',
-              secure: !showPassword,
-              showToggle: showPassword,
-              onToggle: () => setShowPassword(!showPassword),
-              label: 'Password',
-              accessibilityLabel: 'Password',
-            })}
+            {/* Password */}
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.inputWrapper}>
+              <Lock size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.inputFlex]}
+                value={password}
+                onChangeText={(t) => { setPassword(t); setError(''); }}
+                placeholder="Min. 6 characters"
+                placeholderTextColor={COLORS.textMuted}
+                secureTextEntry={!showPassword}
+                returnKeyType="next"
+                accessibilityLabel="Password"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? (
+                  <EyeOff size={18} color={COLORS.textMuted} strokeWidth={2} />
+                ) : (
+                  <Eye size={18} color={COLORS.textMuted} strokeWidth={2} />
+                )}
+              </TouchableOpacity>
+            </View>
 
-            {renderInput({
-              icon: 'shield-checkmark-outline',
-              value: confirmPassword,
-              onChange: setConfirmPassword,
-              placeholder: 'Repeat your password',
-              secure: !showConfirm,
-              showToggle: showConfirm,
-              onToggle: () => setShowConfirm(!showConfirm),
-              returnKeyType: 'done',
-              label: 'Confirm Password',
-              accessibilityLabel: 'Confirm password',
-            })}
+            {/* Confirm Password */}
+            <Text style={styles.label}>Confirm Password</Text>
+            <View style={styles.inputWrapper}>
+              <ShieldCheck size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, styles.inputFlex]}
+                value={confirmPassword}
+                onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
+                placeholder="Repeat your password"
+                placeholderTextColor={COLORS.textMuted}
+                secureTextEntry={!showConfirm}
+                returnKeyType="done"
+                onSubmitEditing={handleRegister}
+                accessibilityLabel="Confirm password"
+              />
+              <TouchableOpacity
+                onPress={() => setShowConfirm(!showConfirm)}
+                style={styles.eyeBtn}
+                accessibilityRole="button"
+                accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
+              >
+                {showConfirm ? (
+                  <EyeOff size={18} color={COLORS.textMuted} strokeWidth={2} />
+                ) : (
+                  <Eye size={18} color={COLORS.textMuted} strokeWidth={2} />
+                )}
+              </TouchableOpacity>
+            </View>
 
             {/* Error */}
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={15} color={COLORS.danger} />
+                <AlertCircle size={15} color={COLORS.danger} strokeWidth={2} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
@@ -187,13 +217,14 @@ export default function RegisterScreen() {
               onPress={handleRegister}
               disabled={loading}
               activeOpacity={0.85}
-              accessibilityLabel="Create account"
+              accessibilityRole="button"
+              accessibilityLabel="Create CineTrip account"
             >
               {loading ? (
                 <ActivityIndicator color="#07090E" size="small" />
               ) : (
                 <>
-                  <Ionicons name="person-add-outline" size={18} color="#07090E" />
+                  <UserPlus size={18} color="#07090E" strokeWidth={2.2} style={{ marginRight: 8 }} />
                   <Text style={styles.registerBtnText}>Create Account</Text>
                 </>
               )}
@@ -208,7 +239,11 @@ export default function RegisterScreen() {
 
             {/* Login Link */}
             <Link href="/(auth)/login" asChild>
-              <TouchableOpacity style={styles.loginLink} accessibilityLabel="Sign in">
+              <TouchableOpacity
+                style={styles.loginLink}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in to existing account"
+              >
                 <Text style={styles.loginLinkText}>Sign In</Text>
               </TouchableOpacity>
             </Link>
@@ -228,28 +263,42 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xl,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   header: {
     alignItems: 'center',
     marginBottom: SPACING.lg,
   },
-  logoEmoji: { fontSize: 40 },
+  logoBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceHighlight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    ...SHADOWS.glowCyan,
+  },
   appName: {
     fontSize: 28,
     fontWeight: '900',
     color: COLORS.primary,
     letterSpacing: 1,
-    marginTop: 6,
+    marginTop: 8,
   },
   tagline: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    marginTop: 4,
+    marginTop: 3,
   },
   card: {
     backgroundColor: COLORS.card,
@@ -260,7 +309,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 2,
@@ -293,7 +342,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
   },
-  eyeBtn: { padding: 4 },
+  inputFlex: { flex: 1 },
+  eyeBtn: { padding: 6 },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -325,7 +375,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#07090E',
-    marginLeft: 8,
   },
   divider: {
     flexDirection: 'row',

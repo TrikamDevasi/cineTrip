@@ -109,6 +109,20 @@ export const RADIUS = {
   full: 9999,
 };
 
+export const ICON_SIZES = {
+  xs: 12,
+  sm: 16,
+  md: 18,
+  base: 20,
+  lg: 24,
+  xl: 28,
+  xxl: 32,
+  hero: 48,
+  illustration: 56,
+};
+
+export const ICON_STROKE_WIDTH = 2;
+
 export const SHADOWS = {
   subtle: {
     shadowColor: '#000',
@@ -139,4 +153,5 @@ export const SHADOWS = {
     elevation: 8,
   },
 };
+
 

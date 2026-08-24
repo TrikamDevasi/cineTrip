@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { House, Compass, Ticket, Bookmark, Camera, User } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
 
 export default function TabLayout() {
@@ -32,10 +32,10 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'film' : 'film-outline'}
+            <House
               size={22}
               color={color}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -46,10 +46,10 @@ export default function TabLayout() {
         options={{
           title: 'Discover',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'compass' : 'compass-outline'}
+            <Compass
               size={22}
               color={color}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -66,10 +66,10 @@ export default function TabLayout() {
                 focused && styles.plannerIconCircleActive,
               ]}
             >
-              <MaterialCommunityIcons
-                name="ticket-confirmation"
-                size={22}
+              <Ticket
+                size={20}
                 color={focused ? '#07090E' : COLORS.primary}
+                strokeWidth={2.2}
               />
             </View>
           ),
@@ -81,10 +81,10 @@ export default function TabLayout() {
         options={{
           title: 'Watchlist',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'bookmark' : 'bookmark-outline'}
+            <Bookmark
               size={22}
               color={color}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -95,10 +95,10 @@ export default function TabLayout() {
         options={{
           title: 'Journal',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'camera' : 'camera-outline'}
+            <Camera
               size={22}
               color={color}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -109,10 +109,10 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? 'person' : 'person-outline'}
+            <User
               size={22}
               color={color}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}

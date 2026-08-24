@@ -10,7 +10,21 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  User,
+  Pencil,
+  Ticket,
+  Camera,
+  Bookmark,
+  Bell,
+  Calendar,
+  LogOut,
+  LogIn,
+  Palette,
+  Moon,
+  Sun,
+  Shield,
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import FormatBadge from '../../components/FormatBadge';
@@ -28,7 +42,7 @@ const FORMAT_OPTIONS = [
   'Dolby Cinema',
   '4DX Immersive',
   'ScreenX 270°',
-  'PVR Director’s Cut',
+  'PVR Director\'s Cut',
 ];
 
 const CHAIN_OPTIONS = [
@@ -47,13 +61,14 @@ export default function ProfileScreen() {
   const {
     userName,
     userHandle,
-    userAvatar,
     city,
     preferredChain,
     preferredFormat,
     favoriteGenres,
     notificationsEnabled,
     autoExportCalendar,
+    themeMode,
+    setThemeMode,
     updateProfile,
     toggleGenre,
   } = usePreferencesStore();
@@ -98,7 +113,7 @@ export default function ProfileScreen() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarEmoji}>{userAvatar || '🍿'}</Text>
+            <User size={32} color={COLORS.primary} strokeWidth={2} />
           </View>
 
           {isEditing ? (
@@ -117,14 +132,21 @@ export default function ProfileScreen() {
                 placeholder="Home City"
                 placeholderTextColor={COLORS.textMuted}
               />
-              <TouchableOpacity style={styles.saveEditBtn} onPress={handleSaveProfile}>
+              <TouchableOpacity
+                style={styles.saveEditBtn}
+                onPress={handleSaveProfile}
+                accessibilityRole="button"
+                accessibilityLabel="Save profile changes"
+              >
                 <Text style={styles.saveEditText}>Save Changes</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{userName}</Text>
-              <Text style={styles.userHandle}>{userHandle} • {city}</Text>
+              <Text style={styles.userName}>{userName || 'Cinephile User'}</Text>
+              <Text style={styles.userHandle}>
+                {userHandle ? `${userHandle} • ` : ''}{city || 'Mumbai Metro'}
+              </Text>
 
               <TouchableOpacity
                 style={styles.editProfileBtn}
@@ -133,8 +155,10 @@ export default function ProfileScreen() {
                   setEditCity(city);
                   setIsEditing(true);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Edit profile information"
               >
-                <Ionicons name="create-outline" size={13} color={COLORS.primary} />
+                <Pencil size={13} color={COLORS.primary} strokeWidth={2} />
                 <Text style={styles.editProfileText}>Edit Profile</Text>
               </TouchableOpacity>
             </View>
@@ -143,26 +167,41 @@ export default function ProfileScreen() {
 
         {/* Stats Dashboard */}
         <View style={styles.statsGrid}>
-          <View style={styles.statBox}>
-            <MaterialCommunityIcons name="ticket-confirmation" size={20} color={COLORS.primary} />
+          <TouchableOpacity
+            style={styles.statBox}
+            onPress={() => router.push('/(tabs)/planner')}
+            accessibilityRole="button"
+            accessibilityLabel={`${plansCount} active movie plans`}
+          >
+            <Ticket size={20} color={COLORS.primary} strokeWidth={2} />
             <Text style={styles.statNumber}>{plansCount}</Text>
             <Text style={styles.statTitle}>Active Plans</Text>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.statBox}>
-            <Ionicons name="camera" size={20} color={COLORS.accentPink} />
+          <TouchableOpacity
+            style={styles.statBox}
+            onPress={() => router.push('/(tabs)/memories')}
+            accessibilityRole="button"
+            accessibilityLabel={`${memoriesCount} logged movie memories`}
+          >
+            <Camera size={20} color={COLORS.accentPink} strokeWidth={2} />
             <Text style={styles.statNumber}>{memoriesCount}</Text>
             <Text style={styles.statTitle}>Memories</Text>
-          </View>
+          </TouchableOpacity>
 
-          <View style={styles.statBox}>
-            <Ionicons name="bookmark" size={20} color={COLORS.secondary} />
+          <TouchableOpacity
+            style={styles.statBox}
+            onPress={() => router.push('/(tabs)/watchlist')}
+            accessibilityRole="button"
+            accessibilityLabel={`${watchlistCount} saved watchlist movies`}
+          >
+            <Bookmark size={20} color={COLORS.secondary} strokeWidth={2} />
             <Text style={styles.statNumber}>{watchlistCount}</Text>
             <Text style={styles.statTitle}>Watchlist</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
-        {/* Theatrical Format Preference */}
+        {/* Section: Cinema Format Preferences */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeader}>Preferred Cinema Format</Text>
           <Text style={styles.sectionSubtitle}>Select your go-to auditorium experience</Text>
@@ -175,6 +214,9 @@ export default function ProfileScreen() {
                   style={[styles.optionChip, isSelected && styles.optionChipActive]}
                   onPress={() => updateProfile({ preferredFormat: fmt })}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Preferred format: ${fmt}`}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <Text style={[styles.optionChipText, isSelected && styles.optionChipTextActive]}>
                     {fmt}
@@ -185,7 +227,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Preferred Cinema Chain */}
+        {/* Section: Cinema Chain Preference */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeader}>Favorite Cinema Chain</Text>
           <Text style={styles.sectionSubtitle}>Primary theater network for booking</Text>
@@ -198,6 +240,9 @@ export default function ProfileScreen() {
                   style={[styles.optionChip, isSelected && styles.optionChipActive]}
                   onPress={() => updateProfile({ preferredChain: chain })}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Favorite chain: ${chain}`}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <Text style={[styles.optionChipText, isSelected && styles.optionChipTextActive]}>
                     {chain}
@@ -208,7 +253,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Favorite Genres */}
+        {/* Section: Favorite Genres */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeader}>Favorite Genres</Text>
           <Text style={styles.sectionSubtitle}>Customizes movie recommendations</Text>
@@ -221,6 +266,9 @@ export default function ProfileScreen() {
                   style={[styles.optionChip, isSelected && styles.optionChipActive]}
                   onPress={() => toggleGenre(g.name)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Toggle favorite genre: ${g.name}`}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <Text style={[styles.optionChipText, isSelected && styles.optionChipTextActive]}>
                     {g.name}
@@ -231,13 +279,16 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Preferences Toggles */}
+        {/* Section: App Settings */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionHeader}>App Settings</Text>
 
           <View style={styles.switchRow}>
             <View style={styles.switchTexts}>
-              <Text style={styles.switchTitle}>Movie Night Reminders</Text>
+              <View style={styles.settingLabelRow}>
+                <Bell size={15} color={COLORS.primary} strokeWidth={2} style={{ marginRight: 6 }} />
+                <Text style={styles.switchTitle}>Movie Night Reminders</Text>
+              </View>
               <Text style={styles.switchDesc}>Get alerted 2 hours before showtime</Text>
             </View>
             <Switch
@@ -250,7 +301,10 @@ export default function ProfileScreen() {
 
           <View style={[styles.switchRow, { borderBottomWidth: 0 }]}>
             <View style={styles.switchTexts}>
-              <Text style={styles.switchTitle}>Sync to Device Calendar</Text>
+              <View style={styles.settingLabelRow}>
+                <Calendar size={15} color={COLORS.secondary} strokeWidth={2} style={{ marginRight: 6 }} />
+                <Text style={styles.switchTitle}>Sync to Device Calendar</Text>
+              </View>
               <Text style={styles.switchDesc}>Automatically export planned tickets</Text>
             </View>
             <Switch
@@ -262,24 +316,65 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Logout */}
-        {isAuthenticated && (
+        {/* Section: Appearance */}
+        <View style={styles.sectionCard}>
+          <View style={styles.settingLabelRow}>
+            <Palette size={16} color={COLORS.primary} strokeWidth={2} style={{ marginRight: 6 }} />
+            <Text style={styles.sectionHeader}>Theme Appearance</Text>
+          </View>
+          <Text style={styles.sectionSubtitle}>Choose your preferred visual theme</Text>
+          <View style={styles.optionsWrap}>
+            {[
+              { id: 'dark', label: 'Dark Mode', icon: Moon },
+              { id: 'light', label: 'Light Mode', icon: Sun },
+              { id: 'system', label: 'System Default', icon: Shield },
+            ].map((theme) => {
+              const isSelected = themeMode === theme.id;
+              const IconComp = theme.icon;
+              return (
+                <TouchableOpacity
+                  key={theme.id}
+                  style={[styles.themeChip, isSelected && styles.themeChipActive]}
+                  onPress={() => setThemeMode(theme.id)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Theme: ${theme.label}`}
+                  accessibilityState={{ selected: isSelected }}
+                >
+                  <IconComp
+                    size={14}
+                    color={isSelected ? '#07090E' : COLORS.textSecondary}
+                    strokeWidth={2}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[styles.optionChipText, isSelected && styles.optionChipTextActive]}>
+                    {theme.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Section: Account Actions */}
+        {isAuthenticated ? (
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={handleLogout}
-            accessibilityLabel="Sign out"
+            accessibilityRole="button"
+            accessibilityLabel="Sign out of account"
           >
-            <Ionicons name="log-out-outline" size={18} color={COLORS.danger} />
+            <LogOut size={18} color={COLORS.danger} strokeWidth={2} />
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
-        )}
-
-        {!isAuthenticated && (
+        ) : (
           <TouchableOpacity
             style={styles.loginPromptBtn}
             onPress={() => router.push('/(auth)/login')}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in to sync your data"
           >
-            <Ionicons name="log-in-outline" size={18} color={COLORS.primary} />
+            <LogIn size={18} color={COLORS.primary} strokeWidth={2} />
             <Text style={styles.loginPromptText}>Sign In to Sync Your Data</Text>
           </TouchableOpacity>
         )}
@@ -327,9 +422,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     ...SHADOWS.glowCyan,
   },
-  avatarEmoji: {
-    fontSize: 32,
-  },
   profileInfo: {
     alignItems: 'center',
   },
@@ -348,15 +440,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.primaryMuted,
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: RADIUS.xs,
     marginTop: 10,
+    gap: 6,
   },
   editProfileText: {
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.primary,
-    marginLeft: 4,
   },
   editForm: {
     width: '100%',
@@ -366,7 +458,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.sm,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     color: '#FFFFFF',
     fontSize: 13,
     marginBottom: 8,
@@ -375,7 +467,7 @@ const styles = StyleSheet.create({
   },
   saveEditBtn: {
     backgroundColor: COLORS.primary,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: RADIUS.sm,
     alignItems: 'center',
     marginTop: 4,
@@ -435,6 +527,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 10,
   },
+  settingLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   optionsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -461,6 +557,22 @@ const styles = StyleSheet.create({
   optionChipTextActive: {
     color: '#07090E',
     fontWeight: '800',
+  },
+  themeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: RADIUS.sm,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  themeChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
 
   // Switches
@@ -506,13 +618,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239,68,68,0.08)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.md,
     paddingVertical: 14,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.25)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
     gap: 8,
   },
   logoutText: {

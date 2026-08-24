@@ -1,19 +1,31 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Image,
+  Image as RNImage,
   StyleSheet,
   Alert,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  X,
+  Camera,
+  Video,
+  Zap,
+  ZapOff,
+  SwitchCamera,
+  RotateCcw,
+  Image as ImageIcon,
+  Star,
+  User,
+  Sparkles,
+  Trash2,
+} from 'lucide-react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { FALLBACK_MOVIES } from '../../services/tmdb';
@@ -31,7 +43,6 @@ const EXPERIENCE_TYPES = [
 ];
 
 const FLASH_MODES = ['off', 'on', 'auto'];
-const FLASH_ICONS = { off: 'flash-off', on: 'flash', auto: 'flash-outline' };
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
@@ -94,7 +105,7 @@ export default function CreateMemoryScreen() {
         setMediaType('photo');
         setCameraActive(false);
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Camera Error', 'Failed to take photo. Please try again.');
     }
   };
@@ -115,7 +126,7 @@ export default function CreateMemoryScreen() {
         setMediaType('video');
         setCameraActive(false);
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Recording Error', 'Failed to record video.');
     } finally {
       setIsRecording(false);
@@ -207,7 +218,7 @@ export default function CreateMemoryScreen() {
 
     if (result.success) {
       Alert.alert(
-        result.offline ? 'Saved Locally' : 'Memory Logged! 🎬',
+        result.offline ? 'Saved Locally' : 'Memory Logged!',
         result.offline
           ? 'Your memory has been saved locally. It will sync when you are back online.'
           : 'Your theatrical experience has been saved to your Cinephile Journal.',
@@ -219,7 +230,6 @@ export default function CreateMemoryScreen() {
   };
 
   const formatSeconds = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-
   const displayUri = photoUri || videoUri;
 
   return (
@@ -227,13 +237,18 @@ export default function CreateMemoryScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Log Movie Night Memory</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
-          <Ionicons name="close" size={22} color="#FFFFFF" />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.closeBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Close journal creation"
+        >
+          <X size={20} color="#FFFFFF" strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* ── MEDIA CAPTURE SECTION ── */}
+        {/* MEDIA CAPTURE SECTION */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Theatrical Snapshot</Text>
           <Text style={styles.sectionSubtitle}>
@@ -243,22 +258,33 @@ export default function CreateMemoryScreen() {
           {/* Mode Selector */}
           {!cameraActive && !displayUri && (
             <View style={styles.modeRow}>
-              {['photo', 'video'].map((mode) => (
-                <TouchableOpacity
-                  key={mode}
-                  style={[styles.modeBtn, mediaMode === mode && styles.modeBtnActive]}
-                  onPress={() => setMediaMode(mode)}
-                >
-                  <Ionicons
-                    name={mode === 'photo' ? 'camera' : 'videocam'}
-                    size={15}
-                    color={mediaMode === mode ? '#07090E' : COLORS.primary}
-                  />
-                  <Text style={[styles.modeBtnText, mediaMode === mode && styles.modeBtnTextActive]}>
-                    {mode === 'photo' ? 'Photo' : 'Video'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {[
+                { id: 'photo', label: 'Photo', icon: Camera },
+                { id: 'video', label: 'Video', icon: Video },
+              ].map((mode) => {
+                const IconComp = mode.icon;
+                const isSelected = mediaMode === mode.id;
+                return (
+                  <TouchableOpacity
+                    key={mode.id}
+                    style={[styles.modeBtn, isSelected && styles.modeBtnActive]}
+                    onPress={() => setMediaMode(mode.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Capture mode: ${mode.label}`}
+                    accessibilityState={{ selected: isSelected }}
+                  >
+                    <IconComp
+                      size={15}
+                      color={isSelected ? '#07090E' : COLORS.primary}
+                      strokeWidth={2}
+                      style={{ marginRight: 5 }}
+                    />
+                    <Text style={[styles.modeBtnText, isSelected && styles.modeBtnTextActive]}>
+                      {mode.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
 
@@ -275,18 +301,37 @@ export default function CreateMemoryScreen() {
                 >
                   {/* Top controls */}
                   <View style={styles.camTopControls}>
-                    <TouchableOpacity style={styles.camControlBtn} onPress={() => setCameraActive(false)}>
-                      <Ionicons name="close" size={20} color="#fff" />
+                    <TouchableOpacity
+                      style={styles.camControlBtn}
+                      onPress={() => setCameraActive(false)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Close camera"
+                    >
+                      <X size={20} color="#fff" strokeWidth={2} />
                     </TouchableOpacity>
 
                     {/* Flash */}
-                    <TouchableOpacity style={styles.camControlBtn} onPress={cycleFlash}>
-                      <Ionicons name={FLASH_ICONS[flashMode]} size={20} color={flashMode === 'on' ? COLORS.secondary : '#fff'} />
+                    <TouchableOpacity
+                      style={styles.camControlBtn}
+                      onPress={cycleFlash}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Toggle flash. Currently ${flashMode}`}
+                    >
+                      {flashMode === 'off' ? (
+                        <ZapOff size={20} color="#fff" strokeWidth={2} />
+                      ) : (
+                        <Zap size={20} color={flashMode === 'on' ? COLORS.secondary : '#fff'} strokeWidth={2} />
+                      )}
                     </TouchableOpacity>
 
                     {/* Flip */}
-                    <TouchableOpacity style={styles.camControlBtn} onPress={flipCamera}>
-                      <Ionicons name="camera-reverse-outline" size={20} color="#fff" />
+                    <TouchableOpacity
+                      style={styles.camControlBtn}
+                      onPress={flipCamera}
+                      accessibilityRole="button"
+                      accessibilityLabel="Switch front and rear camera"
+                    >
+                      <SwitchCamera size={20} color="#fff" strokeWidth={2} />
                     </TouchableOpacity>
                   </View>
 
@@ -314,15 +359,30 @@ export default function CreateMemoryScreen() {
                     <View style={{ width: 44 }} />
 
                     {mediaMode === 'photo' ? (
-                      <TouchableOpacity style={styles.snapBtn} onPress={handleTakePhoto}>
+                      <TouchableOpacity
+                        style={styles.snapBtn}
+                        onPress={handleTakePhoto}
+                        accessibilityRole="button"
+                        accessibilityLabel="Take photograph"
+                      >
                         <View style={styles.snapBtnInner} />
                       </TouchableOpacity>
                     ) : isRecording ? (
-                      <TouchableOpacity style={styles.stopBtn} onPress={handleStopRecording}>
+                      <TouchableOpacity
+                        style={styles.stopBtn}
+                        onPress={handleStopRecording}
+                        accessibilityRole="button"
+                        accessibilityLabel="Stop recording video"
+                      >
                         <View style={styles.stopBtnInner} />
                       </TouchableOpacity>
                     ) : (
-                      <TouchableOpacity style={styles.recordBtn} onPress={handleStartRecording}>
+                      <TouchableOpacity
+                        style={styles.recordBtn}
+                        onPress={handleStartRecording}
+                        accessibilityRole="button"
+                        accessibilityLabel="Start recording video"
+                      >
                         <View style={styles.recordBtnInner} />
                       </TouchableOpacity>
                     )}
@@ -332,9 +392,14 @@ export default function CreateMemoryScreen() {
                 </CameraView>
               ) : (
                 <View style={styles.permissionBox}>
-                  <Ionicons name="camera-outline" size={36} color={COLORS.textMuted} />
+                  <Camera size={36} color={COLORS.textMuted} strokeWidth={1.8} />
                   <Text style={styles.permissionText}>Camera access required</Text>
-                  <TouchableOpacity style={styles.grantBtn} onPress={requestCameraPermission}>
+                  <TouchableOpacity
+                    style={styles.grantBtn}
+                    onPress={requestCameraPermission}
+                    accessibilityRole="button"
+                    accessibilityLabel="Grant camera access"
+                  >
                     <Text style={styles.grantBtnText}>Grant Access</Text>
                   </TouchableOpacity>
                 </View>
@@ -344,41 +409,67 @@ export default function CreateMemoryScreen() {
             <View style={styles.previewContainer}>
               {mediaType === 'video' ? (
                 <View style={styles.videoPreview}>
-                  <Ionicons name="videocam" size={40} color={COLORS.primary} />
+                  <Video size={40} color={COLORS.primary} strokeWidth={2} />
                   <Text style={styles.videoLabel}>Video recorded</Text>
                 </View>
               ) : (
-                <Image source={{ uri: displayUri }} style={styles.previewImage} resizeMode="cover" />
+                <RNImage source={{ uri: displayUri }} style={styles.previewImage} resizeMode="cover" />
               )}
               <View style={styles.previewActions}>
-                <TouchableOpacity style={styles.retakeBtn} onPress={() => { setCameraActive(true); setPhotoUri(null); setVideoUri(null); }}>
-                  <Ionicons name="camera-reverse" size={14} color="#fff" />
+                <TouchableOpacity
+                  style={styles.retakeBtn}
+                  onPress={() => { setCameraActive(true); setPhotoUri(null); setVideoUri(null); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retake photo or video"
+                >
+                  <RotateCcw size={14} color="#fff" strokeWidth={2} />
                   <Text style={styles.retakeText}>Retake</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.clearBtn} onPress={() => { setPhotoUri(null); setVideoUri(null); setMediaType(null); }}>
-                  <Ionicons name="trash-outline" size={14} color={COLORS.danger} />
+                <TouchableOpacity
+                  style={styles.clearBtn}
+                  onPress={() => { setPhotoUri(null); setVideoUri(null); setMediaType(null); }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove photo or video"
+                >
+                  <Trash2 size={14} color={COLORS.danger} strokeWidth={2} />
                   <Text style={[styles.retakeText, { color: COLORS.danger }]}>Remove</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
             <View style={styles.mediaBtnsRow}>
-              <TouchableOpacity style={styles.openCameraBtn} onPress={handleOpenCamera} activeOpacity={0.8}>
-                <Ionicons name={mediaMode === 'video' ? 'videocam' : 'camera'} size={26} color={COLORS.primary} />
+              <TouchableOpacity
+                style={styles.openCameraBtn}
+                onPress={handleOpenCamera}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={mediaMode === 'video' ? 'Open camera to record video' : 'Open camera to take snapshot'}
+              >
+                {mediaMode === 'video' ? (
+                  <Video size={26} color={COLORS.primary} strokeWidth={2} />
+                ) : (
+                  <Camera size={26} color={COLORS.primary} strokeWidth={2} />
+                )}
                 <Text style={styles.openCameraText}>
                   {mediaMode === 'video' ? 'Record Video' : 'Open Camera'}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.galleryBtn} onPress={handlePickFromGallery} activeOpacity={0.8}>
-                <Ionicons name="images-outline" size={24} color={COLORS.secondary} />
+              <TouchableOpacity
+                style={styles.galleryBtn}
+                onPress={handlePickFromGallery}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Choose from media gallery"
+              >
+                <ImageIcon size={24} color={COLORS.secondary} strokeWidth={2} />
                 <Text style={[styles.openCameraText, { color: COLORS.secondary }]}>Gallery</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
 
-        {/* ── MOVIE SELECTION ── */}
+        {/* MOVIE SELECTION */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Movie Watched</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieScroll}>
@@ -389,6 +480,9 @@ export default function CreateMemoryScreen() {
                   key={m.id}
                   style={[styles.movieChip, isSelected && styles.movieChipActive]}
                   onPress={() => setSelectedMovie(m)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select movie ${m.title}`}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <Text style={[styles.movieChipText, isSelected && styles.movieChipTextActive]}>
                     {m.title}
@@ -399,7 +493,7 @@ export default function CreateMemoryScreen() {
           </ScrollView>
         </View>
 
-        {/* ── EXPERIENCE & CINEMA ── */}
+        {/* EXPERIENCE & CINEMA */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Experience Format</Text>
           <View style={styles.optionsWrap}>
@@ -410,6 +504,9 @@ export default function CreateMemoryScreen() {
                   key={fmt}
                   style={[styles.optionPill, isSelected && styles.optionPillActive]}
                   onPress={() => setExperienceType(fmt)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select format ${fmt}`}
+                  accessibilityState={{ selected: isSelected }}
                 >
                   <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>
                     {fmt}
@@ -429,23 +526,31 @@ export default function CreateMemoryScreen() {
           />
         </View>
 
-        {/* ── RATING ── */}
+        {/* RATING */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Theatrical Rating</Text>
           <View style={styles.starPicker}>
             {[1, 2, 3, 4, 5].map((s) => (
-              <TouchableOpacity key={s} onPress={() => setRating(s)} style={styles.starTouch} activeOpacity={0.7}>
-                <Ionicons
-                  name={s <= rating ? 'star' : 'star-outline'}
-                  size={32}
+              <TouchableOpacity
+                key={s}
+                onPress={() => setRating(s)}
+                style={styles.starTouch}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Rate ${s} out of 5 stars`}
+              >
+                <Star
+                  size={30}
                   color={COLORS.secondary}
+                  fill={s <= rating ? COLORS.secondary : 'transparent'}
+                  strokeWidth={1.8}
                 />
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* ── STORY ── */}
+        {/* STORY & HIGHLIGHTS */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Your Review & Theatrical Highlights</Text>
 
@@ -480,7 +585,7 @@ export default function CreateMemoryScreen() {
           />
         </View>
 
-        {/* ── COMPANIONS ── */}
+        {/* COMPANIONS */}
         {contacts.length > 0 && (
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Tag Companions</Text>
@@ -493,8 +598,11 @@ export default function CreateMemoryScreen() {
                       key={c.id || c.name}
                       style={[styles.companionChip, isSelected && styles.companionChipActive]}
                       onPress={() => handleToggleCompanion(c)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Tag companion: ${c.name}`}
+                      accessibilityState={{ selected: isSelected }}
                     >
-                      <Text style={styles.compAvatar}>{c.avatar}</Text>
+                      <User size={12} color={isSelected ? '#07090E' : COLORS.primary} strokeWidth={2} style={{ marginRight: 4 }} />
                       <Text style={[styles.compName, isSelected && styles.compNameActive]}>
                         {c.name.split(' ')[0]}
                       </Text>
@@ -506,18 +614,20 @@ export default function CreateMemoryScreen() {
           </View>
         )}
 
-        {/* ── SAVE BUTTON ── */}
+        {/* SAVE BUTTON */}
         <TouchableOpacity
           style={[styles.saveMemoryBtn, isSaving && { opacity: 0.6 }]}
           onPress={handleSaveMemory}
           disabled={isSaving}
           activeOpacity={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Save memory to cinephile journal"
         >
           {isSaving ? (
             <ActivityIndicator color="#07090E" size="small" />
           ) : (
             <>
-              <MaterialCommunityIcons name="book-heart" size={20} color="#07090E" />
+              <Sparkles size={18} color="#07090E" strokeWidth={2.2} />
               <Text style={styles.saveMemoryBtnText}>Save Memory to Journal</Text>
             </>
           )}
@@ -540,7 +650,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
   closeBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: COLORS.surface,
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: COLORS.cardBorder,
@@ -568,7 +678,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.cardBorder,
   },
   modeBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  modeBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, marginLeft: 5 },
+  modeBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
   modeBtnTextActive: { color: '#07090E' },
 
   // Camera
@@ -580,7 +690,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   camControlBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center', alignItems: 'center',
   },
@@ -643,14 +753,14 @@ const styles = StyleSheet.create({
   retakeBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(7,9,14,0.8)', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: RADIUS.xs,
+    borderRadius: RADIUS.xs, gap: 4,
   },
   clearBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(239,68,68,0.1)', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: RADIUS.xs, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)',
+    borderRadius: RADIUS.xs, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', gap: 4,
   },
-  retakeText: { fontSize: 11, fontWeight: '700', color: '#fff', marginLeft: 4 },
+  retakeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
   // Media buttons
   mediaBtnsRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
@@ -707,7 +817,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.cardBorder,
   },
   companionChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  compAvatar: { fontSize: 13, marginRight: 4 },
   compName: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
   compNameActive: { color: '#07090E', fontWeight: '800' },
 
@@ -715,7 +824,7 @@ const styles = StyleSheet.create({
   saveMemoryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: COLORS.primary, marginHorizontal: SPACING.lg, marginTop: SPACING.lg,
-    paddingVertical: 15, borderRadius: RADIUS.md, ...SHADOWS.glowCyan,
+    paddingVertical: 15, borderRadius: RADIUS.md, gap: 8, ...SHADOWS.glowCyan,
   },
-  saveMemoryBtnText: { fontSize: 14, fontWeight: '900', color: '#07090E', marginLeft: 8 },
+  saveMemoryBtnText: { fontSize: 14, fontWeight: '900', color: '#07090E' },
 });

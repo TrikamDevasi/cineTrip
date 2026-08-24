@@ -6,10 +6,9 @@ import api from '../services/api';
 export const usePreferencesStore = create(
   persist(
     (set, get) => ({
-      // These come from authenticated user — no more hardcoded identity
       userName: '',
       userHandle: '',
-      userAvatar: '🍿',
+      userAvatar: '',
       city: '',
       preferredChain: '',
       preferredFormat: 'IMAX Laser',
@@ -26,7 +25,7 @@ export const usePreferencesStore = create(
         set({
           userName: user.name || '',
           userHandle: user.email ? `@${user.email.split('@')[0]}` : '',
-          userAvatar: user.profile?.avatar || '🍿',
+          userAvatar: user.profile?.avatar || '',
           city: user.profile?.city || '',
           preferredChain: user.profile?.preferredChain || '',
           preferredFormat: user.profile?.preferredFormat || 'IMAX Laser',
@@ -38,10 +37,8 @@ export const usePreferencesStore = create(
       },
 
       updateProfile: async (profileData) => {
-        // Local update immediately
         set((state) => ({ ...state, ...profileData }));
 
-        // Sync to backend
         try {
           const payload = {};
           if (profileData.userName) payload.name = profileData.userName;
@@ -67,7 +64,6 @@ export const usePreferencesStore = create(
             await api.put('/api/profile', payload);
           }
         } catch (error) {
-          // Local state already updated — best-effort sync
           console.warn('Profile sync failed:', error.message);
         }
       },
@@ -78,7 +74,6 @@ export const usePreferencesStore = create(
           const favoriteGenres = exists
             ? state.favoriteGenres.filter((g) => g !== genre)
             : [...state.favoriteGenres, genre];
-          // Also sync to backend
           api.put('/api/profile', { profile: { favoriteGenres } }).catch(() => {});
           return { favoriteGenres };
         }),
@@ -92,7 +87,7 @@ export const usePreferencesStore = create(
         set({
           userName: '',
           userHandle: '',
-          userAvatar: '🍿',
+          userAvatar: '',
           city: '',
           preferredChain: '',
           preferredFormat: 'IMAX Laser',

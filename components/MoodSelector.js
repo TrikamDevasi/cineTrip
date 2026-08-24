@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Icon from './ui/Icon';
 import { MOODS } from '../services/tmdb';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 
@@ -20,6 +20,9 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
             activeOpacity={0.8}
             onPress={() => onSelectMood(isSelected ? null : mood.id)}
             style={[styles.pillWrapper, isSelected && styles.pillSelected]}
+            accessibilityRole="button"
+            accessibilityLabel={`Filter by mood: ${mood.label}`}
+            accessibilityState={{ selected: isSelected }}
           >
             {isSelected ? (
               <LinearGradient
@@ -28,7 +31,7 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientPill}
               >
-                <Ionicons name={mood.icon} size={15} color="#FFFFFF" style={styles.icon} />
+                <Icon name={mood.icon} size={15} color="#FFFFFF" style={styles.icon} />
                 <Text style={styles.selectedLabel}>{mood.label}</Text>
               </LinearGradient>
             ) : (
@@ -36,7 +39,7 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
                 colors={['rgba(26, 35, 58, 0.9)', 'rgba(19, 27, 46, 0.9)']}
                 style={styles.unselectedPill}
               >
-                <Ionicons name={mood.icon} size={15} color={COLORS.textSecondary} style={styles.icon} />
+                <Icon name={mood.icon} size={15} color={COLORS.textSecondary} style={styles.icon} />
                 <Text style={styles.unselectedLabel}>{mood.label}</Text>
               </LinearGradient>
             )}

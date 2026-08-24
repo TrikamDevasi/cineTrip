@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ChevronRight } from 'lucide-react-native';
+import Icon from './ui/Icon';
 import { COLORS, SPACING } from '../constants/theme';
 
 export default function SectionHeader({ title, subtitle, actionText, onAction, icon }) {
@@ -9,7 +10,9 @@ export default function SectionHeader({ title, subtitle, actionText, onAction, i
       <View style={styles.left}>
         <View style={styles.titleRow}>
           {icon && (
-            <Ionicons name={icon} size={18} color={COLORS.primary} style={styles.icon} />
+            <View style={styles.iconWrapper}>
+              <Icon name={icon} size={18} color={COLORS.primary} strokeWidth={2} />
+            </View>
           )}
           <Text style={styles.title}>{title}</Text>
         </View>
@@ -17,9 +20,15 @@ export default function SectionHeader({ title, subtitle, actionText, onAction, i
       </View>
 
       {actionText && onAction && (
-        <TouchableOpacity style={styles.actionBtn} onPress={onAction} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.actionBtn}
+          onPress={onAction}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${actionText} ${title}`}
+        >
           <Text style={styles.actionText}>{actionText}</Text>
-          <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+          <ChevronRight size={14} color={COLORS.primary} strokeWidth={2.2} />
         </TouchableOpacity>
       )}
     </View>
@@ -43,11 +52,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  icon: {
-    marginRight: 6,
+  iconWrapper: {
+    marginRight: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '800',
     color: COLORS.text,
     letterSpacing: 0.2,
@@ -60,11 +69,13 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    minHeight: 36,
   },
   actionText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.primary,
     marginRight: 2,
   },

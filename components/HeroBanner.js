@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Sparkles, Star, Ticket, Info } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { getImageUri } from '../services/tmdb';
 import { usePlannerStore } from '../store/usePlannerStore';
@@ -52,6 +52,8 @@ export default function HeroBanner({ movies = [] }) {
             activeOpacity={0.92}
             style={styles.heroCard}
             onPress={() => router.push(`/movie/${movie.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`Featured premiere: ${movie.title}`}
           >
             <Image
               source={{ uri: getImageUri(movie.backdrop_path || movie.poster_path, 'w780') }}
@@ -66,11 +68,11 @@ export default function HeroBanner({ movies = [] }) {
             <View style={styles.contentOverlay}>
               <View style={styles.topBadgeRow}>
                 <View style={styles.featuredBadge}>
-                  <MaterialCommunityIcons name="star-shooting" size={13} color={COLORS.secondary} />
+                  <Sparkles size={12} color={COLORS.secondary} strokeWidth={2.2} />
                   <Text style={styles.featuredText}>PREMIERE SPOTLIGHT</Text>
                 </View>
                 <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={12} color={COLORS.secondary} />
+                  <Star size={12} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
                   <Text style={styles.ratingText}>
                     {movie.vote_average ? movie.vote_average.toFixed(1) : '8.2'}
                   </Text>
@@ -98,8 +100,10 @@ export default function HeroBanner({ movies = [] }) {
                   style={styles.planTripBtn}
                   onPress={handlePlanNight}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Plan movie night for ${movie.title}`}
                 >
-                  <Ionicons name="ticket" size={16} color="#07090E" />
+                  <Ticket size={16} color="#07090E" strokeWidth={2.2} />
                   <Text style={styles.planTripText}>Plan Movie Night</Text>
                 </TouchableOpacity>
 
@@ -107,8 +111,10 @@ export default function HeroBanner({ movies = [] }) {
                   style={styles.detailsBtn}
                   onPress={handleOpenDetails}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View details for ${movie.title}`}
                 >
-                  <Ionicons name="information-circle-outline" size={18} color="#FFFFFF" />
+                  <Info size={16} color="#FFFFFF" strokeWidth={2} />
                   <Text style={styles.detailsText}>Details</Text>
                 </TouchableOpacity>
               </View>
@@ -118,17 +124,16 @@ export default function HeroBanner({ movies = [] }) {
       </ScrollView>
 
       {/* Pagination Dots */}
-      <View style={styles.dotsContainer}>
-        {movies.map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              i === activeIndex ? styles.dotActive : styles.dotInactive,
-            ]}
-          />
-        ))}
-      </View>
+      {movies.length > 1 && (
+        <View style={styles.dotsContainer}>
+          {movies.map((_, i) => (
+            <View
+              key={i}
+              style={[styles.dot, i === activeIndex && styles.activeDot]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -142,12 +147,12 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     width: HERO_WIDTH,
-    height: 320,
+    height: 380,
     borderRadius: RADIUS.lg,
     overflow: 'hidden',
-    backgroundColor: COLORS.card,
     position: 'relative',
-    marginRight: movies => (movies ? 0 : 0),
+    marginRight: SPACING.lg,
+    backgroundColor: COLORS.card,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     ...SHADOWS.card,
@@ -160,16 +165,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 0,
     bottom: 0,
+    top: 0,
   },
   contentOverlay: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 0,
     padding: SPACING.lg,
-    justifyContent: 'flex-end',
   },
   topBadgeRow: {
     flexDirection: 'row',
@@ -180,55 +184,58 @@ const styles = StyleSheet.create({
   featuredBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.2)',
+    backgroundColor: 'rgba(255, 184, 0, 0.18)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: RADIUS.xs,
     borderWidth: 1,
     borderColor: 'rgba(255, 184, 0, 0.4)',
+    gap: 4,
   },
   featuredText: {
     fontSize: 10,
     fontWeight: '800',
     color: COLORS.secondary,
     letterSpacing: 0.8,
-    marginLeft: 4,
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(7, 9, 14, 0.75)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+    backgroundColor: 'rgba(7, 9, 14, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: RADIUS.xs,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    gap: 4,
   },
   ratingText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
-    marginLeft: 4,
   },
   movieTitle: {
     fontSize: 24,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.3,
+    marginBottom: 4,
   },
   movieTagline: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.textSecondary,
     fontStyle: 'italic',
-    marginTop: 2,
+    marginBottom: 8,
   },
   formatRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-    marginBottom: 12,
+    gap: 6,
+    marginBottom: 14,
   },
   ctaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   planTripBtn: {
     flex: 1,
@@ -236,53 +243,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderRadius: RADIUS.md,
-    marginRight: 10,
+    gap: 6,
     ...SHADOWS.glowCyan,
   },
   planTripText: {
     fontSize: 13,
     fontWeight: '800',
     color: '#07090E',
-    marginLeft: 6,
-    letterSpacing: 0.3,
   },
   detailsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    gap: 6,
   },
   detailsText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#FFFFFF',
-    marginLeft: 4,
   },
   dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
+    gap: 6,
   },
   dot: {
-    height: 4,
-    borderRadius: 2,
-    marginHorizontal: 3,
-  },
-  dotActive: {
-    width: 20,
-    backgroundColor: COLORS.primary,
-  },
-  dotInactive: {
     width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  activeDot: {
+    width: 18,
+    backgroundColor: COLORS.primary,
   },
 });

@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Navigation, Volume2, Armchair, ArrowRight, ChevronRight, Ticket } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import HeroBanner from '../../components/HeroBanner';
@@ -116,7 +116,7 @@ export default function HomeScreen() {
         <SectionHeader
           title="Match Your Mood"
           subtitle="Discover films matching your night's vibe"
-          icon="sparkles"
+          icon="Sparkles"
         />
         <MoodSelector
           selectedMood={selectedMood}
@@ -127,7 +127,7 @@ export default function HomeScreen() {
         <SectionHeader
           title="Now in Theaters"
           subtitle="Showing in IMAX, Dolby & 4DX"
-          icon="film"
+          icon="Film"
           actionText="Explore"
           onAction={() => router.push('/(tabs)/discover')}
         />
@@ -144,7 +144,7 @@ export default function HomeScreen() {
         <SectionHeader
           title="Premium Screens Near You"
           subtitle="Certified IMAX Laser, Dolby Atmos & VIP Lounges"
-          icon="location"
+          icon="MapPin"
           actionText="Map"
           onAction={() => router.push('/map')}
         />
@@ -159,11 +159,13 @@ export default function HomeScreen() {
               style={styles.cinemaCard}
               activeOpacity={0.8}
               onPress={() => router.push('/(tabs)/planner')}
+              accessibilityRole="button"
+              accessibilityLabel={`Select cinema: ${c.name}, ${c.distanceKm} kilometers away`}
             >
               <View style={styles.cinemaTop}>
                 <FormatBadge format={c.screenType} size="small" />
                 <View style={styles.distBadge}>
-                  <Ionicons name="navigate-circle-outline" size={13} color={COLORS.primary} />
+                  <Navigation size={12} color={COLORS.primary} strokeWidth={2} />
                   <Text style={styles.distText}>{c.distanceKm} km</Text>
                 </View>
               </View>
@@ -177,18 +179,18 @@ export default function HomeScreen() {
 
               <View style={styles.cinemaFeatures}>
                 <View style={styles.featRow}>
-                  <Ionicons name="volume-high-outline" size={12} color={COLORS.secondary} />
+                  <Volume2 size={12} color={COLORS.secondary} strokeWidth={2} />
                   <Text style={styles.featText}>{c.sound}</Text>
                 </View>
                 <View style={styles.featRow}>
-                  <MaterialCommunityIcons name="seat-recline-extra" size={12} color={COLORS.primary} />
+                  <Armchair size={12} color={COLORS.primary} strokeWidth={2} />
                   <Text style={styles.featText}>{c.seating}</Text>
                 </View>
               </View>
 
               <View style={styles.bookScreenBtn}>
                 <Text style={styles.bookScreenText}>Select Screen</Text>
-                <Ionicons name="arrow-forward" size={12} color="#07090E" />
+                <ArrowRight size={12} color="#07090E" strokeWidth={2.2} />
               </View>
             </TouchableOpacity>
           ))}
@@ -198,7 +200,7 @@ export default function HomeScreen() {
         <SectionHeader
           title="Anticipated Releases"
           subtitle="Lock in your calendar for advance tickets"
-          icon="calendar"
+          icon="Calendar"
           actionText="All"
           onAction={() => router.push('/(tabs)/discover')}
         />
@@ -216,16 +218,20 @@ export default function HomeScreen() {
           style={styles.ctaBanner}
           activeOpacity={0.9}
           onPress={() => router.push('/(tabs)/planner')}
+          accessibilityRole="button"
+          accessibilityLabel="Organize a Movie Night. Invite squad, pick seats, get your pass."
         >
           <View style={styles.ctaLeft}>
-            <MaterialCommunityIcons name="ticket-percent" size={28} color={COLORS.primary} />
+            <View style={styles.ctaIconBadge}>
+              <Ticket size={24} color={COLORS.primary} strokeWidth={2} />
+            </View>
             <View style={styles.ctaTexts}>
               <Text style={styles.ctaTitle}>Organize a Movie Night</Text>
               <Text style={styles.ctaSubtitle}>Invite squad, pick seats, get your pass</Text>
             </View>
           </View>
           <View style={styles.ctaArrow}>
-            <Ionicons name="chevron-forward" size={18} color="#07090E" />
+            <ChevronRight size={18} color="#07090E" strokeWidth={2.4} />
           </View>
         </TouchableOpacity>
 
@@ -295,12 +301,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
+    gap: 4,
   },
   distText: {
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.primary,
-    marginLeft: 3,
   },
   cinemaCardName: {
     fontSize: 14,
@@ -311,51 +317,53 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textSecondary,
     marginTop: 2,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   cinemaFeatures: {
     borderTopWidth: 1,
+    borderBottomWidth: 1,
     borderColor: COLORS.cardBorder,
-    paddingTop: 8,
-    marginBottom: 12,
+    paddingVertical: 6,
+    marginVertical: 6,
+    gap: 4,
   },
   featRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 2,
+    gap: 6,
   },
   featText: {
     fontSize: 11,
     color: COLORS.textSecondary,
-    marginLeft: 5,
   },
   bookScreenBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    paddingVertical: 7,
-    borderRadius: RADIUS.sm,
+    paddingVertical: 8,
+    borderRadius: RADIUS.xs,
+    marginTop: 4,
+    gap: 4,
   },
   bookScreenText: {
     fontSize: 11,
     fontWeight: '800',
     color: '#07090E',
-    marginRight: 4,
   },
 
-  // Bottom CTA
+  // CTA Banner
   ctaBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.card,
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.xl,
     padding: SPACING.lg,
     borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorderGlow,
+    borderWidth: 1,
+    borderColor: COLORS.primaryMuted,
     ...SHADOWS.glowCyan,
   },
   ctaLeft: {
@@ -363,12 +371,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  ctaIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primaryMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   ctaTexts: {
     marginLeft: 12,
     flex: 1,
   },
   ctaTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
   },
@@ -378,11 +394,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   ctaArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 8,
   },
 });
