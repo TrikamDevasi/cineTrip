@@ -23,13 +23,17 @@ import {
   EyeOff,
   AlertCircle,
   UserPlus,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react-native';
 import { useAuthStore } from '../../store/useAuthStore';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuthStore();
+  const updateProfile = usePreferencesStore((s) => s.updateProfile);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -77,6 +81,18 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleExploreDemo = () => {
+    updateProfile({
+      userName: 'Guest Cinephile',
+      userHandle: '@guest_explorer',
+      city: 'Mumbai Metro',
+      preferredFormat: 'IMAX Laser',
+      preferredChain: 'PVR INOX Palladium',
+      favoriteGenres: ['Sci-Fi', 'Action', 'Drama'],
+    });
+    router.replace('/(tabs)');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -106,6 +122,28 @@ export default function RegisterScreen() {
             <Text style={styles.appName}>Join CineTrip</Text>
             <Text style={styles.tagline}>Start your cinephile journey</Text>
           </View>
+
+          {/* Instant Demo / Guest Mode Card */}
+          <TouchableOpacity
+            style={styles.demoCard}
+            onPress={handleExploreDemo}
+            activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel="Try Instant Demo without creating an account"
+          >
+            <View style={styles.demoLeft}>
+              <View style={styles.demoIconBadge}>
+                <Sparkles size={20} color="#07090E" strokeWidth={2.2} />
+              </View>
+              <View style={styles.demoTexts}>
+                <Text style={styles.demoTitle}>Try Instant Demo</Text>
+                <Text style={styles.demoSubtitle}>Explore all features without an account</Text>
+              </View>
+            </View>
+            <View style={styles.demoArrow}>
+              <ArrowRight size={16} color={COLORS.primary} strokeWidth={2.2} />
+            </View>
+          </TouchableOpacity>
 
           {/* Register Card */}
           <View style={styles.card}>
@@ -300,6 +338,58 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 3,
   },
+
+  // Demo Card
+  demoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.glowCyan,
+  },
+  demoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  demoIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  demoTexts: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  demoTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  demoSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  demoArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+
   card: {
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,

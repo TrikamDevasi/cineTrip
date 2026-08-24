@@ -12,13 +12,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { Film, Mail, Lock, Eye, EyeOff, AlertCircle, LogIn } from 'lucide-react-native';
+import { Film, Mail, Lock, Eye, EyeOff, AlertCircle, LogIn, Sparkles, ArrowRight } from 'lucide-react-native';
 import { useAuthStore } from '../../store/useAuthStore';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuthStore();
+  const updateProfile = usePreferencesStore((s) => s.updateProfile);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,6 +56,18 @@ export default function LoginScreen() {
     }
   };
 
+  const handleExploreDemo = () => {
+    updateProfile({
+      userName: 'Guest Cinephile',
+      userHandle: '@guest_explorer',
+      city: 'Mumbai Metro',
+      preferredFormat: 'IMAX Laser',
+      preferredChain: 'PVR INOX Palladium',
+      favoriteGenres: ['Sci-Fi', 'Action', 'Drama'],
+    });
+    router.replace('/(tabs)');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -74,10 +88,32 @@ export default function LoginScreen() {
             <Text style={styles.tagline}>Your cinephile journey, personalized</Text>
           </View>
 
+          {/* Instant Demo / Guest Mode Card */}
+          <TouchableOpacity
+            style={styles.demoCard}
+            onPress={handleExploreDemo}
+            activeOpacity={0.88}
+            accessibilityRole="button"
+            accessibilityLabel="Try Instant Demo. Explore website without creating an account."
+          >
+            <View style={styles.demoLeft}>
+              <View style={styles.demoIconBadge}>
+                <Sparkles size={20} color="#07090E" strokeWidth={2.2} />
+              </View>
+              <View style={styles.demoTexts}>
+                <Text style={styles.demoTitle}>Try Instant Demo</Text>
+                <Text style={styles.demoSubtitle}>Explore all features without an account</Text>
+              </View>
+            </View>
+            <View style={styles.demoArrow}>
+              <ArrowRight size={16} color={COLORS.primary} strokeWidth={2.2} />
+            </View>
+          </TouchableOpacity>
+
           {/* Login Card */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Welcome Back</Text>
-            <Text style={styles.cardSubtitle}>Sign in to your account</Text>
+            <Text style={styles.cardSubtitle}>Sign in to sync your tickets and journal</Text>
 
             {/* Email */}
             <Text style={styles.label}>Email</Text>
@@ -172,14 +208,14 @@ export default function LoginScreen() {
             </Link>
           </View>
 
-          {/* Skip / Offline Mode */}
+          {/* Skip Footer */}
           <TouchableOpacity
             style={styles.skipBtn}
-            onPress={() => router.replace('/(tabs)')}
+            onPress={handleExploreDemo}
             accessibilityRole="button"
-            accessibilityLabel="Continue without signing in"
+            accessibilityLabel="Continue as guest"
           >
-            <Text style={styles.skipText}>Continue without account</Text>
+            <Text style={styles.skipText}>Continue as guest</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -194,11 +230,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.xxl,
+    paddingVertical: SPACING.xl,
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.lg,
   },
   logoBadge: {
     width: 68,
@@ -223,6 +259,59 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 4,
   },
+
+  // Demo Card
+  demoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.glowCyan,
+  },
+  demoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  demoIconBadge: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  demoTexts: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  demoTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  demoSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  demoArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+
+  // Card
   card: {
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
@@ -232,13 +321,13 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   cardTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 2,
   },
   cardSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textSecondary,
     marginBottom: SPACING.lg,
   },
@@ -324,7 +413,7 @@ const styles = StyleSheet.create({
   },
   skipBtn: {
     alignItems: 'center',
-    marginTop: SPACING.xl,
+    marginTop: SPACING.lg,
     paddingVertical: 8,
   },
   skipText: {
