@@ -90,19 +90,6 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleExploreDemo = () => {
-    enterGuestMode();
-    updateProfile({
-      userName: 'Guest Cinephile',
-      userHandle: '@guest_explorer',
-      city: 'Mumbai Metro',
-      preferredFormat: 'IMAX Laser',
-      preferredChain: 'PVR INOX Palladium',
-      favoriteGenres: ['Sci-Fi', 'Action', 'Drama'],
-    });
-    router.replace('/(tabs)');
-  };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -132,26 +119,6 @@ export default function RegisterScreen() {
             <Text style={styles.appName}>Create Account</Text>
             <Text style={styles.tagline}>Join the cinematic community</Text>
           </View>
-
-          {/* Instant Demo Option */}
-          <TouchableOpacity
-            style={styles.demoCard}
-            onPress={handleExploreDemo}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Explore without an account"
-          >
-            <View style={styles.demoLeft}>
-              <View style={styles.demoIconBadge}>
-                <Sparkles size={18} color="#07090E" strokeWidth={2} />
-              </View>
-              <View style={styles.demoTexts}>
-                <Text style={styles.demoTitle}>Explore as Guest</Text>
-                <Text style={styles.demoSubtitle}>Try discovery, trip planning & camera offline</Text>
-              </View>
-            </View>
-            <ArrowRight size={18} color={COLORS.primary} strokeWidth={2} />
-          </TouchableOpacity>
 
           {/* Registration Form Card */}
           <View style={styles.card}>

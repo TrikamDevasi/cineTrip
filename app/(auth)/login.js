@@ -77,32 +77,6 @@ export default function LoginScreen() {
     } finally {
       setGoogleLoading(false);
     }
-  };
-
-  const handleExploreDemo = () => {
-    enterGuestMode();
-    updateProfile({
-      userName: 'Guest Cinephile',
-      userHandle: '@guest_explorer',
-      city: 'Mumbai Metro',
-      preferredFormat: 'IMAX Laser',
-      preferredChain: 'PVR INOX Palladium',
-      favoriteGenres: ['Sci-Fi', 'Action', 'Drama'],
-    });
-    router.replace('/(tabs)');
-  };
-
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.flex}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
           {/* Logo / Header */}
           <View style={styles.heroSection}>
             <View style={styles.logoBadge}>
@@ -111,26 +85,6 @@ export default function LoginScreen() {
             <Text style={styles.appName}>CineTrip</Text>
             <Text style={styles.tagline}>Your theatrical cinema companion</Text>
           </View>
-
-          {/* Instant Demo Option */}
-          <TouchableOpacity
-            style={styles.demoCard}
-            onPress={handleExploreDemo}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Explore as guest without creating an account"
-          >
-            <View style={styles.demoLeft}>
-              <View style={styles.demoIconBadge}>
-                <Sparkles size={18} color="#07090E" strokeWidth={2} />
-              </View>
-              <View style={styles.demoTexts}>
-                <Text style={styles.demoTitle}>Explore as Guest</Text>
-                <Text style={styles.demoSubtitle}>Try discovery, trip planning & camera offline</Text>
-              </View>
-            </View>
-            <ArrowRight size={18} color={COLORS.primary} strokeWidth={2} />
-          </TouchableOpacity>
 
           {/* Login Form Container */}
           <View style={styles.card}>
