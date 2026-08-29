@@ -159,9 +159,16 @@ export default function MapScreen() {
 
   // Construct iframe embed source URL for Web platform
   const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-  const mapCenter = selectedLocation ? `${selectedLocation.latitude},${selectedLocation.longitude}` : '19.076,72.8777';
+  const lat = selectedLocation?.latitude || 19.076;
+  const lon = selectedLocation?.longitude || 72.8777;
+  const mapCenter = `${lat},${lon}`;
   const queryParam = searchQuery ? encodeURIComponent(searchQuery) : 'cinema';
-  const embedUrl = `https://www.google.com/maps/embed/v1/search?key=${googleMapsApiKey}&q=${queryParam}&center=${mapCenter}&zoom=13`;
+  
+  // Calculate bounding box for OpenStreetMap fallback embed
+  const bbox = `${lon - 0.015},${lat - 0.015},${lon + 0.015},${lat + 0.015}`;
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
+  
+  const embedUrl = googleMapsApiKey ? `https://www.google.com/maps/embed/v1/search?key=${googleMapsApiKey}&q=${queryParam}&center=${mapCenter}&zoom=13` : osmEmbedUrl;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
