@@ -22,23 +22,42 @@ export const useMemoryStore = create(
         set({ isLoading: true, error: null });
         try {
           const data = await api.get(`/api/memories?page=${pageNum}&limit=20`);
-          const memories = data.data.map((m) => ({
+          const serverMemories = data.data.map((m) => ({
             ...m,
             _id: m._id || m.id,
           }));
 
+          const localUnsynced = get().memories.filter((m) => m._id && m._id.startsWith('local-'));
+
           if (pageNum === 1) {
             set({
-              memories,
+              memories: [...localUnsynced, ...serverMemories],
               page: 1,
               hasNextPage: data.hasNextPage,
-              total: data.total,
+              total: data.total + localUnsynced.length,
               isLoading: false,
               isSynced: true,
             });
+
+            // Background sync local memories to server
+            if (localUnsynced.length > 0) {
+              for (const mem of localUnsynced) {
+                try {
+                  const { _id, ...payload } = mem;
+                  const res = await api.post('/api/memories', payload);
+                  if (res.data) {
+                    set((state) => ({
+                      memories: state.memories.map((m) => (m._id === _id ? res.data : m)),
+                    }));
+                  }
+                } catch (syncErr) {
+                  // Keep local if still failing
+                }
+              }
+            }
           } else {
             set((state) => ({
-              memories: [...state.memories, ...memories],
+              memories: [...state.memories, ...serverMemories],
               page: pageNum,
               hasNextPage: data.hasNextPage,
               total: data.total,
@@ -50,6 +69,7 @@ export const useMemoryStore = create(
           set({ isLoading: false, error: error.message });
         }
       },
+
 
       loadNextPage: () => {
         const { page, hasNextPage, isLoading, fetchMemories } = get();

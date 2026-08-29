@@ -5,18 +5,20 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, AlertCircle } from 'lucide-react-native';
+import { Camera, Film, MapPin, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import MemoryCard from '../../components/MemoryCard';
+import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
+import { MemoryCardSkeleton } from '../../components/ui/Skeleton';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function MemoriesScreen() {
   const router = useRouter();
@@ -46,6 +48,9 @@ export default function MemoriesScreen() {
   };
 
   const totalTheaters = new Set(memories.map((m) => m.cinemaName).filter(Boolean)).size;
+  const avgRating = memories.length > 0
+    ? (memories.reduce((sum, m) => sum + (m.rating || 5), 0) / memories.length).toFixed(1)
+    : '5.0';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -54,6 +59,7 @@ export default function MemoriesScreen() {
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -63,68 +69,62 @@ export default function MemoriesScreen() {
           />
         }
       >
-        {/* Screen Title & Add CTA */}
+        {/* Top Header & CTA */}
         <View style={styles.topHeader}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.title}>Cinephile Journal</Text>
             <Text style={styles.subtitle}>
               Preserve your big-screen memories & stories
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.logBtn}
+          <Button
+            title="Log Memory"
+            icon="Camera"
+            variant="primary"
+            size="md"
             onPress={() => router.push('/memory/create')}
-            activeOpacity={0.85}
-            accessibilityRole="button"
             accessibilityLabel="Log a new movie night memory"
-          >
-            <Camera size={16} color="#07090E" strokeWidth={2.2} />
-            <Text style={styles.logBtnText}>Log Memory</Text>
-          </TouchableOpacity>
+          />
         </View>
 
-        {/* Theatrical Milestone Stats Banner */}
-        <View style={styles.statsBanner}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{memories.length}</Text>
-            <Text style={styles.statLabel}>Experiences</Text>
-          </View>
-          <View style={styles.statDivider} />
+        {/* Real Theatrical Milestone Metrics */}
+        {memories.length > 0 && (
+          <View style={styles.statsBanner}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{memories.length}</Text>
+              <Text style={styles.statLabel}>Screenings</Text>
+            </View>
+            <View style={styles.statDivider} />
 
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{totalTheaters}</Text>
-            <Text style={styles.statLabel}>Theaters</Text>
-          </View>
-          <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{totalTheaters}</Text>
+              <Text style={styles.statLabel}>Theaters</Text>
+            </View>
+            <View style={styles.statDivider} />
 
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>100%</Text>
-            <Text style={styles.statLabel}>IMAX & VIP</Text>
-          </View>
-        </View>
-
-        {/* Loading Indicator */}
-        {isLoading && !refreshing && memories.length === 0 && (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Loading journal...</Text>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{avgRating} ★</Text>
+              <Text style={styles.statLabel}>Avg Rating</Text>
+            </View>
           </View>
         )}
 
-        {/* Error Retry Banner */}
-        {error && (
-          <View style={styles.errorBanner}>
-            <AlertCircle size={16} color={COLORS.danger} strokeWidth={2} />
-            <Text style={styles.errorBannerText}>{error}</Text>
-            <TouchableOpacity
-              onPress={() => fetchMemories(1)}
-              accessibilityRole="button"
-              accessibilityLabel="Retry loading memories"
-            >
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
+        {/* Loading State with Skeletons */}
+        {isLoading && !refreshing && memories.length === 0 && (
+          <View style={styles.skeletonFeed}>
+            <MemoryCardSkeleton />
+            <MemoryCardSkeleton />
           </View>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <ErrorState
+            title="Couldn't Load Journal"
+            message={error}
+            onRetry={() => fetchMemories(1)}
+          />
         )}
 
         {/* Memories Feed */}
@@ -132,7 +132,7 @@ export default function MemoriesScreen() {
           <EmptyState
             icon="Camera"
             title="No Movie Memories Yet"
-            description="Capture your next movie night experience, tag your squad, and log the highlight scenes."
+            description="Capture your next movie night experience, tag your squad, and log the highlight moments."
             actionLabel="Log Your First Movie Night"
             onAction={() => router.push('/memory/create')}
             actionIcon="Plus"
@@ -144,19 +144,18 @@ export default function MemoriesScreen() {
             ))}
 
             {hasNextPage && (
-              <TouchableOpacity
-                style={styles.loadMoreBtn}
-                onPress={loadNextPage}
-                accessibilityRole="button"
-                accessibilityLabel="Load older journal memories"
-              >
-                <Text style={styles.loadMoreBtnText}>Load Older Memories</Text>
-              </TouchableOpacity>
+              <View style={styles.loadMoreWrap}>
+                <Button
+                  title="Load Older Memories"
+                  variant="surface"
+                  size="md"
+                  onPress={loadNextPage}
+                  accessibilityLabel="Load older journal memories"
+                />
+              </View>
             )}
           </View>
         )}
-
-        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -170,120 +169,67 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: SPACING.xxl * 2,
+  },
   topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  headerLeft: {
+    flex: 1,
+    marginRight: SPACING.md,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
   },
   subtitle: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  logBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: RADIUS.md,
-    gap: 6,
-    ...SHADOWS.glowCyan,
-  },
-  logBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#07090E',
-  },
   statsBanner: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.md,
     marginHorizontal: SPACING.lg,
-    paddingVertical: 14,
     marginBottom: SPACING.lg,
+    padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    ...SHADOWS.card,
   },
   statItem: {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: COLORS.primary,
+    ...TYPOGRAPHY.h2,
+    color: COLORS.secondary,
   },
   statLabel: {
-    fontSize: 11,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    fontWeight: '600',
     marginTop: 2,
   },
   statDivider: {
     width: 1,
-    height: 24,
+    height: 28,
     backgroundColor: COLORS.cardBorder,
   },
-  feedWrapper: {
-    paddingTop: 4,
-  },
-  loadingBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.xxl,
-    gap: 10,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    marginHorizontal: SPACING.lg,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
-    marginBottom: SPACING.md,
-    gap: 8,
-  },
-  errorBannerText: {
-    flex: 1,
-    fontSize: 12,
-    color: COLORS.danger,
-  },
-  retryText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
-  loadMoreBtn: {
-    backgroundColor: COLORS.surface,
-    paddingVertical: 12,
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
+  skeletonFeed: {
     marginTop: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
   },
-  loadMoreBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.primary,
+  feedWrapper: {
+    marginTop: SPACING.xs,
+  },
+  loadMoreWrap: {
+    paddingHorizontal: SPACING.lg,
+    marginVertical: SPACING.md,
   },
 });

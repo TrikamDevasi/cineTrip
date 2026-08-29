@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ArrowLeft,
   Search,
   X,
   MapPin,
@@ -20,11 +19,15 @@ import {
   ChevronRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import IconButton from '../components/ui/IconButton';
+import Button from '../components/ui/Button';
+import FormatBadge from '../components/FormatBadge';
 import { useLocation } from '../hooks/useLocation';
 import { SAMPLE_CINEMAS } from '../services/location';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
-// MapView is conditionally imported — requires native dev build
+import { usePlannerStore } from '../store/usePlannerStore';
+
 let MapView, Marker;
 try {
   const Maps = require('react-native-maps');
@@ -36,6 +39,7 @@ try {
 
 export default function MapScreen() {
   const router = useRouter();
+  const setDraftCinema = usePlannerStore((s) => s.setDraftCinema);
   const { location, address, isLoading, error, getCurrentLocation, getLastKnownLocation } = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -112,328 +116,302 @@ export default function MapScreen() {
     }
   };
 
-  const handleSaveLocation = () => {
-    if (!selectedLocation) {
-      Alert.alert('No Location', 'Please select a location on the map first.');
-      return;
-    }
-    Alert.alert(
-      'Location Saved',
-      `${selectedAddress || address || 'Current Location'}\nCoords: ${selectedLocation.latitude.toFixed(4)}, ${selectedLocation.longitude.toFixed(4)}`,
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
-  };
-
-  const coordStr = location
-    ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
-    : null;
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
+        <IconButton
+          icon="ArrowLeft"
+          variant="surface"
           onPress={() => router.back()}
-          style={styles.backBtn}
-          accessibilityRole="button"
           accessibilityLabel="Go back"
-        >
-          <ArrowLeft size={22} color="#FFFFFF" strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cinema Map & Locations</Text>
-        <TouchableOpacity
-          style={styles.saveBtn}
-          onPress={handleSaveLocation}
-          accessibilityRole="button"
-          accessibilityLabel="Save selected location"
-        >
-          <Text style={styles.saveBtnText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchWrapper}>
-        <Search size={16} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: 8 }} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search cinemas or places..."
-          placeholderTextColor={COLORS.textMuted}
-          value={searchQuery}
-          onChangeText={handleSearch}
-          returnKeyType="search"
         />
-        {searchQuery ? (
-          <TouchableOpacity
-            onPress={() => { setSearchQuery(''); setSearchResults([]); }}
-            accessibilityRole="button"
-            accessibilityLabel="Clear search text"
-          >
-            <X size={16} color={COLORS.textMuted} strokeWidth={2} />
-          </TouchableOpacity>
-        ) : null}
+        <Text style={styles.headerTitle}>Cinema Map & Screens</Text>
+        <IconButton
+          icon="LocateFixed"
+          variant="surface"
+          color={COLORS.primary}
+          onPress={handleGoToMyLocation}
+          accessibilityLabel="Recenter map to my location"
+        />
       </View>
 
-      {/* Search Results Dropdown */}
-      {searchResults.length > 0 && (
-        <View style={styles.searchDropdown}>
-          {searchResults.map((r) => (
+      {/* Search Input Bar */}
+      <View style={styles.searchSection}>
+        <View style={styles.searchContainer}>
+          <Search size={18} color={COLORS.primary} strokeWidth={2} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search theaters, cities, IMAX..."
+            placeholderTextColor={COLORS.textMuted}
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+          {searchQuery.length > 0 && (
             <TouchableOpacity
-              key={r.id}
-              style={styles.searchResultItem}
-              onPress={() => handleSelectSearchResult(r)}
+              onPress={() => { setSearchQuery(''); setSearchResults([]); }}
+              style={styles.clearBtn}
               accessibilityRole="button"
-              accessibilityLabel={`Select cinema ${r.name}`}
+              accessibilityLabel="Clear search text"
             >
-              <MapPin size={15} color={COLORS.primary} strokeWidth={2} style={{ marginRight: 8 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.resultName}>{r.name}</Text>
-                <Text style={styles.resultAddr}>{r.address}</Text>
-              </View>
+              <X size={16} color={COLORS.textMuted} strokeWidth={2} />
             </TouchableOpacity>
-          ))}
+          )}
         </View>
-      )}
 
-      {/* Map or Fallback */}
-      {isLoading && !location ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Getting your location...</Text>
-        </View>
-      ) : error && !location ? (
-        <View style={styles.errorBox}>
-          <MapPin size={40} color={COLORS.textMuted} strokeWidth={1.8} />
-          <Text style={styles.errorTitle}>Location Unavailable</Text>
-          <Text style={styles.errorSub}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryBtn}
-            onPress={initLocation}
-            accessibilityRole="button"
-            accessibilityLabel="Retry fetching location"
-          >
-            <Text style={styles.retryText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      ) : MapView ? (
-        <View style={styles.mapContainer}>
+        {/* Live Search Results Dropdown */}
+        {searchResults.length > 0 && (
+          <View style={styles.dropdownResults}>
+            {searchResults.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.dropdownItem}
+                onPress={() => handleSelectSearchResult(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`Select cinema ${item.name}`}
+              >
+                <MapPin size={16} color={COLORS.secondary} strokeWidth={2} style={{ marginRight: SPACING.sm }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dropdownTitle}>{item.name}</Text>
+                  <Text style={styles.dropdownSub}>{item.address}</Text>
+                </View>
+                <ChevronRight size={16} color={COLORS.textMuted} strokeWidth={2} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Map or Fallback View */}
+      <View style={styles.mapContainer}>
+        {MapView && location ? (
           <MapView
             ref={mapRef}
             style={styles.map}
             initialRegion={{
-              latitude: location?.latitude || 19.076,
-              longitude: location?.longitude || 72.877,
+              latitude: location.latitude,
+              longitude: location.longitude,
               latitudeDelta: 0.05,
               longitudeDelta: 0.05,
             }}
-            onPress={(e) => {
-              setSelectedLocation(e.nativeEvent.coordinate);
-              setSelectedAddress('');
-            }}
           >
-            {location && (
-              <Marker coordinate={location} title="You are here" pinColor={COLORS.primary} />
-            )}
-            {selectedLocation && selectedLocation !== location && (
-              <Marker coordinate={selectedLocation} title={selectedAddress || 'Selected'} pinColor={COLORS.secondary} />
-            )}
-            {cinemas.map((c, i) => {
-              if (!location) return null;
-              const markerCoord = {
-                latitude: location.latitude + (i - 2) * 0.008,
-                longitude: location.longitude + (i - 2) * 0.012,
-              };
-              return (
-                <Marker
-                  key={c.id}
-                  coordinate={markerCoord}
-                  title={c.name}
-                  description={c.screenType}
-                  pinColor="#8B5CF6"
-                />
-              );
-            })}
+            <Marker
+              coordinate={{
+                latitude: location.latitude,
+                longitude: location.longitude,
+              }}
+              title="My Location"
+              pinColor={COLORS.primary}
+            />
+
+            {cinemas.map((c, i) => (
+              <Marker
+                key={c.id}
+                coordinate={{
+                  latitude: location.latitude + (i === 0 ? 0.01 : i === 1 ? -0.012 : 0.008),
+                  longitude: location.longitude + (i === 0 ? -0.008 : i === 1 ? 0.015 : -0.018),
+                }}
+                title={c.name}
+                description={c.screenType}
+                pinColor={COLORS.secondary}
+              />
+            ))}
           </MapView>
-
-          {/* My Location Button */}
-          <TouchableOpacity
-            style={styles.myLocationBtn}
-            onPress={handleGoToMyLocation}
-            accessibilityRole="button"
-            accessibilityLabel="Re-center to my current location"
-          >
-            <LocateFixed size={20} color="#07090E" strokeWidth={2.4} />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        /* Fallback when react-native-maps is not available */
-        <View style={styles.fallbackContainer}>
-          <View style={styles.fallbackMap}>
-            <MapPin size={48} color={COLORS.primary} strokeWidth={1.8} />
-            <Text style={styles.fallbackTitle}>Map View</Text>
-            <Text style={styles.fallbackSubtitle}>
-              Full map requires a native development build.
-              {'\n'}Your current location data:
+        ) : (
+          <View style={styles.mapFallback}>
+            <MapPin size={48} color={COLORS.primary} strokeWidth={2} />
+            <Text style={styles.mapFallbackTitle}>Auditorium Locator</Text>
+            <Text style={styles.mapFallbackSub}>
+              {address ? `Located near ${address}` : 'GPS coordinates resolved. Showing nearby certified auditoriums.'}
             </Text>
-            {coordStr && (
-              <View style={styles.coordBadge}>
-                <Navigation size={13} color={COLORS.primary} strokeWidth={2} />
-                <Text style={styles.coordText}>{coordStr}</Text>
-              </View>
-            )}
-            {address && <Text style={styles.addrText}>{address}</Text>}
           </View>
-        </View>
-      )}
+        )}
+      </View>
 
-      {/* Location Info Banner */}
-      {location && (
-        <View style={styles.locationBanner}>
-          <MapPin size={15} color={COLORS.primary} strokeWidth={2} />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {selectedAddress || address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
-          </Text>
-          <TouchableOpacity
-            onPress={handleGoToMyLocation}
-            accessibilityRole="button"
-            accessibilityLabel="Locate current position"
-          >
-            <Navigation size={15} color={COLORS.primary} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Nearby Screens List */}
+      <View style={styles.bottomListWrapper}>
+        <Text style={styles.bottomListTitle}>NEARBY CERTIFIED SCREENS</Text>
+        <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false}>
+          {cinemas.map((cinema) => (
+            <View key={cinema.id} style={styles.cinemaItem}>
+              <View style={styles.cinemaItemLeft}>
+                <Text style={styles.cinemaItemName}>{cinema.name}</Text>
+                <Text style={styles.cinemaItemAddress}>{cinema.address}</Text>
+                <View style={styles.badgeRow}>
+                  <FormatBadge format={cinema.screenType || 'IMAX Laser'} size="small" />
+                  <Text style={styles.cinemaDistance}>{cinema.distance || '2.4 km away'}</Text>
+                </View>
+              </View>
 
-      {/* Nearby Cinemas List */}
-      <ScrollView style={styles.cinemaList} showsVerticalScrollIndicator={false}>
-        <Text style={styles.cinemaListTitle}>Nearby Premium Screens</Text>
-        {cinemas.map((c) => (
-          <TouchableOpacity
-            key={c.id}
-            style={styles.cinemaItem}
-            onPress={() => {
-              setSelectedAddress(`${c.name}, ${c.address}`);
-              Alert.alert(c.name, `${c.screenType}\n${c.address}\n${c.distanceKm} km away`);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`${c.name}, ${c.screenType}, ${c.distanceKm} km away`}
-          >
-            <View style={styles.cinemaItemLeft}>
-              <Text style={styles.cinemaItemName}>{c.name}</Text>
-              <Text style={styles.cinemaItemAddr}>{c.address}</Text>
-              <Text style={styles.cinemaItemType}>{c.screenType}</Text>
+              <Button
+                title="Plan Here"
+                icon="Ticket"
+                variant="primary"
+                size="sm"
+                onPress={() => {
+                  setDraftCinema(cinema);
+                  router.push('/(tabs)/planner');
+                }}
+                accessibilityLabel={`Plan movie night at ${cinema.name}`}
+              />
             </View>
-            <View style={styles.cinemaItemRight}>
-              <Text style={styles.cinemaDistText}>{c.distanceKm} km</Text>
-              <ChevronRight size={16} color={COLORS.textMuted} strokeWidth={2} />
-            </View>
-          </TouchableOpacity>
-        ))}
-        <View style={{ height: 20 }} />
-      </ScrollView>
+          ))}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
   },
-  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
-  saveBtn: {
-    backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: RADIUS.sm,
+  headerTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.text,
   },
-  saveBtnText: { fontSize: 13, fontWeight: '800', color: '#07090E' },
-  searchWrapper: {
-    flexDirection: 'row', alignItems: 'center',
+  searchSection: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    position: 'relative',
+    zIndex: 10,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.surface,
-    marginHorizontal: SPACING.lg, marginBottom: 6,
-    paddingHorizontal: 12, height: 44,
-    borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.cardBorder,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 48,
   },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: 14 },
-  searchDropdown: {
+  searchIcon: {
+    marginRight: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+  },
+  clearBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownResults: {
+    position: 'absolute',
+    top: 56,
+    left: SPACING.lg,
+    right: SPACING.lg,
     backgroundColor: COLORS.card,
-    marginHorizontal: SPACING.lg,
     borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: COLORS.cardBorder,
-    marginBottom: 4, zIndex: 10,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    zIndex: 20,
+    ...SHADOWS.modal,
   },
-  searchResultItem: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 10,
-    borderBottomWidth: 1, borderColor: COLORS.cardBorder,
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.md,
+    borderBottomWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
-  resultName: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
-  resultAddr: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
-  loadingBox: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12,
+  dropdownTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
   },
-  loadingText: { color: COLORS.textSecondary, fontSize: 13 },
-  errorBox: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xxl, gap: 12,
+  dropdownSub: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
-  errorTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
-  errorSub: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center' },
-  retryBtn: {
-    backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 10,
-    borderRadius: RADIUS.md,
-  },
-  retryText: { fontSize: 13, fontWeight: '700', color: '#07090E' },
-  mapContainer: { height: 300, position: 'relative' },
-  map: { ...StyleSheet.absoluteFillObject },
-  myLocationBtn: {
-    position: 'absolute', right: 16, bottom: 16,
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center',
-    ...SHADOWS.glowCyan,
-  },
-  fallbackContainer: {
-    height: 220,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: COLORS.backgroundElevated,
-    marginHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1, borderColor: COLORS.cardBorder,
-  },
-  fallbackMap: { alignItems: 'center', padding: SPACING.lg },
-  fallbackTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', marginTop: 8 },
-  fallbackSubtitle: {
-    fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', marginTop: 4,
-  },
-  coordBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.primaryMuted,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: RADIUS.xs, marginTop: 8,
-    gap: 4,
-  },
-  coordText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
-  addrText: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4, textAlign: 'center' },
-  locationBanner: {
-    flexDirection: 'row', alignItems: 'center',
+  mapContainer: {
+    flex: 1,
     backgroundColor: COLORS.surface,
-    marginHorizontal: SPACING.lg, marginVertical: 6,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.cardBorder,
-    gap: 8,
+    position: 'relative',
   },
-  locationText: { flex: 1, fontSize: 12, color: COLORS.textSecondary },
-  cinemaList: { flex: 1, paddingHorizontal: SPACING.lg },
-  cinemaListTitle: { fontSize: 14, fontWeight: '800', color: '#FFFFFF', marginVertical: 10 },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  mapFallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.xl,
+    backgroundColor: COLORS.backgroundElevated,
+  },
+  mapFallbackTitle: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
+    marginTop: SPACING.md,
+  },
+  mapFallbackSub: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: SPACING.xs,
+  },
+  bottomListWrapper: {
+    height: 220,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  bottomListTitle: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.sm,
+    letterSpacing: 1,
+  },
+  bottomScroll: {
+    flex: 1,
+  },
   cinemaItem: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.card, borderRadius: RADIUS.md,
-    padding: 12, marginBottom: 8,
-    borderWidth: 1, borderColor: COLORS.cardBorder,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
-  cinemaItemLeft: { flex: 1 },
-  cinemaItemName: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-  cinemaItemAddr: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
-  cinemaItemType: { fontSize: 11, color: COLORS.primary, marginTop: 2, fontWeight: '600' },
-  cinemaItemRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cinemaDistText: { fontSize: 12, fontWeight: '700', color: COLORS.secondary },
+  cinemaItemLeft: {
+    flex: 1,
+  },
+  cinemaItemName: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+  },
+  cinemaItemAddress: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: SPACING.sm,
+  },
+  cinemaDistance: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '700',
+    color: COLORS.secondary,
+  },
 });

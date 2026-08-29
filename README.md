@@ -15,6 +15,7 @@
   <img src="https://img.shields.io/badge/Express-4.19-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express" />
   <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
   <img src="https://img.shields.io/badge/Zustand-State%20Cache-4338CA?style=for-the-badge" alt="Zustand" />
+  <img src="https://img.shields.io/badge/Google%20OAuth-PKCE%20Enabled-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google OAuth" />
   <img src="https://img.shields.io/badge/JWT%20%2B%20SecureStore-Protected-00F0FF?style=for-the-badge" alt="Security" />
 </p>
 
@@ -22,182 +23,233 @@
 
 ## 🌟 Overview
 
-**CineTrip** is a full-stack, mobile-first theatrical planning and journaling ecosystem built specifically for film enthusiasts and premium theater-goers (IMAX 70mm, Laser, Dolby Cinema, 4DX, ScreenX).
+**CineTrip** is a full-stack, cross-platform mobile and web application engineered specifically for cinephiles, premium theater-goers (IMAX 70mm, Laser, Dolby Cinema, 4DX, ScreenX), and movie night squads.
 
-Whether you're coordinating opening night with your squad, choosing prime seats, generating digital wallet tickets, or capturing live photos and video memories from the theater lobby, CineTrip seamlessly connects your local device with a dedicated cloud backend while retaining offline functionality.
+Instead of fragmented group chat screenshots, forgotten seat numbers, and lost movie memories, CineTrip organizes the entire cinema lifecycle into a focused, frictionless loop:
+
+```
+Discover (IMAX/Dolby) ──► Plan & Seats ──► Digital Pass ──► Share with Squad ──► Attend (Offline QR) ──► Journal Memory
+```
+
+---
+
+## 📱 Cross-Platform Matrix
+
+| Platform | Status | Native & Web Capabilities |
+|---|---|---|
+| **Web / Desktop (PC & Mac)** | 🟢 Full Support | Responsive desktop/mobile viewport, Google OAuth popup/redirect, offline caching, interactive seat selection |
+| **Android (Emulator & Expo Go)** | 🟢 Full Support | Native Camera/Video, GPS geocoding, Device Contacts, Hardware Keystore (SecureStore), Deep Linking |
+| **iOS (Simulator & Expo Go)** | 🟢 Full Support | Native Camera/Mic, Location Services, Address Book, Hardware Keychain, Native Share Sheet |
 
 ---
 
 ## 🚀 Key Features
 
 ### 🔐 1. Authentication & Security
-- **JWT Authentication**: Full registration and login system with bcryptjs password hashing.
-- **Secure Credential Storage**: Uses `expo-secure-store` to keep tokens in the hardware keychain/keystore (no plaintext `AsyncStorage` for secrets).
-- **Protected Routing**: Navigation guards powered by Expo Router automatically route unauthenticated users to `/login` and authenticated users to main tabs.
-- **Offline / Guest Mode**: Allows immediate exploratory access with persistent local caching.
+- **Hybrid Auth Ecosystem**: Traditional email/password registration with bcryptjs password hashing alongside Google OAuth (via Supabase PKCE flow).
+- **OAuth Callback Router (`/auth/callback`)**: Dedicated deep-link and web redirect handler preventing loading loops and ensuring seamless session synchronization.
+- **Hardware-Backed Credential Storage**: Uses `expo-secure-store` on mobile (Android Keystore / iOS Keychain) and localized browser storage on Web.
+- **Protected Navigation Guards**: Expo Router automatically manages routing between `/(auth)` and `/(tabs)` groups based on authenticated session state.
+- **Offline / Guest Mode**: Instant exploration of movies, auditoriums, and seat maps without mandatory sign-in.
 
 ### 🎥 2. Theatrical Discovery & TMDB Integration
-- **Live Theatrical Feeds**: Trending, In Theatres (Now Playing), and Anticipated Releases fetched via TMDB with rich local fallbacks.
-- **Format Intelligence**: Filters for **IMAX 70mm & Laser**, **Dolby Cinema**, **4DX Immersive**, and **RealD 3D**.
-- **Infinite Scroll Pagination**: Smooth infinite pagination on Discover using TMDB pages with debounced search queries.
-- **Curated Mood Selector**: Find films by vibe (Adrenaline, Mind-Bending, Visual Spectacle, Heartwarming).
+- **Live Theatrical Feeds**: Trending, In Theaters (Now Playing), and Upcoming Releases fetched via TMDB API with zero-config offline fallback datasets.
+- **Format Intelligence**: Dedicated filtering for **IMAX 70mm & Laser**, **Dolby Cinema**, **4DX Dynamic Motion**, and **RealD 3D**.
+- **Infinite Scroll Pagination**: Smooth infinite pagination on Discover using TMDB pages with debounced search queries and skeleton loaders.
+- **Curated Mood Selector**: Discover films based on experience vibe (Adrenaline & Epic, Mind Benders, Pure Laughs, Cozy & Chill, Date Night).
 
 ### 🎟️ 3. Movie Night Planner & Digital Passes
-- **Interactive Trip Builder**: Pick movie, theater format, date, and time slot (Morning Matinee, Afternoon Show, Prime Evening, Late Night Owl).
-- **Squad Tagging**: Add companions directly from device contacts or custom entries with invitation tracking (`invited`, `accepted`, `declined`).
-- **Snack Selector**: Customize theater refreshments (Caramel Popcorn, Nachos, Cold Brew, ICEE).
-- **Digital Pass & QR Scanner**: Real-time pass generator with unique booking references, barcode/QR visualizer, and squad share sheet.
+- **Interactive Trip Builder**: Pick movie, cinema auditorium, date, and showtime slot (Morning Matinee, Afternoon Show, Prime Evening, Late Night Owl).
+- **Interactive Seat Map**: Graphical seat layout with center-prime, recliner, and VIP tier selection.
+- **Squad Tagging**: Direct integration with device address book via `expo-contacts` with RSVP tracking (`invited`, `accepted`, `declined`).
+- **Snack Selector**: Customize concessions (Caramel Popcorn, Nachos, Cold Brew, ICEE).
+- **Digital Pass & QR Visualizer**: Generates structured, cryptographically formatted passes with unique booking references, 1-tap clipboard copying, and share sheet dispatch.
 
-### 📸 4. Cinephile Journal & Advanced Camera
-- **Theatrical Snapshot Camera**: Custom camera viewfinder with flip (front/back), flash modes (`off`, `on`, `auto`), and zoom stepping (`1x` to `5x`).
-- **Video Recording**: Record video memories with real-time timers and instant preview/retake.
-- **Gallery Media Picker**: Pick existing images and videos from your photo library via `expo-image-picker`.
-- **Experience Logging**: Rate theaters, write auditorium crowd notes, capture best moments, and tag companions.
-- **Journal Pagination**: Seamless pull-to-refresh and "Load Older Memories" backend pagination.
+### 👥 4. Human-Readable Squad Sharing
+When you tap **"Share Pass with Squad"**, CineTrip formats all logistics into a clean text invitation ready for WhatsApp, iMessage, or SMS:
 
-### 📍 5. Cinema Locator & Interactive Map
-- **Live Location Tracking**: Accurate positioning via `expo-location` with memory-leak-free subscription management.
-- **Interactive Maps**: Cinema pins, user marker, and "My Location" quick FAB with fallback support.
-- **Nearby Screens**: Displays real distances to nearby certified IMAX Laser, Dolby Atmos, and VIP auditoriums.
+```text
+🎬 Movie Night
 
-### 👥 6. Squad & Contacts Hub
-- **Device Address Book**: Fast contact access with permissions management, instant search, and filtering.
-- **Direct Link to Planner**: One-tap addition of selected contacts into the active movie trip.
-- **Direct Calling & Native Contacts**: Direct dialer and native address book integration.
+Movie: Dune: Part Two
+Cinema: PVR INOX IMAX with Laser
+Format: IMAX Laser 3D
+Date: 2026-08-29
+Time: 07:30 PM
+Seats: Row F (Center Prime)
 
-### 🎨 7. Premium Dark/Light Design System
-- **Theatrical Aesthetics**: Deep cinematic blacks (`#07090E`), Neon Cyan (`#00F0FF`), Cinema Gold (`#FFB800`), and IMAX Violet (`#8B5CF6`).
-- **Theme Awareness**: Built-in support for Dark, Light, and System preference with typography tokens.
+🎟 Pass: CT-48291
+
+See you there!
+```
+
+*Recipients get all essential details immediately even if they do not have CineTrip installed.*
+
+### 📸 5. Cinephile Journal & Theatrical Viewfinder
+- **Theatrical Camera**: Custom camera viewfinder with flip (front/back), multi-mode flash (`off`, `on`, `auto`), and live capture controls.
+- **Video Recording**: High-definition video memories with real-time timers and instant preview/retake workflow.
+- **Media Gallery Picker**: Import existing photos and videos directly from device albums via `expo-image-picker`.
+- **1-Tap Direct Pass Pre-Fill**: Tapping "Log Screening Memory" on any pass pre-fills the movie title, cinema name, and screen format automatically.
+- **Cloud & Local Storage**: Dual-tier media handling with optional Cloudinary upload integration and automatic local URI fallback.
+
+### 📊 6. Theatrical Passport & Personal Milestones
+The profile hub automatically tracks and calculates your lifetime theater milestones:
+- **IMAX Screenings count**
+- **Dolby Cinema Experiences count**
+- **Total Unique Theaters Visited**
+- **Personal Average Movie Rating**
+
+### 📍 7. Cinema Locator & Geo Map
+- **Location Engine**: Real-time GPS location via `expo-location` with memory-leak-safe subscriptions.
+- **Haversine Distance Calculator**: Accurate distance computation from the user's current GPS coordinates to regional certified cinemas.
+- **1-Tap Plan Here**: Tap any cinema on the map to pre-fill the theater directly into the trip planner.
 
 ---
 
-## 🏗️ Architecture & Data Flow
+## 🏗️ Technical Architecture
 
 ```
-React Native / Expo App (UI)
-        │
-        ▼
-Zustand State Layer (useAuth, usePlanner, useMemory, useWatchlist, usePreferences)
-        │
-        ▼
-Centralized API Client (services/api.js + expo-secure-store JWT)
-        │
-        ▼  [REST API / JSON]
-Node.js + Express Server (backend/src/app.js)
-        │
-        ├── Helmet Security + CORS + Rate Limiting
-        ├── JWT Auth Middleware (authenticateToken)
-        ├── Zod Request Validation
-        └── REST Controllers (Auth, Memories, Planner, Watchlist, Profile)
-        │
-        ▼
-Mongoose ODM / MongoDB (User, Memory, Plan, Watchlist)
+┌────────────────────────────────────────────────────────────────────────┐
+│                   React Native / Expo Client (v54)                     │
+│  ┌─────────────────────────┐  ┌─────────────────────────────────────┐  │
+│  │    Expo Router (v6)     │  │   UI Design System & Lucide Icons   │  │
+│  │ (auth) / (tabs) / Modals│  │  Components, Skeletons, Theme Tokens│  │
+│  └────────────┬────────────┘  └──────────────────┬──────────────────┘  │
+│               │                                  │                     │
+│               ▼                                  ▼                     │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │          Zustand Persistent Stores (AsyncStorage)                │  │
+│  │ useAuthStore | usePlannerStore | useMemoryStore | useWatchlist   │  │
+│  └────────────────────────────┬─────────────────────────────────────┘  │
+└───────────────────────────────┼────────────────────────────────────────┘
+                                │  REST API (JWT Bearer / JSON)
+                                ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                    Node.js + Express Backend Server                    │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ Security Layer: Helmet + Dynamic CORS + Rate Limiting            │  │
+│  └────────────────────────────┬─────────────────────────────────────┘  │
+│  ┌────────────────────────────┴─────────────────────────────────────┐  │
+│  │ Auth: JWT Middleware + Multi-Token Google OAuth Controller       │  │
+│  │ Validators: Zod Request Schemas                                  │  │
+│  │ Controllers: Auth, Memories, Planner, Watchlist, Profile         │  │
+│  └────────────────────────────┬─────────────────────────────────────┘  │
+│                               ▼                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ Mongoose ODM / MongoDB (User, Memory, Plan, Watchlist Schemas)   │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📁 Repository Structure
+## 📁 Directory Structure
 
 ```
 cineTrip/
 ├── app/                        # Expo Router file-based routes
 │   ├── (auth)/                 # Authentication screens
 │   │   ├── _layout.js          # Auth stack navigator
-│   │   ├── login.js            # Sign In with validation & guest mode
-│   │   └── register.js         # Account creation & password validation
-│   ├── (tabs)/                 # Main bottom-tab navigation
-│   │   ├── _layout.js          # Tab bar layout & icons
-│   │   ├── index.js            # Home screen (Hero, Trending, Cinemas)
-│   │   ├── discover.js         # Search, formats, genres, infinite scroll
-│   │   ├── planner.js          # Trip Builder & Active Tickets
-│   │   ├── watchlist.js        # Saved films with filters & quick plan
-│   │   ├── memories.js         # Journal feed & milestone stats
-│   │   └── profile.js          # User identity, formats, settings, logout
-│   ├── movie/[id].js           # Movie details, backdrop, cast & formats
-│   ├── ticket/[id].js          # Digital pass, QR code & share sheet
-│   ├── memory/create.js        # Advanced camera, video, gallery & logging
-│   ├── map.js                  # Cinema locator & interactive map
-│   ├── contacts.js             # Dedicated squad & device contacts screen
-│   └── _layout.js              # Protected root layout & auth guard
+│   │   ├── login.js            # Sign In with email/password & Google OAuth
+│   │   └── register.js         # Account registration screen
+│   ├── (tabs)/                 # Main 6-tab navigation group
+│   │   ├── _layout.js          # Tab bar styling & vector icons
+│   │   ├── index.js            # Home screen (Hero Carousel, Trending, Cinemas)
+│   │   ├── discover.js         # Movie discovery, mood selector & filters
+│   │   ├── planner.js          # Movie night builder, seat selection & tickets
+│   │   ├── watchlist.js        # Bookmarked films with search and quick actions
+│   │   ├── memories.js         # Cinephile journal feed & milestone statistics
+│   │   └── profile.js          # User preferences, formats, theme & session
+│   ├── auth/
+│   │   └── callback.js         # PKCE OAuth redirection handler
+│   ├── movie/[id].js           # Dynamic movie details, cast, similar films
+│   ├── ticket/[id].js          # Verifiable digital ticket & QR code pass
+│   ├── memory/create.js        # Theatrical camera, video recording & logger
+│   ├── map.js                  # Cinema locator map & auditorium directory
+│   ├── contacts.js             # Native contacts manager & squad invite hub
+│   └── _layout.js              # Root layout, theme provider & auth router
 │
 ├── backend/                    # Node.js + Express + MongoDB backend
 │   ├── src/
-│   │   ├── config/database.js  # Mongoose connection
-│   │   ├── controllers/        # Auth, Memories, Planner, Watchlist, Profile
-│   │   ├── middleware/         # JWT auth & centralized error handler
-│   │   ├── models/             # User, Memory, Plan, Watchlist Mongoose schemas
-│   │   ├── routes/             # Express API routes (/api/*)
+│   │   ├── config/database.js  # Mongoose database connection
+│   │   ├── controllers/        # REST controllers (Auth, Memories, Planner, etc.)
+│   │   ├── middleware/         # JWT verification & centralized error handler
+│   │   ├── models/             # Mongoose schemas (User, Memory, Plan, Watchlist)
+│   │   ├── routes/             # Express API endpoint definitions (/api/*)
 │   │   ├── validators/         # Zod input validation schemas
-│   │   ├── app.js              # Express app setup, CORS, Helmet, rate-limits
+│   │   ├── app.js              # Express app setup, CORS, Helmet, rate-limiting
 │   │   └── server.js           # Server startup script
 │   ├── .env.example            # Backend environment template
 │   └── package.json            # Backend dependencies
 │
-├── components/                 # Reusable UI components
-│   ├── FormatBadge.js          # IMAX, Dolby, 4DX, Laser format pills
-│   ├── Header.js               # Top app bar with search & profile triggers
-│   ├── HeroBanner.js           # Featured marquee poster with trailers
-│   ├── MemoryCard.js           # Theatrical memory card with photos/videos
-│   ├── MoodSelector.js         # Mood pills for tailored recommendations
-│   ├── MovieCard.js            # Poster card (horizontal & grid layouts)
-│   ├── SectionHeader.js        # Screen section headers with action buttons
-│   └── TicketCard.js           # Theatrical ticket mockup with perforation
+├── components/                 # Reusable UI component library
+│   ├── ui/                     # Atomic primitives (Button, Chip, Rating, Skeleton, QR)
+│   ├── FormatBadge.js          # Format tags (IMAX, Dolby, 4DX, ScreenX)
+│   ├── Header.js               # Main app header with search & profile buttons
+│   ├── HeroBanner.js           # Marquee featured banner with trailers
+│   ├── MemoryCard.js           # Theatrical memory card with media carousel
+│   ├── MoodSelector.js         # Experience mood selector pills
+│   ├── MovieCard.js            # Movie poster card (grid & horizontal)
+│   ├── SectionHeader.js        # Section titles with action triggers
+│   └── TicketCard.js           # Perforated ticket card component
 │
 ├── constants/
-│   └── theme.js                # Colors, Typography, Spacing, Radius, Shadows
+│   └── theme.js                # Theme tokens: COLORS, TYPOGRAPHY, SPACING, RADIUS
 │
-├── hooks/                      # Custom reusable React hooks
-│   ├── useAuth.js              # Login, register, logout & store sync
-│   ├── useCamera.js            # Photo, video recording, zoom, flip & flash
-│   ├── useLocation.js          # Location tracking with subscription cleanup
-│   ├── useContacts.js          # Device contacts fetch, search & permissions
-│   ├── useMediaPicker.js       # Gallery image/video picker
-│   ├── useDebounce.js          # Search debounce hook
-│   ├── useApi.js               # Generic API state executor
-│   └── useTheme.js             # Theme mode listener
+├── hooks/                      # Custom React hooks
+│   ├── useAuth.js              # Authentication actions & store synchronization
+│   ├── useCamera.js            # Camera viewfinder, flip, flash & video recording
+│   ├── useLocation.js          # Geolocation tracking & address resolution
+│   ├── useContacts.js          # Device contacts extraction & search
+│   ├── useDebounce.js          # Search input debouncer
+│   └── useTheme.js             # Theme mode observer
 │
 ├── services/
-│   ├── api.js                  # Centralized fetch wrapper with JWT injection
-│   ├── auth.js                 # SecureStore token storage (Keychain/Keystore)
-│   ├── tmdb.js                 # TMDB API + rich offline fallback dataset
-│   ├── location.js             # Expo location & reverse geocoding
-│   └── contacts.js             # Expo contacts & native address book
+│   ├── api.js                  # Dynamic host detection & fetch wrapper
+│   ├── auth.js                 # Secure token storage (Keychain/Keystore/Web)
+│   ├── googleAuth.js           # Supabase Google OAuth PKCE flow & exchange
+│   ├── tmdb.js                 # TMDB API client with offline movie catalog
+│   ├── location.js             # Expo Location & Haversine distance calculator
+│   ├── contacts.js             # Native address book & squad presets
+│   ├── cinema/                 # CinemaProvider interface & MockCinemaProvider
+│   └── media/mediaUploader.js  # Cloudinary uploader with local URI fallback
 │
 ├── store/                      # Zustand state stores
-│   ├── useAuthStore.js         # User state & token management
-│   ├── usePreferencesStore.js  # User profile & format preferences
-│   ├── useMemoryStore.js       # Journal memories + backend sync + pagination
-│   ├── usePlannerStore.js      # Trip draft & plans + backend sync
-│   └── useWatchlistStore.js    # Watchlist + backend sync
+│   ├── useAuthStore.js         # User session, JWT tokens & guest state
+│   ├── usePlannerStore.js      # Booking drafts, upcoming plans & cloud sync
+│   ├── useMemoryStore.js       # Journal memories, media URLs & pagination
+│   ├── useWatchlistStore.js    # Saved movies & optimistic toggling
+│   └── usePreferencesStore.js  # User identity, format preferences & themes
 │
-├── app.json                    # Expo config (permissions for camera/mic/geo)
-├── package.json                # Frontend dependencies (Expo 54, React Native 0.81)
-└── README.md                   # Project documentation
+├── app.json                    # Expo application configuration & native plugins
+├── babel.config.js             # Babel preset configuration & import.meta polyfills
+├── metro.config.js             # Metro bundler resolver with Web CJS fallbacks
+└── package.json                # Project dependencies & scripts
 ```
 
 ---
 
-## 🛠️ Getting Started
+## 🛠️ Quick Start Guide
 
 ### Prerequisites
 - **Node.js**: `v18.0.0` or higher
 - **npm** or **yarn**
-- **Expo Go** app on your phone or iOS Simulator / Android Emulator
+- **Expo Go** (Android/iOS) or modern web browser (Chrome, Safari, Edge)
 - **MongoDB**: Local instance (`mongodb://localhost:27017`) or free [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) cluster
 
 ---
 
-### 1. Clone & Install Dependencies
+### 1. Installation
 
 ```bash
-# Clone the repository
+# 1. Clone repository
 git clone https://github.com/TrikamDevasi/cineTrip.git
 cd cineTrip
 
-# Install frontend dependencies
+# 2. Install client dependencies
 npm install
 
-# Install backend dependencies
+# 3. Install backend dependencies
 cd backend
 npm install
 cd ..
@@ -207,75 +259,95 @@ cd ..
 
 ### 2. Configure Environment Variables
 
-#### Frontend `.env` (in project root):
+Create `.env` in the project root:
 ```env
+# API Base URL (leave as default for automatic detection)
 EXPO_PUBLIC_API_URL=http://localhost:5000
-EXPO_PUBLIC_TMDB_API_KEY=your_tmdb_api_key_here
-EXPO_PUBLIC_TMDB_API_TOKEN=your_tmdb_read_access_token_here
-```
-> *Note: If `EXPO_PUBLIC_TMDB_API_KEY` is omitted, CineTrip will seamlessly use its built-in offline movie database.*
 
-#### Backend `backend/.env`:
+# TMDB Configuration (Optional - offline catalog is pre-packaged)
+EXPO_PUBLIC_TMDB_API_KEY=your_tmdb_api_key
+EXPO_PUBLIC_TMDB_API_TOKEN=your_tmdb_bearer_token
+
+# Supabase Authentication (For Google OAuth PKCE)
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Google OAuth Web Client ID
+EXPO_PUBLIC_GOOGLE_CLIENT_ID=your_google_web_client_id.apps.googleusercontent.com
+
+# Cloudinary (Optional - local storage fallback included)
+EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+EXPO_PUBLIC_CLOUDINARY_PRESET=your_unsigned_preset
+```
+
+Create `backend/.env` in the `backend/` folder:
 ```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/cinetrip
-JWT_SECRET=your_super_secret_jwt_key_here
+JWT_SECRET=your_super_secret_jwt_key
+GOOGLE_CLIENT_ID=your_google_client_id
 CLIENT_URL=http://localhost:8081
 ```
 
 ---
 
-### 3. Run the Backend Server
+### 3. Run the Application
 
+#### Start Backend:
 ```bash
 cd backend
 npm run dev
-# Server will run on http://localhost:5000 (Health check: http://localhost:5000/health)
+# Server will run on http://localhost:5000
 ```
 
----
-
-### 4. Start the Mobile App
-
+#### Start Expo Client:
 ```bash
 # In the root directory:
-npx expo start
+npx expo start -c
 ```
 
-- Press `a` for **Android emulator**
-- Press `i` for **iOS simulator**
-- Scan the QR code using the **Expo Go** app on your physical device
+- Press **`w`** for **Web browser preview** (`http://localhost:8081`)
+- Press **`a`** for **Android emulator**
+- Press **`i`** for **iOS simulator**
+- Scan QR code with **Expo Go** app on your physical mobile device
 
 ---
 
-## 📡 API Reference
+## 📡 REST API Reference
 
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|:---:|
-| `POST` | `/api/auth/register` | Register a new cinephile account | No |
-| `POST` | `/api/auth/login` | Authenticate and obtain JWT token | No |
-| `GET` | `/api/auth/me` | Fetch authenticated user profile | **Yes** |
-| `GET` | `/api/memories` | List journal memories (supports `page`, `limit`) | **Yes** |
-| `POST` | `/api/memories` | Create a new theatrical memory | **Yes** |
-| `PUT` | `/api/memories/:id` | Update an existing memory | **Yes** |
-| `DELETE`| `/api/memories/:id` | Delete a memory | **Yes** |
-| `GET` | `/api/plans` | List scheduled movie trips | **Yes** |
-| `POST` | `/api/plans` | Lock in a new movie night plan | **Yes** |
-| `PUT` | `/api/plans/:id` | Update plan status (upcoming/completed/cancelled) | **Yes** |
-| `DELETE`| `/api/plans/:id` | Delete a planned trip | **Yes** |
-| `GET` | `/api/watchlist` | Retrieve saved watchlist items | **Yes** |
-| `POST` | `/api/watchlist` | Add movie to watchlist | **Yes** |
-| `DELETE`| `/api/watchlist/:movieId`| Remove movie from watchlist | **Yes** |
-| `GET` | `/api/profile` | Retrieve custom profile preferences | **Yes** |
-| `PUT` | `/api/profile` | Update profile, favorite formats & genres | **Yes** |
+| `POST` | `/api/auth/register` | Register new account with email/password | No |
+| `POST` | `/api/auth/login` | Authenticate with email/password | No |
+| `POST` | `/api/auth/google` | Exchange Supabase/Google OAuth token for JWT | No |
+| `GET` | `/api/auth/me` | Fetch currently authenticated user profile | **Yes** |
+| `GET` | `/api/memories` | List journal memories with pagination (`?page=1&limit=20`) | **Yes** |
+| `POST` | `/api/memories` | Create a new theatrical journal memory | **Yes** |
+| `PUT` | `/api/memories/:id` | Update an existing journal entry | **Yes** |
+| `DELETE`| `/api/memories/:id` | Delete a journal entry | **Yes** |
+| `GET` | `/api/plans` | Fetch scheduled movie plans & passes | **Yes** |
+| `POST` | `/api/plans` | Lock in a new movie trip | **Yes** |
+| `PUT` | `/api/plans/:id` | Update plan status (`upcoming`, `completed`, `cancelled`) | **Yes** |
+| `DELETE`| `/api/plans/:id` | Delete a scheduled movie trip | **Yes** |
+| `GET` | `/api/watchlist` | Get user's saved watchlist items | **Yes** |
+| `POST` | `/api/watchlist` | Save film to personal watchlist | **Yes** |
+| `DELETE`| `/api/watchlist/:movieId` | Remove film from watchlist | **Yes** |
+| `GET` | `/api/profile` | Fetch cinema format preferences & settings | **Yes** |
+| `PUT` | `/api/profile` | Update profile, preferred chains & favorite genres | **Yes** |
+| `GET` | `/health` | Server uptime and health status check | No |
 
 ---
 
-## 🧪 Testing & Verification
+## 💡 Troubleshooting & FAQ
 
-- **Backend Syntax & Type Check**: `node --check src/server.js` (21/21 files verified).
-- **Expo Config Resolution**: `npx expo config --type public` (All plugins & permissions verified).
-- **Hardware Integrations**: Camera capture, live video recording, image gallery picker, GPS geocoding, contact picker, and clipboard pass copying verified.
+#### 1. "Cannot use 'import.meta' outside a module" on Web
+* **Fix**: Ensure `babel.config.js` is present and `metro.config.js` includes the CJS resolution mapping for `zustand`. Run `npx expo start -c` to clear Metro's transform cache.
+
+#### 2. Physical Device cannot connect to Backend
+* **Fix**: Ensure both your PC and mobile device are connected to the same Wi-Fi network. Make sure Windows Firewall allows inbound connections on port `5000`.
+
+#### 3. Google Sign-In Redirects
+* **Fix**: In your Supabase Dashboard under **Authentication > URL Configuration**, add `http://localhost:8081/auth/callback` (Web) and `cinetrip://auth/callback` (Mobile) to the Redirect URLs list.
 
 ---
 
@@ -283,8 +355,6 @@ npx expo start
 
 This project is licensed under the **MIT License**.
 
----
-
 <p align="center">
-  Built with passion for film lovers, 70mm enthusiasts, and theater connoisseurs. 🍿🎬
+  Crafted for cinema lovers, 70mm enthusiasts, and opening-night squads. 🍿🎬
 </p>

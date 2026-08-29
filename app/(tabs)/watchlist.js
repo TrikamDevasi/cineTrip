@@ -8,17 +8,22 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Film, Search, Bookmark } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import MovieCard from '../../components/MovieCard';
+import Button from '../../components/ui/Button';
+import Chip from '../../components/ui/Chip';
 import EmptyState from '../../components/ui/EmptyState';
+import { MovieCardSkeleton } from '../../components/ui/Skeleton';
 import { useWatchlistStore } from '../../store/useWatchlistStore';
-import { usePlannerStore } from '../../store/usePlannerStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { COLORS, RADIUS, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function WatchlistScreen() {
   const router = useRouter();
@@ -60,73 +65,80 @@ export default function WatchlistScreen() {
       return f.includes('imax') || (m.preferredFormat && m.preferredFormat.toLowerCase().includes('imax'));
     }
 
+    if (filterType === 'now_playing') {
+      return (
+        m.status === 'Now Playing' ||
+        (m.release_date && new Date(m.release_date) <= new Date())
+      );
+    }
+
+    if (filterType === 'coming_soon') {
+      return (
+        m.status === 'Upcoming' ||
+        (m.release_date && new Date(m.release_date) > new Date())
+      );
+    }
+
     return true;
   });
+
+  const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
 
-      {/* Screen Title */}
+      {/* Screen Title & Add CTA */}
       <View style={styles.topHeader}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.title}>Cinephile Watchlist</Text>
           <Text style={styles.subtitle}>
             {watchlist.length} films queued for the big screen
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.exploreBtn}
+        <Button
+          title="Add More"
+          icon="Plus"
+          variant="primary"
+          size="sm"
           onPress={() => router.push('/(tabs)/discover')}
-          activeOpacity={0.8}
-          accessibilityRole="button"
           accessibilityLabel="Discover more movies to add to watchlist"
-        >
-          <Plus size={15} color="#07090E" strokeWidth={2.4} />
-          <Text style={styles.exploreBtnText}>Add More</Text>
-        </TouchableOpacity>
+        />
       </View>
 
-      {/* Filter Tabs */}
+      {/* Filter Chips */}
       <View style={styles.filterRow}>
-        <TouchableOpacity
-          style={[styles.filterTab, filterType === 'all' && styles.filterTabActive]}
+        <Chip
+          label={`All (${watchlist.length})`}
+          selected={filterType === 'all'}
           onPress={() => setFilterType('all')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
           accessibilityLabel="Show all queued films"
-          accessibilityState={{ selected: filterType === 'all' }}
-        >
-          <Text style={[styles.filterTabText, filterType === 'all' && styles.filterTabTextActive]}>
-            All Queued ({watchlist.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterTab, filterType === 'imax' && styles.filterTabActive]}
+        />
+        <Chip
+          label="Now in Theaters"
+          selected={filterType === 'now_playing'}
+          onPress={() => setFilterType('now_playing')}
+          accessibilityLabel="Show movies currently in theaters"
+        />
+        <Chip
+          label="Coming Soon"
+          selected={filterType === 'coming_soon'}
+          onPress={() => setFilterType('coming_soon')}
+          accessibilityLabel="Show upcoming films"
+        />
+        <Chip
+          label="IMAX & Premium"
+          selected={filterType === 'imax'}
           onPress={() => setFilterType('imax')}
-          activeOpacity={0.7}
-          accessibilityRole="button"
           accessibilityLabel="Show IMAX and premium screens only"
-          accessibilityState={{ selected: filterType === 'imax' }}
-        >
-          <Film
-            size={13}
-            color={filterType === 'imax' ? '#07090E' : COLORS.primary}
-            strokeWidth={2}
-            style={{ marginRight: 5 }}
-          />
-          <Text style={[styles.filterTabText, filterType === 'imax' && styles.filterTabTextActive]}>
-            IMAX & Premium
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
 
       {/* Search Filter in Watchlist */}
       {watchlist.length > 3 && (
         <View style={styles.searchWrapper}>
-          <Search size={15} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: 8 }} />
+          <Search size={18} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: SPACING.sm }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Filter saved films..."
@@ -139,25 +151,29 @@ export default function WatchlistScreen() {
 
       {/* Loading state */}
       {isLoading && !refreshing && watchlist.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading your watchlist...</Text>
+        <View style={styles.skeletonContainer}>
+          <View style={styles.gridRow}>
+            <MovieCardSkeleton width={columnWidth} />
+            <MovieCardSkeleton width={columnWidth} />
+          </View>
         </View>
       ) : filteredList.length === 0 ? (
         <EmptyState
           icon="Bookmark"
           title="Your Watchlist is Empty"
-          description="Save films from Discover or Home to easily plan movie trips later."
-          actionLabel="Explore Trending Films"
+          description="Save upcoming films from Discover or Home to plan trips later."
+          actionLabel="Discover Movies"
           onAction={() => router.push('/(tabs)/discover')}
-          actionIcon="Compass"
+          actionIcon="Film"
         />
       ) : (
         <FlatList
           data={filteredList}
-          keyExtractor={(item) => (item.id || item._id || Math.random()).toString()}
+          keyExtractor={(item) => (item.id || item.movieId || Math.random()).toString()}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -167,9 +183,7 @@ export default function WatchlistScreen() {
             />
           }
           renderItem={({ item }) => (
-            <View style={styles.itemWrapper}>
-              <MovieCard movie={item} layout="horizontal" />
-            </View>
+            <MovieCard movie={item} width={columnWidth} />
           )}
         />
       )}
@@ -187,95 +201,54 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.md,
+    paddingVertical: SPACING.md,
+  },
+  headerLeft: {
+    flex: 1,
+    marginRight: SPACING.md,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
   },
   subtitle: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
-  },
-  exploreBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: RADIUS.sm,
-    gap: 4,
-  },
-  exploreBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#07090E',
   },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: SPACING.lg,
-    marginBottom: 10,
-  },
-  filterTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  filterTabActive: {
-    backgroundColor: COLORS.secondary,
-    borderColor: COLORS.secondary,
-  },
-  filterTabText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-  },
-  filterTabTextActive: {
-    color: '#07090E',
-    fontWeight: '800',
+    marginBottom: SPACING.xs,
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
     marginHorizontal: SPACING.lg,
-    paddingHorizontal: 10,
-    height: 38,
-    marginBottom: 10,
+    marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+    minHeight: 44,
   },
   searchInput: {
     flex: 1,
+    ...TYPOGRAPHY.body,
     color: COLORS.text,
-    fontSize: 13,
   },
-  listContent: {
-    paddingTop: 4,
-    paddingBottom: 30,
+  listContainer: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.xxl * 2,
   },
-  itemWrapper: {
-    position: 'relative',
+  gridRow: {
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.xxl,
-  },
-  loadingText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    marginTop: 12,
+  skeletonContainer: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
   },
 });

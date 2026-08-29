@@ -8,12 +8,12 @@ import {
   Image as RNImage,
   StyleSheet,
   Alert,
-  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
-  X,
   Camera,
   Video,
   Zap,
@@ -21,17 +21,25 @@ import {
   SwitchCamera,
   RotateCcw,
   Image as ImageIcon,
-  Star,
-  User,
+  Film,
+  Users,
+  Utensils,
   Sparkles,
   Trash2,
+  Check,
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { FALLBACK_MOVIES } from '../../services/tmdb';
+import Button from '../../components/ui/Button';
+import IconButton from '../../components/ui/IconButton';
+import Rating from '../../components/ui/Rating';
+import Chip from '../../components/ui/Chip';
+import { mediaUploader } from '../../services/media/mediaUploader';
+import { FALLBACK_MOVIES, getImageUri } from '../../services/tmdb';
+
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useContacts } from '../../hooks/useContacts';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 const EXPERIENCE_TYPES = [
   'IMAX Laser 3D',
@@ -46,6 +54,7 @@ const FLASH_MODES = ['off', 'on', 'auto'];
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
 
@@ -53,7 +62,6 @@ export default function CreateMemoryScreen() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraFacing, setCameraFacing] = useState('back');
   const [flashMode, setFlashMode] = useState('off');
-  const [zoom, setZoom] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [mediaMode, setMediaMode] = useState('photo'); // 'photo' | 'video'
@@ -63,11 +71,10 @@ export default function CreateMemoryScreen() {
   // Captured media
   const [photoUri, setPhotoUri] = useState(null);
   const [videoUri, setVideoUri] = useState(null);
-  const [mediaType, setMediaType] = useState(null); // 'photo' | 'video'
 
   // Form state
   const [selectedMovie, setSelectedMovie] = useState(FALLBACK_MOVIES[0]);
-  const [cinemaName, setCinemaName] = useState('');
+  const [cinemaName, setCinemaName] = useState('Certified IMAX Auditorium');
   const [experienceType, setExperienceType] = useState('IMAX Laser 3D');
   const [rating, setRating] = useState(5);
   const [story, setStory] = useState('');
@@ -79,7 +86,31 @@ export default function CreateMemoryScreen() {
   const addMemory = useMemoryStore((s) => s.addMemory);
   const { contacts } = useContacts();
 
-  // Cleanup recording timer on unmount
+  useEffect(() => {
+    if (params.movieTitle) {
+      const match = FALLBACK_MOVIES.find(
+        (m) =>
+          m.title.toLowerCase() === params.movieTitle.toLowerCase() ||
+          String(m.id) === String(params.movieId)
+      );
+      if (match) {
+        setSelectedMovie(match);
+      } else {
+        setSelectedMovie({
+          id: params.movieId ? Number(params.movieId) : Date.now(),
+          title: params.movieTitle,
+          poster_path: params.posterPath || null,
+        });
+      }
+    }
+    if (params.cinema) {
+      setCinemaName(params.cinema);
+    }
+    if (params.format) {
+      setExperienceType(params.format);
+    }
+  }, [params]);
+
   useEffect(() => {
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
@@ -102,11 +133,10 @@ export default function CreateMemoryScreen() {
       if (photo?.uri) {
         setPhotoUri(photo.uri);
         setVideoUri(null);
-        setMediaType('photo');
         setCameraActive(false);
       }
     } catch {
-      Alert.alert('Camera Error', 'Failed to take photo. Please try again.');
+      Alert.alert('Camera Error', 'Failed to capture photo.');
     }
   };
 
@@ -123,7 +153,6 @@ export default function CreateMemoryScreen() {
       if (video?.uri) {
         setVideoUri(video.uri);
         setPhotoUri(null);
-        setMediaType('video');
         setCameraActive(false);
       }
     } catch {
@@ -144,7 +173,7 @@ export default function CreateMemoryScreen() {
     if (!cameraPermission?.granted) {
       const { granted } = await requestCameraPermission();
       if (!granted) {
-        Alert.alert('Camera Required', 'Please allow camera access in settings.');
+        Alert.alert('Camera Required', 'Please allow camera access to capture theater memories.');
         return;
       }
     }
@@ -156,12 +185,6 @@ export default function CreateMemoryScreen() {
 
   const handlePickFromGallery = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photo library.');
-        return;
-      }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: true,
@@ -173,658 +196,512 @@ export default function CreateMemoryScreen() {
         if (asset.type === 'video') {
           setVideoUri(asset.uri);
           setPhotoUri(null);
-          setMediaType('video');
         } else {
           setPhotoUri(asset.uri);
           setVideoUri(null);
-          setMediaType('photo');
         }
       }
-    } catch (err) {
-      Alert.alert('Gallery Error', err.message);
+    } catch {
+      Alert.alert('Gallery Error', 'Failed to pick media.');
     }
   };
 
-  const handleToggleCompanion = (companion) => {
-    const exists = selectedCompanions.some((c) => c.name === companion.name);
-    setSelectedCompanions(
-      exists
-        ? selectedCompanions.filter((c) => c.name !== companion.name)
-        : [...selectedCompanions, companion]
-    );
-  };
-
   const handleSaveMemory = async () => {
-    if (!story.trim() && !favoriteMoment.trim()) {
-      Alert.alert('Add a Story', 'Please share a brief note or your favorite moment from this night.');
+    if (!story.trim() && !favoriteMoment.trim() && !photoUri && !videoUri) {
+      Alert.alert('Incomplete Memory', 'Please add a photo, story, or highlight to save your memory.');
       return;
     }
 
     setIsSaving(true);
-    const result = await addMemory({
-      movie: selectedMovie,
-      watchedDate: new Date().toISOString().split('T')[0],
-      experienceType,
-      cinemaName: cinemaName.trim(),
-      rating,
-      story: story.trim(),
-      favoriteMoment: favoriteMoment.trim(),
-      companions: selectedCompanions,
-      snackHighlight: snackHighlight.trim(),
-      photoUri: mediaType === 'photo' ? photoUri : null,
-      videoUri: mediaType === 'video' ? videoUri : null,
-    });
-    setIsSaving(false);
+    try {
+      let finalMediaUrl = photoUri;
+      if (photoUri) {
+        const uploadResult = await mediaUploader.uploadMedia(photoUri, 'photo');
+        finalMediaUrl = uploadResult.url;
+      }
 
-    if (result.success) {
-      Alert.alert(
-        result.offline ? 'Saved Locally' : 'Memory Logged!',
-        result.offline
-          ? 'Your memory has been saved locally. It will sync when you are back online.'
-          : 'Your theatrical experience has been saved to your Cinephile Journal.',
-        [{ text: 'View Journal', onPress: () => router.back() }]
-      );
-    } else {
-      Alert.alert('Save Failed', result.error || 'Please try again.');
+      let finalVideoUrl = videoUri;
+      if (videoUri) {
+        const uploadResult = await mediaUploader.uploadMedia(videoUri, 'video');
+        finalVideoUrl = uploadResult.url;
+      }
+
+      await addMemory({
+        movie: {
+          id: selectedMovie.id,
+          title: selectedMovie.title,
+          poster_path: selectedMovie.poster_path,
+        },
+        cinemaName: cinemaName.trim() || 'IMAX Laser Cinema',
+        experienceType,
+        rating,
+        story: story.trim(),
+        favoriteMoment: favoriteMoment.trim(),
+        snackHighlight: snackHighlight.trim(),
+        photoUri: finalMediaUrl || (selectedMovie.poster_path ? getImageUri(selectedMovie.poster_path, 'w780') : null),
+        videoUri: finalVideoUrl,
+        watchedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        companions: selectedCompanions,
+      });
+
+      setIsSaving(false);
+      Alert.alert('Memory Logged! 🎬', 'Your theatrical experience has been saved to your Journal.', [
+        { text: 'View Journal', onPress: () => router.back() },
+      ]);
+    } catch (err) {
+      setIsSaving(false);
+      Alert.alert('Error', err.message || 'Failed to save memory.');
     }
   };
 
-  const formatSeconds = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  const displayUri = photoUri || videoUri;
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Log Movie Night Memory</Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.closeBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Close journal creation"
+  if (cameraActive) {
+    return (
+      <SafeAreaView style={styles.cameraSafeArea}>
+        <CameraView
+          ref={cameraRef}
+          style={styles.cameraView}
+          facing={cameraFacing}
+          flash={flashMode}
+          mode={mediaMode === 'video' ? 'video' : 'picture'}
         >
-          <X size={20} color="#FFFFFF" strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
+          {/* Top Camera Controls */}
+          <View style={styles.cameraTopBar}>
+            <IconButton
+              icon="X"
+              variant="surface"
+              onPress={() => setCameraActive(false)}
+              accessibilityLabel="Exit camera"
+            />
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* MEDIA CAPTURE SECTION */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Theatrical Snapshot</Text>
-          <Text style={styles.sectionSubtitle}>
-            Photo, video, or pick from gallery
-          </Text>
-
-          {/* Mode Selector */}
-          {!cameraActive && !displayUri && (
-            <View style={styles.modeRow}>
-              {[
-                { id: 'photo', label: 'Photo', icon: Camera },
-                { id: 'video', label: 'Video', icon: Video },
-              ].map((mode) => {
-                const IconComp = mode.icon;
-                const isSelected = mediaMode === mode.id;
-                return (
-                  <TouchableOpacity
-                    key={mode.id}
-                    style={[styles.modeBtn, isSelected && styles.modeBtnActive]}
-                    onPress={() => setMediaMode(mode.id)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Capture mode: ${mode.label}`}
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <IconComp
-                      size={15}
-                      color={isSelected ? '#07090E' : COLORS.primary}
-                      strokeWidth={2}
-                      style={{ marginRight: 5 }}
-                    />
-                    <Text style={[styles.modeBtnText, isSelected && styles.modeBtnTextActive]}>
-                      {mode.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={styles.topRightCameraControls}>
+              <IconButton
+                icon={flashMode === 'off' ? 'ZapOff' : 'Zap'}
+                variant="surface"
+                onPress={cycleFlash}
+                accessibilityLabel={`Flash: ${flashMode}`}
+                style={{ marginRight: SPACING.sm }}
+              />
+              <IconButton
+                icon="SwitchCamera"
+                variant="surface"
+                onPress={flipCamera}
+                accessibilityLabel="Flip camera"
+              />
             </View>
-          )}
-
-          {cameraActive ? (
-            <View style={styles.cameraContainer}>
-              {cameraPermission?.granted ? (
-                <CameraView
-                  style={styles.camera}
-                  ref={cameraRef}
-                  facing={cameraFacing}
-                  flash={flashMode}
-                  zoom={zoom}
-                  mode={mediaMode}
-                >
-                  {/* Top controls */}
-                  <View style={styles.camTopControls}>
-                    <TouchableOpacity
-                      style={styles.camControlBtn}
-                      onPress={() => setCameraActive(false)}
-                      accessibilityRole="button"
-                      accessibilityLabel="Close camera"
-                    >
-                      <X size={20} color="#fff" strokeWidth={2} />
-                    </TouchableOpacity>
-
-                    {/* Flash */}
-                    <TouchableOpacity
-                      style={styles.camControlBtn}
-                      onPress={cycleFlash}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Toggle flash. Currently ${flashMode}`}
-                    >
-                      {flashMode === 'off' ? (
-                        <ZapOff size={20} color="#fff" strokeWidth={2} />
-                      ) : (
-                        <Zap size={20} color={flashMode === 'on' ? COLORS.secondary : '#fff'} strokeWidth={2} />
-                      )}
-                    </TouchableOpacity>
-
-                    {/* Flip */}
-                    <TouchableOpacity
-                      style={styles.camControlBtn}
-                      onPress={flipCamera}
-                      accessibilityRole="button"
-                      accessibilityLabel="Switch front and rear camera"
-                    >
-                      <SwitchCamera size={20} color="#fff" strokeWidth={2} />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Recording timer */}
-                  {isRecording && (
-                    <View style={styles.recordingBadge}>
-                      <View style={styles.recordingDot} />
-                      <Text style={styles.recordingText}>{formatSeconds(recordingSeconds)}</Text>
-                    </View>
-                  )}
-
-                  {/* Zoom slider */}
-                  <View style={styles.zoomRow}>
-                    {[0, 0.25, 0.5, 0.75, 1].map((z) => (
-                      <TouchableOpacity key={z} onPress={() => setZoom(z)} style={styles.zoomBtn}>
-                        <Text style={[styles.zoomBtnText, zoom === z && styles.zoomBtnTextActive]}>
-                          {z === 0 ? '1x' : z === 0.25 ? '2x' : z === 0.5 ? '3x' : z === 0.75 ? '4x' : '5x'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  {/* Bottom shutter */}
-                  <View style={styles.cameraControls}>
-                    <View style={{ width: 44 }} />
-
-                    {mediaMode === 'photo' ? (
-                      <TouchableOpacity
-                        style={styles.snapBtn}
-                        onPress={handleTakePhoto}
-                        accessibilityRole="button"
-                        accessibilityLabel="Take photograph"
-                      >
-                        <View style={styles.snapBtnInner} />
-                      </TouchableOpacity>
-                    ) : isRecording ? (
-                      <TouchableOpacity
-                        style={styles.stopBtn}
-                        onPress={handleStopRecording}
-                        accessibilityRole="button"
-                        accessibilityLabel="Stop recording video"
-                      >
-                        <View style={styles.stopBtnInner} />
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.recordBtn}
-                        onPress={handleStartRecording}
-                        accessibilityRole="button"
-                        accessibilityLabel="Start recording video"
-                      >
-                        <View style={styles.recordBtnInner} />
-                      </TouchableOpacity>
-                    )}
-
-                    <View style={{ width: 44 }} />
-                  </View>
-                </CameraView>
-              ) : (
-                <View style={styles.permissionBox}>
-                  <Camera size={36} color={COLORS.textMuted} strokeWidth={1.8} />
-                  <Text style={styles.permissionText}>Camera access required</Text>
-                  <TouchableOpacity
-                    style={styles.grantBtn}
-                    onPress={requestCameraPermission}
-                    accessibilityRole="button"
-                    accessibilityLabel="Grant camera access"
-                  >
-                    <Text style={styles.grantBtnText}>Grant Access</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ) : displayUri ? (
-            <View style={styles.previewContainer}>
-              {mediaType === 'video' ? (
-                <View style={styles.videoPreview}>
-                  <Video size={40} color={COLORS.primary} strokeWidth={2} />
-                  <Text style={styles.videoLabel}>Video recorded</Text>
-                </View>
-              ) : (
-                <RNImage source={{ uri: displayUri }} style={styles.previewImage} resizeMode="cover" />
-              )}
-              <View style={styles.previewActions}>
-                <TouchableOpacity
-                  style={styles.retakeBtn}
-                  onPress={() => { setCameraActive(true); setPhotoUri(null); setVideoUri(null); }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Retake photo or video"
-                >
-                  <RotateCcw size={14} color="#fff" strokeWidth={2} />
-                  <Text style={styles.retakeText}>Retake</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.clearBtn}
-                  onPress={() => { setPhotoUri(null); setVideoUri(null); setMediaType(null); }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Remove photo or video"
-                >
-                  <Trash2 size={14} color={COLORS.danger} strokeWidth={2} />
-                  <Text style={[styles.retakeText, { color: COLORS.danger }]}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.mediaBtnsRow}>
-              <TouchableOpacity
-                style={styles.openCameraBtn}
-                onPress={handleOpenCamera}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={mediaMode === 'video' ? 'Open camera to record video' : 'Open camera to take snapshot'}
-              >
-                {mediaMode === 'video' ? (
-                  <Video size={26} color={COLORS.primary} strokeWidth={2} />
-                ) : (
-                  <Camera size={26} color={COLORS.primary} strokeWidth={2} />
-                )}
-                <Text style={styles.openCameraText}>
-                  {mediaMode === 'video' ? 'Record Video' : 'Open Camera'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.galleryBtn}
-                onPress={handlePickFromGallery}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Choose from media gallery"
-              >
-                <ImageIcon size={24} color={COLORS.secondary} strokeWidth={2} />
-                <Text style={[styles.openCameraText, { color: COLORS.secondary }]}>Gallery</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* MOVIE SELECTION */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Movie Watched</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.movieScroll}>
-            {FALLBACK_MOVIES.map((m) => {
-              const isSelected = selectedMovie?.id === m.id;
-              return (
-                <TouchableOpacity
-                  key={m.id}
-                  style={[styles.movieChip, isSelected && styles.movieChipActive]}
-                  onPress={() => setSelectedMovie(m)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select movie ${m.title}`}
-                  accessibilityState={{ selected: isSelected }}
-                >
-                  <Text style={[styles.movieChipText, isSelected && styles.movieChipTextActive]}>
-                    {m.title}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* EXPERIENCE & CINEMA */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Experience Format</Text>
-          <View style={styles.optionsWrap}>
-            {EXPERIENCE_TYPES.map((fmt) => {
-              const isSelected = experienceType === fmt;
-              return (
-                <TouchableOpacity
-                  key={fmt}
-                  style={[styles.optionPill, isSelected && styles.optionPillActive]}
-                  onPress={() => setExperienceType(fmt)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select format ${fmt}`}
-                  accessibilityState={{ selected: isSelected }}
-                >
-                  <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>
-                    {fmt}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
           </View>
 
-          <Text style={[styles.inputLabel, { marginTop: 12 }]}>Cinema / Theater Name</Text>
-          <TextInput
-            style={styles.textInput}
-            value={cinemaName}
-            onChangeText={setCinemaName}
-            placeholder="e.g. PVR INOX Palladium Laser"
-            placeholderTextColor={COLORS.textMuted}
-          />
-        </View>
+          {/* Mode Switcher: Photo vs Video */}
+          <View style={styles.cameraModeBar}>
+            <TouchableOpacity
+              onPress={() => setMediaMode('photo')}
+              style={[styles.mediaModeTab, mediaMode === 'photo' && styles.mediaModeTabActive]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: mediaMode === 'photo' }}
+            >
+              <Text style={[styles.mediaModeText, mediaMode === 'photo' && styles.mediaModeTextActive]}>
+                PHOTO
+              </Text>
+            </TouchableOpacity>
 
-        {/* RATING */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Theatrical Rating</Text>
-          <View style={styles.starPicker}>
-            {[1, 2, 3, 4, 5].map((s) => (
+            <TouchableOpacity
+              onPress={() => setMediaMode('video')}
+              style={[styles.mediaModeTab, mediaMode === 'video' && styles.mediaModeTabActive]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: mediaMode === 'video' }}
+            >
+              <Text style={[styles.mediaModeText, mediaMode === 'video' && styles.mediaModeTextActive]}>
+                VIDEO
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Bottom Shutter Action */}
+          <View style={styles.cameraBottomBar}>
+            {mediaMode === 'photo' ? (
               <TouchableOpacity
-                key={s}
-                onPress={() => setRating(s)}
-                style={styles.starTouch}
+                style={styles.shutterBtn}
+                onPress={handleTakePhoto}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={`Rate ${s} out of 5 stars`}
+                accessibilityLabel="Take photo"
               >
-                <Star
-                  size={30}
-                  color={COLORS.secondary}
-                  fill={s <= rating ? COLORS.secondary : 'transparent'}
-                  strokeWidth={1.8}
-                />
+                <View style={styles.shutterInner} />
               </TouchableOpacity>
-            ))}
+            ) : (
+              <TouchableOpacity
+                style={[styles.shutterBtn, isRecording && styles.shutterBtnRecording]}
+                onPress={isRecording ? handleStopRecording : handleStartRecording}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={isRecording ? "Stop recording" : "Start recording"}
+              >
+                <View style={[styles.shutterInner, isRecording && styles.shutterInnerSquare]} />
+              </TouchableOpacity>
+            )}
           </View>
-        </View>
+        </CameraView>
+      </SafeAreaView>
+    );
+  }
 
-        {/* STORY & HIGHLIGHTS */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Your Review & Theatrical Highlights</Text>
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/* Top Header */}
+      <View style={styles.header}>
+        <IconButton
+          icon="ArrowLeft"
+          variant="surface"
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
+        />
+        <Text style={styles.headerTitle}>Log Theatrical Memory</Text>
+        <View style={{ width: 44 }} />
+      </View>
 
-          <Text style={styles.inputLabel}>Auditorium Story & Crowd Vibe</Text>
-          <TextInput
-            style={[styles.textInput, styles.textArea]}
-            value={story}
-            onChangeText={setStory}
-            placeholder="How was the crowd reaction, screen brightness, and sound bass?"
-            placeholderTextColor={COLORS.textMuted}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
-
-          <Text style={[styles.inputLabel, { marginTop: 12 }]}>Favorite Scene / Moment</Text>
-          <TextInput
-            style={styles.textInput}
-            value={favoriteMoment}
-            onChangeText={setFavoriteMoment}
-            placeholder="e.g. The sand worm ride or docking sequence"
-            placeholderTextColor={COLORS.textMuted}
-          />
-
-          <Text style={[styles.inputLabel, { marginTop: 12 }]}>Snacks & Refreshment Highlight</Text>
-          <TextInput
-            style={styles.textInput}
-            value={snackHighlight}
-            onChangeText={setSnackHighlight}
-            placeholder="e.g. Caramel popcorn + Double espresso"
-            placeholderTextColor={COLORS.textMuted}
-          />
-        </View>
-
-        {/* COMPANIONS */}
-        {contacts.length > 0 && (
-          <View style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>Tag Companions</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.optionsWrap}>
-                {contacts.slice(0, 12).map((c) => {
-                  const isSelected = selectedCompanions.some((item) => item.name === c.name);
-                  return (
-                    <TouchableOpacity
-                      key={c.id || c.name}
-                      style={[styles.companionChip, isSelected && styles.companionChipActive]}
-                      onPress={() => handleToggleCompanion(c)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Tag companion: ${c.name}`}
-                      accessibilityState={{ selected: isSelected }}
-                    >
-                      <User size={12} color={isSelected ? '#07090E' : COLORS.primary} strokeWidth={2} style={{ marginRight: 4 }} />
-                      <Text style={[styles.compName, isSelected && styles.compNameActive]}>
-                        {c.name.split(' ')[0]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          {/* 1. MEDIA PICKER / PREVIEW (PHOTO FIRST) */}
+          <View style={styles.mediaCard}>
+            {photoUri || videoUri ? (
+              <View style={styles.previewContainer}>
+                <RNImage source={{ uri: photoUri || videoUri }} style={styles.previewMedia} resizeMode="cover" />
+                <View style={styles.previewOverlay}>
+                  <Button
+                    title="Retake / Change"
+                    icon="RotateCcw"
+                    variant="surface"
+                    size="sm"
+                    onPress={handleOpenCamera}
+                    accessibilityLabel="Retake photo"
+                  />
+                  <IconButton
+                    icon="Trash2"
+                    variant="danger"
+                    size={20}
+                    onPress={() => {
+                      setPhotoUri(null);
+                      setVideoUri(null);
+                    }}
+                    accessibilityLabel="Remove photo"
+                  />
+                </View>
               </View>
+            ) : (
+              <View style={styles.mediaPickerOptions}>
+                <TouchableOpacity
+                  style={styles.pickerTile}
+                  onPress={handleOpenCamera}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open camera to take photo or video"
+                >
+                  <Camera size={24} color={COLORS.primary} strokeWidth={2} />
+                  <Text style={styles.pickerTileTitle}>Take Theater Photo / Video</Text>
+                  <Text style={styles.pickerTileSub}>Capture the marquee, lobby or ticket</Text>
+                </TouchableOpacity>
+
+                <View style={styles.galleryButtonWrap}>
+                  <Button
+                    title="Choose from Gallery"
+                    icon="Image"
+                    variant="surface"
+                    size="md"
+                    onPress={handlePickFromGallery}
+                    accessibilityLabel="Pick image from photo gallery"
+                  />
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* 2. CHOOSE MOVIE */}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionHeading}>MOVIE WATCHED</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalChips}>
+              {FALLBACK_MOVIES.map((movie) => {
+                const isSelected = selectedMovie.id === movie.id;
+                return (
+                  <Chip
+                    key={movie.id}
+                    label={movie.title}
+                    selected={isSelected}
+                    onPress={() => setSelectedMovie(movie)}
+                    accessibilityLabel={`Select movie ${movie.title}`}
+                  />
+                );
+              })}
             </ScrollView>
           </View>
-        )}
 
-        {/* SAVE BUTTON */}
-        <TouchableOpacity
-          style={[styles.saveMemoryBtn, isSaving && { opacity: 0.6 }]}
-          onPress={handleSaveMemory}
-          disabled={isSaving}
-          activeOpacity={0.88}
-          accessibilityRole="button"
-          accessibilityLabel="Save memory to cinephile journal"
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#07090E" size="small" />
-          ) : (
-            <>
-              <Sparkles size={18} color="#07090E" strokeWidth={2.2} />
-              <Text style={styles.saveMemoryBtnText}>Save Memory to Journal</Text>
-            </>
-          )}
-        </TouchableOpacity>
+          {/* 3. CINEMA & FORMAT */}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionHeading}>THEATER FORMAT</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalChips}>
+              {EXPERIENCE_TYPES.map((fmt) => (
+                <Chip
+                  key={fmt}
+                  label={fmt}
+                  selected={experienceType === fmt}
+                  onPress={() => setExperienceType(fmt)}
+                  accessibilityLabel={`Select format ${fmt}`}
+                />
+              ))}
+            </ScrollView>
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+            <Text style={[styles.sectionHeading, { marginTop: SPACING.md }]}>THEATER NAME</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., PVR IMAX Laser Grand Mall"
+              placeholderTextColor={COLORS.textMuted}
+              value={cinemaName}
+              onChangeText={setCinemaName}
+            />
+          </View>
+
+          {/* 4. RATING (ACCESSIBLE 44px TOUCH TARGETS) */}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionHeading}>YOUR RATING</Text>
+            <Rating
+              rating={rating}
+              maxRating={5}
+              onRatingChange={setRating}
+              showNumeric={true}
+              size={24}
+            />
+          </View>
+
+          {/* 5. STORY & EXPERIENCE */}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionHeading}>AUDITORIUM VIBE & STORY</Text>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              placeholder="How was the crowd reaction, screen clarity, and sound immersion?"
+              placeholderTextColor={COLORS.textMuted}
+              value={story}
+              onChangeText={setStory}
+              multiline
+              numberOfLines={3}
+            />
+
+            <Text style={[styles.sectionHeading, { marginTop: SPACING.md }]}>BEST MOMENT / HIGHLIGHT</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., The third act IMAX aspect ratio shift..."
+              placeholderTextColor={COLORS.textMuted}
+              value={favoriteMoment}
+              onChangeText={setFavoriteMoment}
+            />
+          </View>
+
+          {/* 6. COMPANIONS & SNACKS */}
+          <View style={styles.formSection}>
+            <Text style={styles.sectionHeading}>CONCESSION SNACK</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., Large Butter Popcorn + Cold Brew"
+              placeholderTextColor={COLORS.textMuted}
+              value={snackHighlight}
+              onChangeText={setSnackHighlight}
+            />
+          </View>
+
+          {/* 7. DOMINANT SAVE BUTTON */}
+          <View style={styles.saveBtnWrap}>
+            <Button
+              title={isSaving ? "Saving Memory..." : "Save to Journal 🎬"}
+              variant="primary"
+              size="lg"
+              loading={isSaving}
+              onPress={handleSaveMemory}
+              accessibilityLabel="Save theatrical memory"
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  cameraSafeArea: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  cameraView: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  cameraTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  topRightCameraControls: {
+    flexDirection: 'row',
+  },
+  cameraModeBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: SPACING.lg,
+  },
+  mediaModeTab: {
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.full,
+  },
+  mediaModeTabActive: {
+    backgroundColor: 'rgba(0, 240, 255, 0.25)',
+  },
+  mediaModeText: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 12,
+    color: COLORS.textMuted,
+  },
+  mediaModeTextActive: {
+    color: COLORS.primary,
+  },
+  cameraBottomBar: {
+    alignItems: 'center',
+    paddingBottom: SPACING.xxl,
+  },
+  shutterBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shutterBtnRecording: {
+    borderColor: COLORS.danger,
+  },
+  shutterInner: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: COLORS.primary,
+  },
+  shutterInnerSquare: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: COLORS.danger,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
-  closeBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: COLORS.cardBorder,
+  headerTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.text,
   },
-  scroll: { flex: 1 },
-  sectionCard: {
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: SPACING.xxl * 2,
+  },
+  mediaCard: {
+    margin: SPACING.lg,
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  previewContainer: {
+    position: 'relative',
+    height: 220,
+  },
+  previewMedia: {
+    width: '100%',
+    height: '100%',
+  },
+  previewOverlay: {
+    position: 'absolute',
+    bottom: SPACING.sm,
+    left: SPACING.sm,
+    right: SPACING.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mediaPickerOptions: {
+    padding: SPACING.lg,
+  },
+  pickerTile: {
+    minHeight: 120,
+    borderRadius: RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(0, 240, 255, 0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.md,
+    gap: SPACING.xs,
+  },
+  pickerTileTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+  },
+  pickerTileSub: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  galleryButtonWrap: {
+    marginTop: SPACING.md,
+  },
+  formSection: {
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
+    marginBottom: SPACING.md,
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
-  sectionSubtitle: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2, marginBottom: 10 },
-
-  // Mode row
-  modeRow: { flexDirection: 'row', marginBottom: 10 },
-  modeBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: RADIUS.full, marginRight: 8,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1, borderColor: COLORS.cardBorder,
+  sectionHeading: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.sm,
   },
-  modeBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  modeBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
-  modeBtnTextActive: { color: '#07090E' },
-
-  // Camera
-  cameraContainer: { height: 320, borderRadius: RADIUS.md, overflow: 'hidden', marginTop: 8 },
-  camera: { flex: 1 },
-  camTopControls: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 12,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+  horizontalChips: {
+    flexDirection: 'row',
   },
-  camControlBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  recordingBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12, paddingVertical: 4,
-    borderRadius: RADIUS.full,
-  },
-  recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.danger, marginRight: 6 },
-  recordingText: { fontSize: 13, fontWeight: '800', color: '#fff' },
-  zoomRow: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    paddingVertical: 6,
-  },
-  zoomBtn: { paddingHorizontal: 10, paddingVertical: 4 },
-  zoomBtnText: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
-  zoomBtnTextActive: { color: COLORS.primary, fontWeight: '900' },
-  cameraControls: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  snapBtn: {
-    width: 60, height: 60, borderRadius: 30,
-    backgroundColor: '#fff',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  snapBtnInner: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#07090E' },
-  recordBtn: {
-    width: 60, height: 60, borderRadius: 30,
-    borderWidth: 4, borderColor: COLORS.danger,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  recordBtnInner: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.danger },
-  stopBtn: {
-    width: 60, height: 60, borderRadius: 30,
-    borderWidth: 4, borderColor: COLORS.danger,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  stopBtnInner: { width: 24, height: 24, borderRadius: 4, backgroundColor: COLORS.danger },
-  permissionBox: {
-    height: 200, backgroundColor: COLORS.surface,
-    justifyContent: 'center', alignItems: 'center', gap: 8,
-  },
-  permissionText: { color: COLORS.textSecondary, fontSize: 13 },
-  grantBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: RADIUS.sm },
-  grantBtnText: { color: '#07090E', fontWeight: '800', fontSize: 12 },
-
-  // Preview
-  previewContainer: { marginTop: 8 },
-  previewImage: { width: '100%', height: 200, borderRadius: RADIUS.md },
-  videoPreview: {
-    height: 160, backgroundColor: COLORS.surface, borderRadius: RADIUS.md,
-    justifyContent: 'center', alignItems: 'center', gap: 8,
-  },
-  videoLabel: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '600' },
-  previewActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  retakeBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(7,9,14,0.8)', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: RADIUS.xs, gap: 4,
-  },
-  clearBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(239,68,68,0.1)', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: RADIUS.xs, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', gap: 4,
-  },
-  retakeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-
-  // Media buttons
-  mediaBtnsRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
-  openCameraBtn: {
-    flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.surface, paddingVertical: 18, borderRadius: RADIUS.md,
-    borderWidth: 1.5, borderColor: 'rgba(0,240,255,0.3)', borderStyle: 'dashed', gap: 6,
-  },
-  galleryBtn: {
-    flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.surface, paddingVertical: 18, borderRadius: RADIUS.md,
-    borderWidth: 1.5, borderColor: 'rgba(255,184,0,0.3)', borderStyle: 'dashed', gap: 6,
-  },
-  openCameraText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
-
-  // Movie
-  movieScroll: { marginTop: 8 },
-  movieChip: {
-    backgroundColor: COLORS.surface, paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: RADIUS.sm, marginRight: 8, borderWidth: 1, borderColor: COLORS.cardBorder,
-  },
-  movieChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  movieChipText: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
-  movieChipTextActive: { color: '#07090E' },
-
-  // Options
-  optionsWrap: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
-  optionPill: {
-    backgroundColor: COLORS.surface, paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: RADIUS.sm, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: COLORS.cardBorder,
-  },
-  optionPillActive: { backgroundColor: COLORS.secondary, borderColor: COLORS.secondary },
-  optionPillText: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
-  optionPillTextActive: { color: '#07090E', fontWeight: '800' },
-
-  // Stars
-  starPicker: { flexDirection: 'row', justifyContent: 'center', paddingVertical: 10 },
-  starTouch: { padding: 6 },
-
-  // Inputs
-  inputLabel: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, marginBottom: 6 },
   textInput: {
-    backgroundColor: COLORS.surface, borderRadius: RADIUS.sm,
-    paddingHorizontal: 12, paddingVertical: 10, color: COLORS.text,
-    fontSize: 13, borderWidth: 1, borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 44,
   },
-  textArea: { height: 70 },
-
-  // Companions
-  companionChip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surface, paddingHorizontal: 10, paddingVertical: 6,
-    borderRadius: RADIUS.full, marginRight: 8, marginBottom: 8,
-    borderWidth: 1, borderColor: COLORS.cardBorder,
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
-  companionChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  compName: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
-  compNameActive: { color: '#07090E', fontWeight: '800' },
-
-  // Save
-  saveMemoryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.primary, marginHorizontal: SPACING.lg, marginTop: SPACING.lg,
-    paddingVertical: 15, borderRadius: RADIUS.md, gap: 8, ...SHADOWS.glowCyan,
+  saveBtnWrap: {
+    paddingHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
   },
-  saveMemoryBtnText: { fontSize: 14, fontWeight: '900', color: '#07090E' },
 });

@@ -15,10 +15,11 @@ import { COLORS, RADIUS } from '../../constants/theme';
  */
 export default function IconButton({
   icon,
-  size = ICON_SIZES.base,
+  size = ICON_SIZES.md,
   color = COLORS.text,
   accessibilityLabel,
   accessibilityHint,
+
   onPress,
   disabled = false,
   variant = 'surface',

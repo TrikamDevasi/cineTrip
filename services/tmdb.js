@@ -189,12 +189,12 @@ export const CINEMA_CHAINS = [
 ];
 
 // Service API Methods
-export async function getTrendingMovies() {
+export async function getTrendingMovies(page = 1) {
   if (API_KEY || API_TOKEN) {
     try {
       const url = API_KEY
-        ? `${TMDB_BASE_URL}/trending/movie/week?api_key=${API_KEY}`
-        : `${TMDB_BASE_URL}/trending/movie/week`;
+        ? `${TMDB_BASE_URL}/trending/movie/week?api_key=${API_KEY}&page=${page}`
+        : `${TMDB_BASE_URL}/trending/movie/week?page=${page}`;
       const res = await fetch(url, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();
@@ -207,12 +207,12 @@ export async function getTrendingMovies() {
   return FALLBACK_MOVIES;
 }
 
-export async function getNowPlayingMovies() {
+export async function getNowPlayingMovies(page = 1) {
   if (API_KEY || API_TOKEN) {
     try {
       const url = API_KEY
-        ? `${TMDB_BASE_URL}/movie/now_playing?api_key=${API_KEY}`
-        : `${TMDB_BASE_URL}/movie/now_playing`;
+        ? `${TMDB_BASE_URL}/movie/now_playing?api_key=${API_KEY}&page=${page}`
+        : `${TMDB_BASE_URL}/movie/now_playing?page=${page}`;
       const res = await fetch(url, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();
@@ -225,12 +225,12 @@ export async function getNowPlayingMovies() {
   return FALLBACK_MOVIES.filter(m => m.status === 'Now Playing' || m.status.includes('IMAX'));
 }
 
-export async function getUpcomingMovies() {
+export async function getUpcomingMovies(page = 1) {
   if (API_KEY || API_TOKEN) {
     try {
       const url = API_KEY
-        ? `${TMDB_BASE_URL}/movie/upcoming?api_key=${API_KEY}`
-        : `${TMDB_BASE_URL}/movie/upcoming`;
+        ? `${TMDB_BASE_URL}/movie/upcoming?api_key=${API_KEY}&page=${page}`
+        : `${TMDB_BASE_URL}/movie/upcoming?page=${page}`;
       const res = await fetch(url, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();

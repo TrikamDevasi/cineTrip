@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import Icon from './ui/Icon';
-import { COLORS, SPACING } from '../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
 
 export default function SectionHeader({ title, subtitle, actionText, onAction, icon }) {
   return (
@@ -11,7 +11,7 @@ export default function SectionHeader({ title, subtitle, actionText, onAction, i
         <View style={styles.titleRow}>
           {icon && (
             <View style={styles.iconWrapper}>
-              <Icon name={icon} size={18} color={COLORS.primary} strokeWidth={2} />
+              <Icon name={icon} size={20} color={COLORS.primary} strokeWidth={2} />
             </View>
           )}
           <Text style={styles.title}>{title}</Text>
@@ -28,7 +28,7 @@ export default function SectionHeader({ title, subtitle, actionText, onAction, i
           accessibilityLabel={`${actionText} ${title}`}
         >
           <Text style={styles.actionText}>{actionText}</Text>
-          <ChevronRight size={14} color={COLORS.primary} strokeWidth={2.2} />
+          <ChevronRight size={16} color={COLORS.primary} strokeWidth={2} />
         </TouchableOpacity>
       )}
     </View>
@@ -41,8 +41,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.md,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.sm,
   },
   left: {
     flex: 1,
@@ -53,30 +53,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconWrapper: {
-    marginRight: 8,
+    marginRight: SPACING.sm,
   },
   title: {
-    fontSize: 19,
-    fontWeight: '800',
+    ...TYPOGRAPHY.h2,
+    fontSize: 20,
     color: COLORS.text,
-    letterSpacing: 0.2,
   },
   subtitle: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    minHeight: 36,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 44,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.xs,
   },
   actionText: {
-    fontSize: 13,
-    fontWeight: '700',
+    ...TYPOGRAPHY.bodyBold,
     color: COLORS.primary,
-    marginRight: 2,
+    marginRight: SPACING.xs,
   },
 });

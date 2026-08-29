@@ -3,7 +3,7 @@ import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from './ui/Icon';
 import { MOODS } from '../services/tmdb';
-import { COLORS, RADIUS, SPACING } from '../constants/theme';
+import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
 
 export default function MoodSelector({ selectedMood, onSelectMood }) {
   return (
@@ -20,9 +20,9 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
             activeOpacity={0.8}
             onPress={() => onSelectMood(isSelected ? null : mood.id)}
             style={[styles.pillWrapper, isSelected && styles.pillSelected]}
-            accessibilityRole="button"
+            accessibilityRole="checkbox"
             accessibilityLabel={`Filter by mood: ${mood.label}`}
-            accessibilityState={{ selected: isSelected }}
+            accessibilityState={{ checked: isSelected }}
           >
             {isSelected ? (
               <LinearGradient
@@ -31,7 +31,7 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientPill}
               >
-                <Icon name={mood.icon} size={15} color="#FFFFFF" style={styles.icon} />
+                <Icon name={mood.icon} size={16} color="#FFFFFF" style={styles.icon} />
                 <Text style={styles.selectedLabel}>{mood.label}</Text>
               </LinearGradient>
             ) : (
@@ -39,7 +39,7 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
                 colors={['rgba(26, 35, 58, 0.9)', 'rgba(19, 27, 46, 0.9)']}
                 style={styles.unselectedPill}
               >
-                <Icon name={mood.icon} size={15} color={COLORS.textSecondary} style={styles.icon} />
+                <Icon name={mood.icon} size={16} color={COLORS.textSecondary} style={styles.icon} />
                 <Text style={styles.unselectedLabel}>{mood.label}</Text>
               </LinearGradient>
             )}
@@ -56,44 +56,43 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
   },
   pillWrapper: {
-    marginRight: 10,
+    marginRight: SPACING.sm,
     borderRadius: RADIUS.full,
     overflow: 'hidden',
+    minHeight: 44,
   },
   pillSelected: {
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
   },
   gradientPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
     borderRadius: RADIUS.full,
+    minHeight: 44,
   },
   unselectedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
     borderRadius: RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+    minHeight: 44,
   },
   icon: {
-    marginRight: 6,
+    marginRight: SPACING.xs + 2,
   },
   selectedLabel: {
-    fontSize: 13,
-    fontWeight: '700',
+    ...TYPOGRAPHY.bodyBold,
     color: '#FFFFFF',
   },
   unselectedLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
+    fontWeight: '600',
   },
 });

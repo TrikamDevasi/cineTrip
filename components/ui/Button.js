@@ -35,25 +35,6 @@ export default function Button({
   accessibilityLabel,
   ...props
 }) {
-  const getContainerStyle = () => {
-    const sizeStyle = size === 'sm' ? styles.sizeSm : size === 'lg' ? styles.sizeLg : styles.sizeMd;
-    switch (variant) {
-      case 'secondary':
-        return [sizeStyle, styles.secondary];
-      case 'outline':
-        return [sizeStyle, styles.outline];
-      case 'ghost':
-        return [sizeStyle, styles.ghost];
-      case 'danger':
-        return [sizeStyle, styles.danger];
-      case 'surface':
-        return [sizeStyle, styles.surface];
-      case 'primary':
-      default:
-        return [sizeStyle, styles.primary];
-    }
-  };
-
   const getTextColor = () => {
     if (disabled) return COLORS.textMuted;
     switch (variant) {
@@ -74,11 +55,32 @@ export default function Button({
     }
   };
 
-  const getIconColor = () => {
-    return getTextColor();
+  const sizeStyle = size === 'sm' ? styles.sizeSm : size === 'lg' ? styles.sizeLg : styles.sizeMd;
+  const textColor = disabled ? COLORS.textMuted : getTextColor(variant);
+  const iconColor = textColor;
+
+  const getContainerStyle = () => {
+    switch (variant) {
+      case 'secondary':
+        return [sizeStyle, styles.secondary];
+      case 'outline':
+        return [sizeStyle, styles.outline];
+      case 'ghost':
+        return [sizeStyle, styles.ghost];
+      case 'danger':
+        return [sizeStyle, styles.danger];
+      case 'surface':
+        return [sizeStyle, styles.surface];
+      case 'primary':
+      default:
+        return [sizeStyle, styles.primary];
+    }
   };
 
-  const iconSize = size === 'sm' ? ICON_SIZES.sm : size === 'lg' ? ICON_SIZES.base : ICON_SIZES.md;
+  const getIconColor = () => iconColor;
+
+  const iconSize = size === 'sm' ? ICON_SIZES.sm : size === 'lg' ? ICON_SIZES.lg : ICON_SIZES.md;
+
 
   return (
     <TouchableOpacity
@@ -110,7 +112,7 @@ export default function Button({
               style={[
                 styles.title,
                 size === 'sm' ? styles.titleSm : size === 'lg' ? styles.titleLg : styles.titleMd,
-                { color: getTextColor() },
+                { color: textColor },
                 textStyle,
               ]}
             >
@@ -182,11 +184,11 @@ const styles = StyleSheet.create({
   // Variants
   primary: {
     backgroundColor: COLORS.primary,
-    ...SHADOWS.glowCyan,
+    ...SHADOWS.focus,
   },
   secondary: {
     backgroundColor: COLORS.secondary,
-    ...SHADOWS.glowGold,
+    ...SHADOWS.focus,
   },
   outline: {
     backgroundColor: 'transparent',

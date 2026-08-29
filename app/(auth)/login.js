@@ -12,20 +12,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { Film, Mail, Lock, Eye, EyeOff, AlertCircle, LogIn, Sparkles, ArrowRight } from 'lucide-react-native';
+import { Film, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, Globe } from 'lucide-react-native';
+import Button from '../../components/ui/Button';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login, loginWithGoogle, enterGuestMode } = useAuthStore();
   const updateProfile = usePreferencesStore((s) => s.updateProfile);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   const validate = () => {
@@ -45,18 +47,40 @@ export default function LoginScreen() {
     setError('');
     setLoading(true);
 
-    const result = await login({ email: email.trim().toLowerCase(), password });
+    const result = await login({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
     setLoading(false);
 
     if (result.success) {
       router.replace('/(tabs)');
     } else {
-      setError(result.error || 'Login failed. Please try again.');
+      setError(result.error || 'Login failed. Please check your credentials.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setGoogleLoading(true);
+
+    try {
+      const result = await loginWithGoogle();
+      if (result.success) {
+        router.replace('/(tabs)');
+      } else if (!result.cancelled) {
+        setError(result.error || 'Google Sign-In was not completed.');
+      }
+    } catch (err) {
+      setError(err.message || 'Google Sign-In encountered an unexpected error.');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
   const handleExploreDemo = () => {
+    enterGuestMode();
     updateProfile({
       userName: 'Guest Cinephile',
       userHandle: '@guest_explorer',
@@ -71,7 +95,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
       >
         <ScrollView
@@ -82,48 +106,74 @@ export default function LoginScreen() {
           {/* Logo / Header */}
           <View style={styles.heroSection}>
             <View style={styles.logoBadge}>
-              <Film size={36} color={COLORS.primary} strokeWidth={2.2} />
+              <Film size={32} color={COLORS.primary} strokeWidth={2} />
             </View>
             <Text style={styles.appName}>CineTrip</Text>
-            <Text style={styles.tagline}>Your cinephile journey, personalized</Text>
+            <Text style={styles.tagline}>Your theatrical cinema companion</Text>
           </View>
 
-          {/* Instant Demo / Guest Mode Card */}
+          {/* Instant Demo Option */}
           <TouchableOpacity
             style={styles.demoCard}
             onPress={handleExploreDemo}
-            activeOpacity={0.88}
+            activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Try Instant Demo. Explore website without creating an account."
+            accessibilityLabel="Explore as guest without creating an account"
           >
             <View style={styles.demoLeft}>
               <View style={styles.demoIconBadge}>
-                <Sparkles size={20} color="#07090E" strokeWidth={2.2} />
+                <Sparkles size={18} color="#07090E" strokeWidth={2} />
               </View>
               <View style={styles.demoTexts}>
-                <Text style={styles.demoTitle}>Try Instant Demo</Text>
-                <Text style={styles.demoSubtitle}>Explore all features without an account</Text>
+                <Text style={styles.demoTitle}>Explore as Guest</Text>
+                <Text style={styles.demoSubtitle}>Try discovery, trip planning & camera offline</Text>
               </View>
             </View>
-            <View style={styles.demoArrow}>
-              <ArrowRight size={16} color={COLORS.primary} strokeWidth={2.2} />
-            </View>
+            <ArrowRight size={18} color={COLORS.primary} strokeWidth={2} />
           </TouchableOpacity>
 
-          {/* Login Card */}
+          {/* Login Form Container */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Welcome Back</Text>
-            <Text style={styles.cardSubtitle}>Sign in to sync your tickets and journal</Text>
+            <Text style={styles.cardTitle}>Sign In</Text>
+            <Text style={styles.cardSubtitle}>Sync your movie passes and cinephile journal</Text>
+
+            {/* Google OAuth Button */}
+            <TouchableOpacity
+              style={styles.googleBtn}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Google"
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <View style={styles.googleIconBox}>
+                    <Globe size={18} color="#FFFFFF" strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.googleBtnText}>Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>OR SIGN IN WITH EMAIL</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
             {/* Email */}
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>EMAIL ADDRESS</Text>
             <View style={styles.inputWrapper}>
               <Mail size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={email}
                 onChangeText={(t) => { setEmail(t); setError(''); }}
-                placeholder="your@email.com"
+                placeholder="cinephile@example.com"
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -134,14 +184,14 @@ export default function LoginScreen() {
             </View>
 
             {/* Password */}
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>PASSWORD</Text>
             <View style={styles.inputWrapper}>
               <Lock size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, styles.inputFlex]}
                 value={password}
                 onChangeText={(t) => { setPassword(t); setError(''); }}
-                placeholder="Your password"
+                placeholder="Enter password"
                 placeholderTextColor={COLORS.textMuted}
                 secureTextEntry={!showPassword}
                 returnKeyType="done"
@@ -149,7 +199,7 @@ export default function LoginScreen() {
                 accessibilityLabel="Password"
               />
               <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
+                onPress={() => setShowPassword((p) => !p)}
                 style={styles.eyeBtn}
                 accessibilityRole="button"
                 accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
@@ -165,58 +215,36 @@ export default function LoginScreen() {
             {/* Error Message */}
             {error ? (
               <View style={styles.errorBox}>
-                <AlertCircle size={15} color={COLORS.danger} strokeWidth={2} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            {/* Login Button */}
-            <TouchableOpacity
-              style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
-              onPress={handleLogin}
-              disabled={loading}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel="Sign in to your account"
-            >
-              {loading ? (
-                <ActivityIndicator color="#07090E" size="small" />
-              ) : (
-                <>
-                  <LogIn size={18} color="#07090E" strokeWidth={2.2} style={{ marginRight: 8 }} />
-                  <Text style={styles.loginBtnText}>Sign In</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>New to CineTrip?</Text>
-              <View style={styles.dividerLine} />
+            {/* Sign In Button */}
+            <View style={styles.btnWrap}>
+              <Button
+                title={loading ? "Signing In..." : "Sign In with Email"}
+                variant="primary"
+                size="lg"
+                loading={loading}
+                onPress={handleLogin}
+                accessibilityLabel="Sign in to your CineTrip account"
+              />
             </View>
+          </View>
 
-            {/* Register Link */}
+          {/* Switch to Register */}
+          <View style={styles.registerRow}>
+            <Text style={styles.registerText}>Don't have an account? </Text>
             <Link href="/(auth)/register" asChild>
               <TouchableOpacity
-                style={styles.registerBtn}
                 accessibilityRole="button"
                 accessibilityLabel="Create a new CineTrip account"
+                style={styles.registerTouch}
               >
-                <Text style={styles.registerBtnText}>Create an Account</Text>
+                <Text style={styles.registerLink}>Create one</Text>
               </TouchableOpacity>
             </Link>
           </View>
-
-          {/* Skip Footer */}
-          <TouchableOpacity
-            style={styles.skipBtn}
-            onPress={handleExploreDemo}
-            accessibilityRole="button"
-            accessibilityLabel="Continue as guest"
-          >
-            <Text style={styles.skipText}>Continue as guest</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -224,201 +252,201 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
-  flex: { flex: 1 },
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  flex: {
+    flex: 1,
+  },
   scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.xl,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.xxl,
   },
   heroSection: {
     alignItems: 'center',
     marginBottom: SPACING.lg,
   },
   logoBadge: {
-    width: 68,
-    height: 68,
+    width: 64,
+    height: 64,
     borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: 'rgba(0, 240, 255, 0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    ...SHADOWS.glowCyan,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+    marginBottom: SPACING.sm,
   },
   appName: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: COLORS.primary,
-    letterSpacing: 1,
-    marginTop: 10,
+    ...TYPOGRAPHY.h1,
+    color: COLORS.text,
   },
   tagline: {
-    fontSize: 13,
+    ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
-    marginTop: 4,
+    marginTop: 2,
   },
-
-  // Demo Card
   demoCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
-    ...SHADOWS.glowCyan,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+    ...SHADOWS.card,
   },
   demoLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: SPACING.sm,
   },
   demoIconBadge: {
     width: 38,
     height: 38,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.secondary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: SPACING.md,
   },
   demoTexts: {
-    marginLeft: 12,
     flex: 1,
   },
   demoTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
   },
   demoSubtitle: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: 1,
+    marginTop: 2,
   },
-  demoArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-
-  // Card
   card: {
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
-    padding: SPACING.xl,
+    padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     ...SHADOWS.card,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 2,
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
   },
   cardSubtitle: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
+    marginTop: 2,
     marginBottom: SPACING.lg,
   },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1E293B',
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    minHeight: 52,
+  },
+  googleIconBox: {
+    marginRight: SPACING.sm,
+  },
+  googleBtnText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: '#FFFFFF',
+    fontSize: 15,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.lg,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.cardBorder,
+  },
+  dividerText: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginHorizontal: SPACING.md,
+    letterSpacing: 0.8,
+  },
   label: {
+    ...TYPOGRAPHY.badge,
     fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-    marginBottom: 6,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.xs,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     marginBottom: SPACING.md,
-    paddingHorizontal: 12,
-    height: 48,
+    minHeight: 48,
   },
-  inputIcon: { marginRight: 8 },
+  inputIcon: {
+    marginRight: SPACING.sm,
+  },
   input: {
     flex: 1,
+    ...TYPOGRAPHY.body,
     color: COLORS.text,
-    fontSize: 14,
   },
-  inputFlex: { flex: 1 },
-  eyeBtn: { padding: 6 },
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: RADIUS.sm,
-    padding: 10,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
-  },
-  errorText: {
-    fontSize: 12,
-    color: COLORS.danger,
-    marginLeft: 6,
+  inputFlex: {
     flex: 1,
   },
-  loginBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  eyeBtn: {
+    width: 44,
+    height: 44,
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    paddingVertical: 14,
-    marginTop: 4,
-    ...SHADOWS.glowCyan,
+    alignItems: 'center',
   },
-  loginBtnDisabled: { opacity: 0.6 },
-  loginBtnText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#07090E',
+  errorBox: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: RADIUS.xs,
+    padding: SPACING.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    marginBottom: SPACING.md,
   },
-  divider: {
+  errorText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.danger,
+    fontWeight: '600',
+  },
+  btnWrap: {
+    marginTop: SPACING.xs,
+  },
+  registerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: SPACING.lg,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.cardBorder },
-  dividerText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginHorizontal: 10,
-  },
-  registerBtn: {
-    borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    borderRadius: RADIUS.md,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  registerBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  skipBtn: {
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: SPACING.lg,
-    paddingVertical: 8,
   },
-  skipText: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    textDecorationLine: 'underline',
+  registerText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+  },
+  registerTouch: {
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  registerLink: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.primary,
   },
 });

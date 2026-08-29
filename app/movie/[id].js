@@ -11,13 +11,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, Bookmark, Star, Ticket } from 'lucide-react-native';
+import { ArrowLeft, Share2, Bookmark, BookmarkCheck, Star, Ticket, Clock, Calendar, Film } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FormatBadge from '../../components/FormatBadge';
+import Button from '../../components/ui/Button';
+import IconButton from '../../components/ui/IconButton';
 import { getMovieDetails, getImageUri, FALLBACK_MOVIES } from '../../services/tmdb';
 import { useWatchlistStore } from '../../store/useWatchlistStore';
 import { usePlannerStore } from '../../store/usePlannerStore';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function MovieDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -40,7 +42,7 @@ export default function MovieDetailScreen() {
     setLoading(false);
   };
 
-  const handlePlanTrip = () => {
+  const handlePlanNight = () => {
     if (!movie) return;
     setDraftMovie(movie);
     router.push('/(tabs)/planner');
@@ -50,7 +52,7 @@ export default function MovieDetailScreen() {
     if (!movie) return;
     try {
       await Share.share({
-        message: `Check out "${movie.title}" on CineTrip! Let's plan a movie night!`,
+        message: `🎬 Check out "${movie.title}" on CineTrip! Let's plan a movie night!`,
       });
     } catch (e) {}
   };
@@ -68,11 +70,12 @@ export default function MovieDetailScreen() {
   const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '8.2';
   const year = movie.release_date ? movie.release_date.split('-')[0] : '2026';
   const runtime = movie.runtime ? `${movie.runtime} min` : '165 min';
+  const genres = movie.genres ? movie.genres.map(g => (typeof g === 'object' ? g.name : g)).join(' • ') : 'Action • Sci-Fi';
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Backdrop Section */}
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* 1. BACKDROP SECTION WITH FLOATING CONTROLS */}
         <View style={styles.backdropWrapper}>
           <Image
             source={{ uri: getImageUri(movie.backdrop_path || movie.poster_path, 'w780') }}
@@ -84,156 +87,137 @@ export default function MovieDetailScreen() {
             style={styles.backdropGradient}
           />
 
-          {/* Floating Navigation Header */}
           <SafeAreaView style={styles.navHeader} edges={['top']}>
-            <TouchableOpacity
-              style={styles.iconCircle}
+            <IconButton
+              icon="ArrowLeft"
+              variant="surface"
               onPress={() => router.back()}
-              accessibilityRole="button"
               accessibilityLabel="Go back"
-            >
-              <ArrowLeft size={20} color="#FFFFFF" strokeWidth={2.2} />
-            </TouchableOpacity>
+            />
 
             <View style={styles.navActions}>
-              <TouchableOpacity
-                style={[styles.iconCircle, { marginRight: 10 }]}
+              <IconButton
+                icon="Share2"
+                variant="surface"
                 onPress={handleShare}
-                accessibilityRole="button"
                 accessibilityLabel={`Share ${movie.title}`}
-              >
-                <Share2 size={18} color="#FFFFFF" strokeWidth={2} />
-              </TouchableOpacity>
+                style={{ marginRight: SPACING.sm }}
+              />
 
-              <TouchableOpacity
-                style={styles.iconCircle}
+              <IconButton
+                icon={isInWatchlist ? "BookmarkCheck" : "Bookmark"}
+                variant="surface"
+                color={isInWatchlist ? COLORS.primary : COLORS.text}
                 onPress={() => toggleWatchlist(movie)}
-                accessibilityRole="button"
                 accessibilityLabel={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Add ${movie.title} to watchlist`}
-                accessibilityState={{ selected: isInWatchlist }}
-              >
-                <Bookmark
-                  size={18}
-                  color={isInWatchlist ? COLORS.primary : '#FFFFFF'}
-                  fill={isInWatchlist ? COLORS.primary : 'transparent'}
-                  strokeWidth={2}
-                />
-              </TouchableOpacity>
+              />
             </View>
           </SafeAreaView>
         </View>
 
-        {/* Poster & Main Meta Card */}
-        <View style={styles.metaCard}>
-          <Image
-            source={{ uri: getImageUri(movie.poster_path, 'w342') }}
-            style={styles.posterImage}
-          />
+        {/* 2. POSTER + TITLE & METADATA SECTION */}
+        <View style={styles.mainInfoSection}>
+          <View style={styles.posterAndHeaderRow}>
+            <Image
+              source={{ uri: getImageUri(movie.poster_path, 'w342') }}
+              style={styles.posterImage}
+            />
 
-          <View style={styles.metaInfo}>
-            <View style={styles.ratingRow}>
-              <View style={styles.ratingBadge}>
-                <Star size={12} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
-                <Text style={styles.ratingText}>{rating}</Text>
-              </View>
-              <Text style={styles.yearText}>{year} • {runtime}</Text>
-            </View>
-
-            <Text style={styles.title} numberOfLines={2}>
-              {movie.title}
-            </Text>
-
-            {movie.tagline ? (
-              <Text style={styles.tagline} numberOfLines={2}>
-                "{movie.tagline}"
+            <View style={styles.titleColumn}>
+              <Text style={styles.movieTitle}>
+                {movie.title}
               </Text>
-            ) : null}
 
-            <View style={styles.genreRow}>
-              {(movie.genres || []).slice(0, 3).map((g, i) => (
-                <View key={i} style={styles.genreChip}>
-                  <Text style={styles.genreChipText}>{g.name || g}</Text>
+              {movie.tagline ? (
+                <Text style={styles.tagline} numberOfLines={2}>
+                  "{movie.tagline}"
+                </Text>
+              ) : null}
+
+              <View style={styles.metaRow}>
+                <View style={styles.ratingBadge}>
+                  <Star size={14} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
+                  <Text style={styles.ratingText}>{rating}</Text>
                 </View>
+                <Text style={styles.metaDivider}>•</Text>
+                <Text style={styles.metaText}>{year}</Text>
+                <Text style={styles.metaDivider}>•</Text>
+                <Text style={styles.metaText}>{runtime}</Text>
+              </View>
+
+              <Text style={styles.genreText} numberOfLines={1}>
+                {genres}
+              </Text>
+            </View>
+          </View>
+
+          {/* 3. PRIMARY CTA ACTION BAR (DOMINANT ONE CTA) */}
+          <View style={styles.actionBlock}>
+            <View style={styles.primaryActionWrap}>
+              <Button
+                title="Plan Movie Night 🎬"
+                icon="Ticket"
+                variant="primary"
+                size="lg"
+                onPress={handlePlanNight}
+                accessibilityLabel={`Plan movie night for ${movie.title}`}
+              />
+            </View>
+
+            <Button
+              title={isInWatchlist ? "Saved" : "Save"}
+              icon={isInWatchlist ? "BookmarkCheck" : "Bookmark"}
+              variant={isInWatchlist ? "secondary" : "surface"}
+              size="lg"
+              onPress={() => toggleWatchlist(movie)}
+              accessibilityLabel={isInWatchlist ? "Remove from watchlist" : "Save to watchlist"}
+            />
+          </View>
+
+          {/* 4. THEATRICAL FORMAT AVAILABILITY */}
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionHeading}>AVAILABLE FORMATS</Text>
+            <View style={styles.formatsWrap}>
+              {formats.map((fmt, idx) => (
+                <FormatBadge key={idx} format={fmt} size="medium" />
               ))}
             </View>
           </View>
-        </View>
 
-        {/* Theatrical Formats Available */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Available Formats</Text>
-          <View style={styles.formatsWrap}>
-            {formats.map((fmt, idx) => (
-              <FormatBadge key={idx} format={fmt} size="medium" />
-            ))}
+          {/* 5. SYNOPSIS */}
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionHeading}>SYNOPSIS</Text>
+            <Text style={styles.overviewText}>
+              {movie.overview || 'Experience this cinematic masterpiece in certified high-format auditoriums.'}
+            </Text>
           </View>
+
+          {/* 6. CAST & CHARACTERS */}
+          {cast.length > 0 && (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionHeading}>TOP CAST</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.castScroll}>
+                {cast.map((actor, idx) => (
+                  <View key={idx} style={styles.castItem}>
+                    {actor.profile_path ? (
+                      <Image
+                        source={{ uri: getImageUri(actor.profile_path, 'w185') }}
+                        style={styles.castAvatar}
+                      />
+                    ) : (
+                      <View style={styles.castAvatarPlaceholder}>
+                        <Text style={styles.castAvatarInitial}>{actor.name.charAt(0)}</Text>
+                      </View>
+                    )}
+                    <Text style={styles.castName} numberOfLines={1}>{actor.name}</Text>
+                    <Text style={styles.characterName} numberOfLines={1}>{actor.character || 'Cast'}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
-
-        {/* Synopsis */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Synopsis</Text>
-          <Text style={styles.overviewText}>
-            {movie.overview || 'Experience this cinematic masterpiece in premium certified theaters with custom audio and crystal clear projection.'}
-          </Text>
-        </View>
-
-        {/* Cast & Crew */}
-        {cast.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Featured Cast</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.castScroll}>
-              {cast.map((actor) => (
-                <View key={actor.id} style={styles.castCard}>
-                  <Image
-                    source={{ uri: getImageUri(actor.profile_path, 'w185') }}
-                    style={styles.castPhoto}
-                  />
-                  <Text style={styles.actorName} numberOfLines={1}>
-                    {actor.name}
-                  </Text>
-                  <Text style={styles.characterName} numberOfLines={1}>
-                    {actor.character}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        <View style={{ height: 110 }} />
       </ScrollView>
-
-      {/* Floating Bottom Action Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.watchlistToggleBtn}
-          onPress={() => toggleWatchlist(movie)}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'}
-        >
-          <Bookmark
-            size={18}
-            color={isInWatchlist ? COLORS.primary : '#FFFFFF'}
-            fill={isInWatchlist ? COLORS.primary : 'transparent'}
-            strokeWidth={2}
-          />
-          <Text style={[styles.watchlistToggleText, isInWatchlist && { color: COLORS.primary }]}>
-            {isInWatchlist ? 'Saved' : 'Watchlist'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.planMovieBtn}
-          onPress={handlePlanTrip}
-          activeOpacity={0.88}
-          accessibilityRole="button"
-          accessibilityLabel={`Plan movie night for ${movie.title}`}
-        >
-          <Ticket size={18} color="#07090E" strokeWidth={2.2} />
-          <Text style={styles.planMovieBtnText}>Plan Movie Night</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -252,8 +236,10 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: SPACING.xxl * 2,
+  },
   backdropWrapper: {
-    width: '100%',
     height: 280,
     position: 'relative',
   },
@@ -265,8 +251,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    top: 0,
     bottom: 0,
+    top: 0,
   },
   navHeader: {
     position: 'absolute',
@@ -276,199 +262,148 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
+    paddingVertical: SPACING.sm,
   },
   navActions: {
     flexDirection: 'row',
   },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(7, 9, 14, 0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+  mainInfoSection: {
+    paddingHorizontal: SPACING.lg,
+    marginTop: -SPACING.xl,
   },
-
-  // Meta Card
-  metaCard: {
+  posterAndHeaderRow: {
     flexDirection: 'row',
-    marginHorizontal: SPACING.lg,
-    marginTop: -60,
-    padding: SPACING.md,
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.lg,
+    alignItems: 'flex-end',
+    marginBottom: SPACING.lg,
+  },
+  posterImage: {
+    width: 110,
+    height: 165,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     ...SHADOWS.card,
   },
-  posterImage: {
-    width: 100,
-    height: 150,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
-  },
-  metaInfo: {
+  titleColumn: {
     flex: 1,
-    marginLeft: 14,
-    justifyContent: 'space-between',
+    marginLeft: SPACING.md,
+    justifyContent: 'flex-end',
   },
-  ratingRow: {
+  movieTitle: {
+    ...TYPOGRAPHY.h1,
+    fontSize: 24,
+    color: COLORS.text,
+    lineHeight: 30,
+  },
+  tagline: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 2,
+    marginBottom: SPACING.xs,
+  },
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginVertical: SPACING.xs,
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.2)',
-    paddingHorizontal: 7,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.xs + 2,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
-    marginRight: 8,
-    gap: 3,
+    gap: 4,
   },
   ratingText: {
+    ...TYPOGRAPHY.badge,
     fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.secondary,
+    color: COLORS.text,
   },
-  yearText: {
-    fontSize: 12,
+  metaDivider: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textMuted,
+    marginHorizontal: SPACING.xs,
+  },
+  metaText: {
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginVertical: 4,
-  },
-  tagline: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontStyle: 'italic',
-  },
-  genreRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 4,
-  },
-  genreChip: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: RADIUS.xs,
-    marginRight: 6,
-    marginTop: 4,
-  },
-  genreChipText: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
+  genreText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.primary,
     fontWeight: '600',
+    marginTop: 2,
   },
-
-  // Sections
-  section: {
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
+  actionBlock: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
+  primaryActionWrap: {
+    flex: 1,
+  },
+  sectionBlock: {
+    marginBottom: SPACING.lg,
+  },
+  sectionHeading: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.sm,
+    letterSpacing: 1,
   },
   formatsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   overviewText: {
-    fontSize: 13,
-    lineHeight: 20,
+    ...TYPOGRAPHY.bodyLarge,
     color: COLORS.textSecondary,
+    lineHeight: 24,
   },
-
-  // Cast
   castScroll: {
-    marginHorizontal: -SPACING.lg,
-    paddingHorizontal: SPACING.lg,
+    flexDirection: 'row',
   },
-  castCard: {
-    width: 90,
-    marginRight: 12,
+  castItem: {
+    width: 80,
+    marginRight: SPACING.md,
     alignItems: 'center',
   },
-  castPhoto: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  castAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: COLORS.surface,
-    marginBottom: 6,
+    marginBottom: SPACING.xs,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
-  actorName: {
-    fontSize: 11,
+  castAvatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  castAvatarInitial: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.primary,
+  },
+  castName: {
+    ...TYPOGRAPHY.caption,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: COLORS.text,
     textAlign: 'center',
   },
   characterName: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-
-  // Bottom Floating Bar
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: 14,
-    backgroundColor: 'rgba(10, 14, 24, 0.96)',
-    borderTopWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  watchlistToggleBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surface,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: RADIUS.md,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    minHeight: 48,
-    minWidth: 64,
-  },
-  watchlistToggleText: {
+    ...TYPOGRAPHY.caption,
     fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 2,
-  },
-  planMovieBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: 14,
-    borderRadius: RADIUS.md,
-    gap: 6,
-    minHeight: 48,
-    ...SHADOWS.glowCyan,
-  },
-  planMovieBtnText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#07090E',
-    letterSpacing: 0.3,
+    color: COLORS.textMuted,
+    textAlign: 'center',
   },
 });

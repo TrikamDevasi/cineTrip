@@ -10,43 +10,49 @@ import {
   Alert,
   Modal,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  Wrench,
-  Ticket,
-  Plus,
-  PlusCircle,
+  Film,
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
   Check,
-  CheckCircle2,
+  Plus,
   Trash2,
-  Volume2,
-  ArrowLeftRight,
   X,
   Star,
-  User,
+  Armchair,
   Utensils,
-  MapPin,
-  Clock,
-  Calendar,
+  StickyNote,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import TicketCard from '../../components/TicketCard';
 import FormatBadge from '../../components/FormatBadge';
+import Button from '../../components/ui/Button';
+import IconButton from '../../components/ui/IconButton';
+import Chip from '../../components/ui/Chip';
 import EmptyState from '../../components/ui/EmptyState';
+import InteractiveSeatMap from '../../components/ui/InteractiveSeatMap';
+import NetworkStatusBanner from '../../components/ui/NetworkStatusBanner';
 import { FALLBACK_MOVIES, getImageUri } from '../../services/tmdb';
+import { cinemaService } from '../../services/cinema';
 import { SAMPLE_CINEMAS } from '../../services/location';
 import { getDeviceContacts, PRESET_SQUAD } from '../../services/contacts';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { COLORS, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+
 
 const TIME_SLOTS = [
-  { time: '11:00', label: 'Morning Matinee', badge: 'Save 20%' },
-  { time: '15:30', label: 'Afternoon Show', badge: 'Popular' },
-  { time: '19:30', label: 'Prime Evening', badge: 'Recommended' },
-  { time: '22:45', label: 'Late Night Owl', badge: 'Atmospheric' },
+  { time: '11:00 AM', label: 'Morning Matinee', badge: 'Save 20%' },
+  { time: '03:30 PM', label: 'Afternoon Show', badge: 'Popular' },
+  { time: '07:30 PM', label: 'Prime Evening', badge: 'Recommended' },
+  { time: '10:45 PM', label: 'Late Night Owl', badge: 'Atmospheric' },
 ];
 
 const SNACK_OPTIONS = [
@@ -58,10 +64,19 @@ const SNACK_OPTIONS = [
   'Dark Chocolate Bites',
 ];
 
+const SEAT_OPTIONS = [
+  'Row F (Center Prime)',
+  'Row E (Front-Center)',
+  'Row G (Back Royal)',
+  'VIP Recliner Row D',
+  'General Admission',
+];
+
 export default function PlannerScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'plans'
   const [movieModalVisible, setMovieModalVisible] = useState(false);
+  const [contactsModalVisible, setContactsModalVisible] = useState(false);
   const [contactsList, setContactsList] = useState(PRESET_SQUAD);
   const [customFriendName, setCustomFriendName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -94,7 +109,7 @@ export default function PlannerScreen() {
 
   const loadContacts = async () => {
     const contacts = await getDeviceContacts();
-    setContactsList(contacts);
+    setContactsList(contacts && contacts.length > 0 ? contacts : PRESET_SQUAD);
   };
 
   const handleSelectMovie = (movie) => {
@@ -107,7 +122,11 @@ export default function PlannerScreen() {
   };
 
   const handleSelectTime = (slot) => {
-    setDraftDateTime(draft.date, slot.time, slot.label);
+    setDraftDateTime(draft.date || 'Today', slot.time, slot.label);
+  };
+
+  const handleSelectSeat = (seat) => {
+    setDraftNotes({ seats: seat });
   };
 
   const handleToggleSnack = (snack) => {
@@ -132,35 +151,36 @@ export default function PlannerScreen() {
 
   const handleSavePlan = async () => {
     if (!draft.movie) {
-      Alert.alert('Select a Movie', 'Please pick a movie to plan your trip.');
+      Alert.alert('Select a Movie', 'Please pick a movie to plan your trip in Step 1.');
       return;
     }
+
     setIsSaving(true);
     try {
       const newPlan = await addPlan({
         movie: draft.movie,
-        cinema: draft.cinema,
-        date: draft.date,
-        time: draft.time,
-        slotName: draft.slotName,
-        friends: draft.friends,
-        notes: draft.notes,
-        seats: draft.seats,
+        cinema: draft.cinema || SAMPLE_CINEMAS[0],
+        date: draft.date || 'Tonight',
+        time: draft.time || '07:30 PM',
+        slotName: draft.slotName || 'Prime Evening',
+        friends: draft.friends || [],
+        notes: draft.notes || '',
+        seats: draft.seats || 'Row F (Center Prime)',
         bookingRef: draft.bookingRef || `CIN-${Math.floor(10000 + Math.random() * 90000)}`,
-        snacks: draft.snacks,
+        snacks: draft.snacks || [],
       });
 
       setIsSaving(false);
       Alert.alert(
-        'Trip Plan Locked In!',
-        `Your movie night for "${draft.movie.title}" has been saved. Ready to view your ticket pass?`,
+        'Movie Night Locked In! 🎬',
+        `Your trip for "${draft.movie.title}" is confirmed.`,
         [
           {
-            text: 'View Ticket',
+            text: 'View Pass',
             onPress: () => router.push(`/ticket/${newPlan._id || newPlan.id}`),
           },
           {
-            text: 'Manage Plans',
+            text: 'View Schedule',
             onPress: () => setActiveTab('plans'),
           },
         ]
@@ -175,22 +195,27 @@ export default function PlannerScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
 
-      {/* Mode Switcher Tab */}
+      {/* Network / Offline Sync Status Banner */}
+      <NetworkStatusBanner
+        isOffline={plans.some((p) => p._id && p._id.startsWith('plan-local-'))}
+        isSyncing={isLoading}
+      />
+
+      {/* Mode Switcher Tabs */}
       <View style={styles.modeTabsWrapper}>
         <View style={styles.modeTabs}>
           <TouchableOpacity
             style={[styles.modeTab, activeTab === 'builder' && styles.modeTabActive]}
             onPress={() => setActiveTab('builder')}
             activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Switch to Trip Builder"
+            accessibilityRole="tab"
             accessibilityState={{ selected: activeTab === 'builder' }}
+            accessibilityLabel="Switch to Trip Builder"
           >
-            <Wrench
-              size={15}
+            <Film
+              size={18}
               color={activeTab === 'builder' ? '#07090E' : COLORS.textSecondary}
               strokeWidth={2}
-              style={{ marginRight: 6 }}
             />
             <Text style={[styles.modeTabText, activeTab === 'builder' && styles.modeTabTextActive]}>
               Trip Builder
@@ -201,30 +226,29 @@ export default function PlannerScreen() {
             style={[styles.modeTab, activeTab === 'plans' && styles.modeTabActive]}
             onPress={() => setActiveTab('plans')}
             activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={`Switch to active plans. ${plans.length} plans available.`}
+            accessibilityRole="tab"
             accessibilityState={{ selected: activeTab === 'plans' }}
+            accessibilityLabel={`Active plans. ${plans.length} scheduled.`}
           >
-            <Ticket
-              size={15}
+            <Calendar
+              size={18}
               color={activeTab === 'plans' ? '#07090E' : COLORS.textSecondary}
               strokeWidth={2}
-              style={{ marginRight: 6 }}
             />
             <Text style={[styles.modeTabText, activeTab === 'plans' && styles.modeTabTextActive]}>
-              Active Plans ({plans.length})
+              My Schedule ({plans.length})
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {activeTab === 'plans' ? (
-        /* MY SAVED PLANS LIST */
-        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        /* SAVED PLANS TAB */
+        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View style={styles.plansHeader}>
-            <Text style={styles.sectionTitle}>Your Theatrical Schedule</Text>
+            <Text style={styles.sectionTitle}>Your Scheduled Trips</Text>
             <Text style={styles.sectionSubtitle}>
-              Manage active bookings and digital passes
+              Active movie passes and squad reservations
             </Text>
           </View>
 
@@ -232,8 +256,8 @@ export default function PlannerScreen() {
             <EmptyState
               icon="Ticket"
               title="No Active Movie Nights"
-              description="Use the Trip Builder to pick a film, cinema, and squad!"
-              actionLabel="Create New Plan"
+              description="Use the 3-step Trip Builder to schedule your next theatrical experience."
+              actionLabel="Start Planning"
               onAction={() => setActiveTab('builder')}
               actionIcon="Plus"
             />
@@ -241,350 +265,423 @@ export default function PlannerScreen() {
             plans.map((p) => (
               <View key={p._id || p.id} style={styles.planCardWrapper}>
                 <TicketCard plan={p} />
-                <TouchableOpacity
-                  style={styles.deletePlanBtn}
-                  onPress={() => {
-                    Alert.alert('Cancel Trip', 'Are you sure you want to remove this trip plan?', [
-                      { text: 'Keep' },
-                      { text: 'Remove', style: 'destructive', onPress: () => deletePlan(p._id || p.id) },
-                    ]);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Cancel trip plan for ${p.movie ? p.movie.title : 'movie'}`}
-                >
-                  <Trash2 size={13} color={COLORS.danger} strokeWidth={2} />
-                  <Text style={styles.deletePlanText}>Cancel Plan</Text>
-                </TouchableOpacity>
+                <View style={styles.planActionsRow}>
+                  <Button
+                    title="Cancel Plan"
+                    icon="Trash2"
+                    variant="danger"
+                    size="sm"
+                    onPress={() => {
+                      Alert.alert('Cancel Trip', 'Are you sure you want to remove this trip plan?', [
+                        { text: 'Keep Plan' },
+                        { text: 'Cancel Trip', style: 'destructive', onPress: () => deletePlan(p._id || p.id) },
+                      ]);
+                    }}
+                    accessibilityLabel={`Cancel trip plan for ${p.movie ? p.movie.title : 'movie'}`}
+                  />
+                </View>
               </View>
             ))
           )}
-          <View style={{ height: 40 }} />
         </ScrollView>
       ) : (
-        /* TRIP BUILDER MULTI-STEP FLOW */
-        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* STEP 1: CHOOSE MOVIE */}
-          <View style={styles.stepCard}>
-            <View style={styles.stepHeader}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>1</Text>
-              </View>
-              <Text style={styles.stepTitle}>Featured Movie</Text>
-            </View>
-
-            {draft.movie ? (
-              <View style={styles.selectedMovieCard}>
-                <Image
-                  source={{ uri: getImageUri(draft.movie.poster_path, 'w342') }}
-                  style={styles.selectedPoster}
-                />
-                <View style={styles.selectedMovieInfo}>
-                  <Text style={styles.selectedMovieTitle} numberOfLines={2}>
-                    {draft.movie.title}
-                  </Text>
-                  <View style={styles.selectedMovieMetaRow}>
-                    <Clock size={11} color={COLORS.textSecondary} strokeWidth={2} />
-                    <Text style={styles.selectedMovieMeta}>
-                      {draft.movie.runtime || 165} min
-                    </Text>
-                    <Star size={11} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} style={{ marginLeft: 6 }} />
-                    <Text style={styles.selectedMovieMeta}>
-                      {draft.movie.vote_average ? draft.movie.vote_average.toFixed(1) : '8.2'}
-                    </Text>
-                  </View>
-                  <View style={styles.formatRow}>
-                    {(draft.movie.formats || ['IMAX Laser', 'Dolby Cinema']).map((f, idx) => (
-                      <FormatBadge key={idx} format={f} size="small" />
-                    ))}
-                  </View>
-                  <TouchableOpacity
-                    style={styles.changeMovieBtn}
-                    onPress={() => setMovieModalVisible(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel="Change selected film"
-                  >
-                    <ArrowLeftRight size={13} color={COLORS.primary} strokeWidth={2} />
-                    <Text style={styles.changeMovieText}>Change Film</Text>
-                  </TouchableOpacity>
+        /* STREAMLINED 3-STEP TRIP BUILDER */
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            style={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* ═════════ STEP 1: CHOOSE MOVIE ═════════ */}
+            <View style={styles.stepCard}>
+              <View style={styles.stepHeader}>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepBadgeText}>1</Text>
+                </View>
+                <View style={styles.stepHeaderTitles}>
+                  <Text style={styles.stepTitle}>Choose Movie</Text>
+                  <Text style={styles.stepSubtitle}>Select what you want to watch</Text>
                 </View>
               </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.pickMoviePlaceholder}
-                onPress={() => setMovieModalVisible(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Select a movie for trip builder"
-              >
-                <PlusCircle size={24} color={COLORS.primary} strokeWidth={2} />
-                <Text style={styles.pickMovieText}>Select a Movie to Experience</Text>
-              </TouchableOpacity>
-            )}
-          </View>
 
-          {/* STEP 2: CHOOSE CINEMA & SCREEN */}
-          <View style={styles.stepCard}>
-            <View style={styles.stepHeader}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>2</Text>
-              </View>
-              <Text style={styles.stepTitle}>Select Cinema & Screen Format</Text>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cinemaScroll}>
-              {SAMPLE_CINEMAS.map((c) => {
-                const isSelected = draft.cinema && draft.cinema.id === c.id;
-                return (
-                  <TouchableOpacity
-                    key={c.id}
-                    style={[styles.cinemaPickCard, isSelected && styles.cinemaPickCardActive]}
-                    onPress={() => handleSelectCinema(c)}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select cinema: ${c.name}`}
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <View style={styles.cinemaPickTop}>
-                      <FormatBadge format={c.screenType} size="small" />
-                      <Text style={styles.cinemaDist}>{c.distanceKm} km</Text>
-                    </View>
-                    <Text style={styles.cinemaPickName} numberOfLines={1}>
-                      {c.name}
-                    </Text>
-                    <Text style={styles.cinemaPickAddress} numberOfLines={1}>
-                      {c.address}
-                    </Text>
-                    <View style={styles.soundRow}>
-                      <Volume2 size={11} color={COLORS.secondary} strokeWidth={2} />
-                      <Text style={styles.cinemaPickSound}>{c.sound}</Text>
-                    </View>
-                    {isSelected && (
-                      <View style={styles.selectedCheck}>
-                        <CheckCircle2 size={15} color={COLORS.primary} strokeWidth={2.2} />
-                        <Text style={styles.selectedCheckText}>Selected Screen</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-
-          {/* STEP 3: SHOWTIME SLOTS */}
-          <View style={styles.stepCard}>
-            <View style={styles.stepHeader}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>3</Text>
-              </View>
-              <Text style={styles.stepTitle}>Showtime Slot</Text>
-            </View>
-
-            <View style={styles.slotsGrid}>
-              {TIME_SLOTS.map((slot) => {
-                const isSelected = draft.time === slot.time;
-                return (
-                  <TouchableOpacity
-                    key={slot.time}
-                    style={[styles.slotItem, isSelected && styles.slotItemActive]}
-                    onPress={() => handleSelectTime(slot)}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select showtime slot: ${slot.time} (${slot.label})`}
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <View style={styles.slotTimeRow}>
-                      <Text style={[styles.slotTime, isSelected && styles.slotTimeActive]}>
-                        {slot.time}
-                      </Text>
-                      <View style={styles.slotBadge}>
-                        <Text style={styles.slotBadgeText}>{slot.badge}</Text>
-                      </View>
-                    </View>
-                    <Text style={[styles.slotLabel, isSelected && styles.slotLabelActive]}>
-                      {slot.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* STEP 4: SQUAD INVITES */}
-          <View style={styles.stepCard}>
-            <View style={styles.stepHeader}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>4</Text>
-              </View>
-              <Text style={styles.stepTitle}>Invite Movie Squad ({draft.friends ? draft.friends.length : 0})</Text>
-            </View>
-
-            <Text style={styles.fieldSublabel}>Tap friends to add/remove from this night:</Text>
-            <View style={styles.friendsChipsRow}>
-              {contactsList.map((friend) => {
-                const isInvited = draft.friends && draft.friends.some((f) => f.name === friend.name);
-                return (
-                  <TouchableOpacity
-                    key={friend.id || friend.name}
-                    style={[styles.friendChip, isInvited && styles.friendChipActive]}
-                    onPress={() => toggleDraftFriend(friend)}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Invite friend: ${friend.name}`}
-                    accessibilityState={{ selected: isInvited }}
-                  >
-                    <User size={12} color={isInvited ? '#07090E' : COLORS.primary} strokeWidth={2} style={{ marginRight: 4 }} />
-                    <Text style={[styles.friendName, isInvited && styles.friendNameActive]}>
-                      {friend.name}
-                    </Text>
-                    {isInvited && (
-                      <Check size={12} color="#07090E" strokeWidth={2.4} style={{ marginLeft: 4 }} />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Custom Friend Name Input */}
-            <View style={styles.addFriendRow}>
-              <TextInput
-                style={styles.addFriendInput}
-                placeholder="Add friend by name..."
-                placeholderTextColor={COLORS.textMuted}
-                value={customFriendName}
-                onChangeText={setCustomFriendName}
-              />
-              <TouchableOpacity
-                style={styles.addFriendBtn}
-                onPress={handleAddCustomFriend}
-                accessibilityRole="button"
-                accessibilityLabel="Add friend by name"
-              >
-                <Plus size={18} color="#07090E" strokeWidth={2.4} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* STEP 5: SEATS, SNACKS & NOTES */}
-          <View style={styles.stepCard}>
-            <View style={styles.stepHeader}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>5</Text>
-              </View>
-              <Text style={styles.stepTitle}>Seats, Snacks & Notes</Text>
-            </View>
-
-            <Text style={styles.inputLabel}>Reserved Seats (e.g. Row F, Seats 14-16)</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Enter seat numbers or prime viewing row"
-              placeholderTextColor={COLORS.textMuted}
-              value={draft.seats}
-              onChangeText={(seats) => setDraftNotes({ seats })}
-            />
-
-            <Text style={[styles.inputLabel, { marginTop: 12 }]}>Cinema Snacks & Refreshments</Text>
-            <View style={styles.snacksGrid}>
-              {SNACK_OPTIONS.map((snack) => {
-                const isSelected = draft.snacks && draft.snacks.includes(snack);
-                return (
-                  <TouchableOpacity
-                    key={snack}
-                    style={[styles.snackChip, isSelected && styles.snackChipActive]}
-                    onPress={() => handleToggleSnack(snack)}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select snack: ${snack}`}
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <Utensils size={11} color={isSelected ? COLORS.secondary : COLORS.textSecondary} strokeWidth={2} style={{ marginRight: 4 }} />
-                    <Text style={[styles.snackChipText, isSelected && styles.snackChipTextActive]}>
-                      {snack}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <Text style={[styles.inputLabel, { marginTop: 12 }]}>Trip Notes & Meetup Details</Text>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              placeholder="e.g. Meet at the lobby cafe 30 mins early for pre-show discussions"
-              placeholderTextColor={COLORS.textMuted}
-              multiline
-              numberOfLines={3}
-              value={draft.notes}
-              onChangeText={(notes) => setDraftNotes({ notes })}
-            />
-          </View>
-
-          {/* LOCK IN PLAN CTA */}
-          <TouchableOpacity
-            style={styles.lockInBtn}
-            onPress={handleSavePlan}
-            activeOpacity={0.88}
-            accessibilityRole="button"
-            accessibilityLabel="Lock in movie night plan and generate ticket pass"
-          >
-            <Ticket size={20} color="#07090E" strokeWidth={2.2} />
-            <Text style={styles.lockInBtnText}>Lock In Movie Night & Generate Pass</Text>
-          </TouchableOpacity>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      )}
-
-      {/* MOVIE SELECTION MODAL */}
-      <Modal visible={movieModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Choose Movie to Plan</Text>
-              <TouchableOpacity
-                onPress={() => setMovieModalVisible(false)}
-                style={styles.modalCloseBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Close movie selector modal"
-              >
-                <X size={20} color={COLORS.text} strokeWidth={2} />
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={FALLBACK_MOVIES}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalMovieItem}
-                  onPress={() => handleSelectMovie(item)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select movie: ${item.title}`}
-                >
+              {draft.movie ? (
+                <View style={styles.selectedMovieCard}>
                   <Image
-                    source={{ uri: getImageUri(item.poster_path, 'w185') }}
-                    style={styles.modalMoviePoster}
+                    source={{ uri: getImageUri(draft.movie.poster_path, 'w342') }}
+                    style={styles.selectedPoster}
                   />
-                  <View style={styles.modalMovieInfo}>
-                    <Text style={styles.modalMovieTitle}>{item.title}</Text>
-                    <View style={styles.modalMovieMetaRow}>
-                      <Text style={styles.modalMovieYear}>
-                        {item.release_date ? item.release_date.split('-')[0] : '2026'}
+                  <View style={styles.selectedMovieInfo}>
+                    <Text style={styles.selectedMovieTitle} numberOfLines={2}>
+                      {draft.movie.title}
+                    </Text>
+                    <View style={styles.selectedMovieMetaRow}>
+                      <Clock size={16} color={COLORS.textSecondary} strokeWidth={2} />
+                      <Text style={styles.selectedMovieMeta}>
+                        {draft.movie.runtime || 165} min
                       </Text>
-                      <Star size={11} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} style={{ marginLeft: 6, marginRight: 2 }} />
-                      <Text style={styles.modalMovieRating}>
-                        {item.vote_average.toFixed(1)}
+                      <Star size={16} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} style={{ marginLeft: 8 }} />
+                      <Text style={styles.selectedMovieMeta}>
+                        {draft.movie.vote_average ? draft.movie.vote_average.toFixed(1) : '8.2'}
                       </Text>
                     </View>
                     <View style={styles.formatRow}>
-                      {(item.formats || ['IMAX Laser']).slice(0, 2).map((f, i) => (
-                        <FormatBadge key={i} format={f} size="small" />
+                      {(draft.movie.formats || ['IMAX Laser', 'Dolby Cinema']).map((f, idx) => (
+                        <FormatBadge key={idx} format={f} size="small" />
                       ))}
                     </View>
+                    <View style={{ marginTop: SPACING.xs }}>
+                      <Button
+                        title="Change Movie"
+                        variant="surface"
+                        size="sm"
+                        onPress={() => setMovieModalVisible(true)}
+                        accessibilityLabel="Change selected movie"
+                      />
+                    </View>
                   </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.emptyMoviePicker}
+                  onPress={() => setMovieModalVisible(true)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Tap to select a movie"
+                >
+                  <Film size={24} color={COLORS.primary} strokeWidth={2} />
+                  <Text style={styles.emptyMoviePickerTitle}>Select Movie from Catalog</Text>
+                  <Text style={styles.emptyMoviePickerSub}>Browse Now Playing, IMAX & Trending films</Text>
                 </TouchableOpacity>
               )}
+            </View>
+
+            {/* ═════════ STEP 2: CINEMA & SHOWTIME (CONSOLIDATED) ═════════ */}
+            <View style={styles.stepCard}>
+              <View style={styles.stepHeader}>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepBadgeText}>2</Text>
+                </View>
+                <View style={styles.stepHeaderTitles}>
+                  <Text style={styles.stepTitle}>Cinema & Showtime</Text>
+                  <Text style={styles.stepSubtitle}>Pick theater format and convenient time slot</Text>
+                </View>
+              </View>
+
+              {/* Cinema Selection */}
+              <Text style={styles.subStepLabel}>SELECT THEATER & AUDITORIUM</Text>
+              <View style={styles.cinemasList}>
+                {SAMPLE_CINEMAS.map((cinema) => {
+                  const isSelected = draft.cinema?.id === cinema.id || (!draft.cinema && cinema.id === '1');
+                  return (
+                    <TouchableOpacity
+                      key={cinema.id}
+                      style={[styles.cinemaOption, isSelected && styles.cinemaOptionSelected]}
+                      onPress={() => handleSelectCinema(cinema)}
+                      activeOpacity={0.75}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      accessibilityLabel={`${cinema.name}, format ${cinema.screenType}`}
+                    >
+                      <View style={styles.cinemaLeft}>
+                        <View style={styles.cinemaTitleRow}>
+                          <Text style={[styles.cinemaName, isSelected && styles.cinemaNameSelected]}>
+                            {cinema.name}
+                          </Text>
+                          {isSelected && (
+                            <View style={styles.selectedCheckIcon}>
+                              <Check size={16} color={COLORS.primary} strokeWidth={2.5} />
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+                        <View style={styles.cinemaBadgeRow}>
+                          <FormatBadge format={cinema.screenType} size="small" />
+                          <Text style={styles.cinemaDistance}>{cinema.distance || '2.4 km away'}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Showtimes */}
+              <Text style={[styles.subStepLabel, { marginTop: SPACING.md }]}>AVAILABLE SHOWTIMES</Text>
+              <View style={styles.timeSlotsGrid}>
+                {TIME_SLOTS.map((slot) => {
+                  const isSelected = draft.time === slot.time || (!draft.time && slot.time === '07:30 PM');
+                  return (
+                    <TouchableOpacity
+                      key={slot.time}
+                      style={[styles.timeSlotCard, isSelected && styles.timeSlotCardSelected]}
+                      onPress={() => handleSelectTime(slot)}
+                      activeOpacity={0.75}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      accessibilityLabel={`${slot.time}, ${slot.label}`}
+                    >
+                      <View style={styles.timeSlotTop}>
+                        <Text style={[styles.timeSlotTime, isSelected && styles.timeSlotTimeSelected]}>
+                          {slot.time}
+                        </Text>
+                        {isSelected && <Check size={16} color={COLORS.primary} strokeWidth={2.5} />}
+                      </View>
+                      <Text style={[styles.timeSlotLabel, isSelected && styles.timeSlotLabelSelected]}>
+                        {slot.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* ═════════ STEP 3: SEATS, SNACKS & SQUAD ═════════ */}
+            <View style={styles.stepCard}>
+              <View style={styles.stepHeader}>
+                <View style={styles.stepBadge}>
+                  <Text style={styles.stepBadgeText}>3</Text>
+                </View>
+                <View style={styles.stepHeaderTitles}>
+                  <Text style={styles.stepTitle}>Seats, Concessions & Squad</Text>
+                  <Text style={styles.stepSubtitle}>Customize seats, invite friends and add snacks</Text>
+                </View>
+              </View>
+
+              {/* Real Interactive Seat Selection */}
+              <Text style={styles.subStepLabel}>AUDITORIUM SEAT SELECTION</Text>
+              <InteractiveSeatMap
+                selectedSeats={draft.seats ? draft.seats.split(', ').filter(Boolean) : ['F4', 'F5']}
+                onSeatsChange={(newSeats) => {
+                  setDraftNotes({ seats: newSeats.join(', ') });
+                }}
+                maxSeats={6}
+                ticketPrice={350}
+              />
+
+
+              {/* Snacks Concession Selector */}
+              <Text style={[styles.subStepLabel, { marginTop: SPACING.md }]}>THEATER REFRESHMENTS</Text>
+              <View style={styles.snacksWrap}>
+                {SNACK_OPTIONS.map((snack) => {
+                  const isSelected = (draft.snacks || []).includes(snack);
+                  return (
+                    <Chip
+                      key={snack}
+                      label={snack}
+                      selected={isSelected}
+                      onPress={() => handleToggleSnack(snack)}
+                      accessibilityLabel={`Toggle snack ${snack}`}
+                    />
+                  );
+                })}
+              </View>
+
+              {/* Squad & Companions Hub */}
+              <View style={styles.squadSectionHeader}>
+                <Text style={styles.subStepLabel}>MOVIE SQUAD INVITATIONS</Text>
+                <TouchableOpacity
+                  onPress={() => setContactsModalVisible(true)}
+                  style={styles.addSquadBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add squad companions"
+                >
+                  <Plus size={16} color={COLORS.primary} strokeWidth={2} />
+                  <Text style={styles.addSquadBtnText}>Manage Squad</Text>
+                </TouchableOpacity>
+              </View>
+
+              {(draft.friends || []).length > 0 ? (
+                <View style={styles.selectedFriendsList}>
+                  {draft.friends.map((friend) => (
+                    <View key={friend.id} style={styles.friendTag}>
+                      <Text style={styles.friendTagName}>{friend.name}</Text>
+                      <TouchableOpacity
+                        onPress={() => removeDraftFriend(friend.id)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${friend.name}`}
+                      >
+                        <X size={16} color={COLORS.textMuted} strokeWidth={2} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.emptySquadPicker}
+                  onPress={() => setContactsModalVisible(true)}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel="Invite companions from contacts"
+                >
+                  <Users size={20} color={COLORS.textSecondary} strokeWidth={2} />
+                  <Text style={styles.emptySquadText}>Tap to invite friends from your address book</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Trip Notes */}
+              <Text style={[styles.subStepLabel, { marginTop: SPACING.md }]}>NOTES & PARKING (OPTIONAL)</Text>
+              <TextInput
+                style={styles.notesInput}
+                placeholder="e.g., Meet at theater lobby 15 min before trailers..."
+                placeholderTextColor={COLORS.textMuted}
+                value={draft.notes || ''}
+                onChangeText={(text) => setDraftNotes({ notes: text })}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
+
+            {/* DOMINANT FINAL CTA */}
+            <View style={styles.finalCtaWrapper}>
+              <Button
+                title={isSaving ? 'Locking In Movie Night...' : 'Lock In Movie Night 🎬'}
+                variant="primary"
+                size="lg"
+                loading={isSaving}
+                onPress={handleSavePlan}
+                accessibilityLabel="Lock in movie night and generate digital pass"
+              />
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      )}
+
+      {/* ═════════ MOVIE SELECTION MODAL ═════════ */}
+      <Modal
+        visible={movieModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setMovieModalVisible(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select a Film</Text>
+            <IconButton
+              icon="X"
+              variant="surface"
+              onPress={() => setMovieModalVisible(false)}
+              accessibilityLabel="Close movie selector"
             />
           </View>
-        </View>
+
+          <FlatList
+            data={FALLBACK_MOVIES}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.modalList}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.modalMovieItem}
+                onPress={() => handleSelectMovie(item)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${item.title}`}
+              >
+                <Image
+                  source={{ uri: getImageUri(item.poster_path, 'w185') }}
+                  style={styles.modalMoviePoster}
+                />
+                <View style={styles.modalMovieInfo}>
+                  <Text style={styles.modalMovieTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <View style={styles.modalMetaRow}>
+                    <Star size={14} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
+                    <Text style={styles.modalRating}>
+                      {item.vote_average ? item.vote_average.toFixed(1) : '8.0'}
+                    </Text>
+                  </View>
+                  <View style={styles.formatRow}>
+                    {(item.formats || ['IMAX Laser']).map((fmt, idx) => (
+                      <FormatBadge key={idx} format={fmt} size="small" />
+                    ))}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {/* ═════════ SQUAD CONTACTS MODAL ═════════ */}
+      <Modal
+        visible={contactsModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setContactsModalVisible(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Invite Squad Members</Text>
+            <IconButton
+              icon="X"
+              variant="surface"
+              onPress={() => setContactsModalVisible(false)}
+              accessibilityLabel="Close contacts selector"
+            />
+          </View>
+
+          <View style={styles.customAddRow}>
+            <TextInput
+              style={styles.customInput}
+              placeholder="Add companion by name..."
+              placeholderTextColor={COLORS.textMuted}
+              value={customFriendName}
+              onChangeText={setCustomFriendName}
+              onSubmitEditing={handleAddCustomFriend}
+            />
+            <Button
+              title="Add"
+              variant="primary"
+              size="md"
+              onPress={handleAddCustomFriend}
+              accessibilityLabel="Add custom companion"
+            />
+          </View>
+
+          <FlatList
+            data={contactsList}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={styles.modalList}
+            renderItem={({ item }) => {
+              const isSelected = (draft.friends || []).some((f) => f.id === item.id);
+              return (
+                <TouchableOpacity
+                  style={[styles.contactItem, isSelected && styles.contactItemSelected]}
+                  onPress={() => toggleDraftFriend(item)}
+                  activeOpacity={0.75}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={`${item.name}, ${isSelected ? 'Selected' : 'Not selected'}`}
+                >
+                  <View style={styles.contactAvatar}>
+                    <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+                  </View>
+                  <View style={styles.contactInfo}>
+                    <Text style={styles.contactName}>{item.name}</Text>
+                    <Text style={styles.contactPhone}>{item.phone || 'Cinephile Squad'}</Text>
+                  </View>
+                  <View style={[styles.contactCheck, isSelected && styles.contactCheckActive]}>
+                    {isSelected && <Check size={16} color="#07090E" strokeWidth={3} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+
+          <View style={styles.modalFooter}>
+            <Button
+              title="Done Selecting"
+              variant="primary"
+              size="lg"
+              onPress={() => setContactsModalVisible(false)}
+              accessibilityLabel="Confirm squad selections"
+            />
+          </View>
+        </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
@@ -595,18 +692,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  scroll: {
-    flex: 1,
-  },
   modeTabsWrapper: {
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.xs,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   modeTabs: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
-    padding: 3,
+    padding: SPACING.xs,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
@@ -615,483 +710,455 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
+    minHeight: 44,
     borderRadius: RADIUS.sm,
+    gap: SPACING.xs + 2,
   },
   modeTabActive: {
     backgroundColor: COLORS.primary,
   },
   modeTabText: {
-    fontSize: 13,
-    fontWeight: '700',
+    ...TYPOGRAPHY.bodyBold,
     color: COLORS.textSecondary,
   },
   modeTabTextActive: {
     color: '#07090E',
   },
-
-  // Steps
-  stepCard: {
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.lg,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
-    padding: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    ...SHADOWS.subtle,
-  },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  stepBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  stepBadgeText: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#07090E',
-  },
-  stepTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-
-  // Selected Movie
-  selectedMovieCard: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: 10,
-  },
-  selectedPoster: {
-    width: 70,
-    height: 105,
-    borderRadius: RADIUS.sm,
-  },
-  selectedMovieInfo: {
+  scroll: {
     flex: 1,
-    marginLeft: 12,
-    justifyContent: 'space-between',
   },
-  selectedMovieTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  scrollContent: {
+    paddingBottom: SPACING.xxl * 2,
   },
-  selectedMovieMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  selectedMovieMeta: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    marginLeft: 3,
-  },
-  formatRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginVertical: 4,
-  },
-  changeMovieBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primaryMuted,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: RADIUS.xs,
-    alignSelf: 'flex-start',
-    gap: 4,
-  },
-  changeMovieText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  pickMoviePlaceholder: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surface,
-    paddingVertical: 24,
-    borderRadius: RADIUS.md,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
-    borderStyle: 'dashed',
-    gap: 8,
-  },
-  pickMovieText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-
-  // Cinema selection
-  cinemaScroll: {
-    marginHorizontal: -SPACING.lg,
-    paddingHorizontal: SPACING.lg,
-  },
-  cinemaPickCard: {
-    width: 200,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: 12,
-    marginRight: 10,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
-  },
-  cinemaPickCardActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
-  },
-  cinemaPickTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  cinemaDist: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  cinemaPickName: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  cinemaPickAddress: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  soundRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    gap: 4,
-  },
-  cinemaPickSound: {
-    fontSize: 11,
-    color: COLORS.secondary,
-  },
-  selectedCheck: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderColor: COLORS.cardBorder,
-    gap: 5,
-  },
-  selectedCheckText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-
-  // Slots
-  slotsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  slotItem: {
-    width: '48%',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: 10,
-    marginBottom: 8,
-    borderWidth: 1.5,
-    borderColor: COLORS.cardBorder,
-  },
-  slotItemActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(0, 240, 255, 0.1)',
-  },
-  slotTimeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  slotTime: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.text,
-  },
-  slotTimeActive: {
-    color: COLORS.primary,
-  },
-  slotBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
-  },
-  slotBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: COLORS.secondary,
-  },
-  slotLabel: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    marginTop: 4,
-  },
-  slotLabelActive: {
-    color: COLORS.text,
-    fontWeight: '600',
-  },
-
-  // Squad
-  fieldSublabel: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-  },
-  friendsChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 10,
-  },
-  friendChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: RADIUS.full,
-    marginRight: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  friendChipActive: {
-    backgroundColor: COLORS.secondary,
-    borderColor: COLORS.secondary,
-  },
-  friendName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  friendNameActive: {
-    color: '#07090E',
-    fontWeight: '800',
-  },
-  addFriendRow: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  addFriendInput: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: COLORS.text,
-    fontSize: 13,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    marginRight: 8,
-  },
-  addFriendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Inputs
-  inputLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-    marginBottom: 6,
-  },
-  textInput: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: COLORS.text,
-    fontSize: 13,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  textArea: {
-    height: 70,
-    textAlignVertical: 'top',
-  },
-  snacksGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  snackChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: RADIUS.sm,
-    marginRight: 6,
-    marginBottom: 6,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-  },
-  snackChipActive: {
-    backgroundColor: 'rgba(255, 184, 0, 0.2)',
-    borderColor: COLORS.secondary,
-  },
-  snackChipText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  snackChipTextActive: {
-    color: COLORS.secondary,
-    fontWeight: '800',
-  },
-
-  // Lock In CTA
-  lockInBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
-    paddingVertical: 15,
-    borderRadius: RADIUS.md,
-    gap: 8,
-    ...SHADOWS.glowCyan,
-  },
-  lockInBtnText: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#07090E',
-    letterSpacing: 0.4,
-  },
-
-  // Plans List
   plansHeader: {
     paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
   },
   sectionSubtitle: {
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
   planCardWrapper: {
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  deletePlanBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginTop: -8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.xs,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    gap: 5,
+  planActionsRow: {
+    paddingHorizontal: SPACING.lg,
+    alignItems: 'flex-end',
+    marginTop: -SPACING.xs,
+    marginBottom: SPACING.md,
   },
-  deletePlanText: {
-    fontSize: 11,
-    color: COLORS.danger,
-    fontWeight: '700',
-  },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(7, 9, 14, 0.85)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
+  stepCard: {
     backgroundColor: COLORS.card,
-    borderTopLeftRadius: RADIUS.xl,
-    borderTopRightRadius: RADIUS.xl,
+    borderRadius: RADIUS.lg,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
     padding: SPACING.lg,
-    maxHeight: '80%',
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+    ...SHADOWS.card,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  stepBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    marginRight: SPACING.sm,
+  },
+  stepBadgeText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.primary,
+  },
+  stepHeaderTitles: {
+    flex: 1,
+  },
+  stepTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.text,
+  },
+  stepSubtitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  selectedMovieCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  selectedPoster: {
+    width: 80,
+    height: 120,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.backgroundElevated,
+  },
+  selectedMovieInfo: {
+    flex: 1,
+    marginLeft: SPACING.md,
+    justifyContent: 'space-between',
+  },
+  selectedMovieTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  selectedMovieMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING.xs,
+  },
+  selectedMovieMeta: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginLeft: SPACING.xs,
+  },
+  formatRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  emptyMoviePicker: {
+    minHeight: 110,
+    borderRadius: RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(0, 240, 255, 0.04)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.md,
+    gap: SPACING.xs,
+  },
+  emptyMoviePickerTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+  },
+  emptyMoviePickerSub: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+  },
+  subStepLabel: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginBottom: SPACING.sm,
+  },
+  cinemasList: {
+    gap: SPACING.sm,
+  },
+  cinemaOption: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 56,
+  },
+  cinemaOptionSelected: {
+    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    borderColor: COLORS.primary,
+  },
+  cinemaLeft: {
+    flex: 1,
+  },
+  cinemaTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cinemaName: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+  },
+  cinemaNameSelected: {
+    color: COLORS.primary,
+  },
+  selectedCheckIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cinemaAddress: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  cinemaBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.xs + 2,
+    gap: SPACING.sm,
+  },
+  cinemaDistance: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.secondary,
+    fontWeight: '700',
+  },
+  timeSlotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  timeSlotCard: {
+    width: '48%',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 64,
+    justifyContent: 'center',
+  },
+  timeSlotCardSelected: {
+    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+    borderColor: COLORS.primary,
+  },
+  timeSlotTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeSlotTime: {
+    ...TYPOGRAPHY.bodyBold,
+    fontSize: 15,
+    color: COLORS.text,
+  },
+  timeSlotTimeSelected: {
+    color: COLORS.primary,
+  },
+  timeSlotLabel: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  timeSlotLabelSelected: {
+    color: COLORS.text,
+  },
+  horizontalChips: {
+    flexDirection: 'row',
+    marginBottom: SPACING.xs,
+  },
+  snacksWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  squadSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  addSquadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 44,
+    paddingHorizontal: SPACING.xs,
+  },
+  addSquadBtnText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.primary,
+  },
+  selectedFriendsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+  },
+  friendTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    gap: SPACING.sm,
+    minHeight: 44,
+  },
+  friendTagName: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+  },
+  emptySquadPicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    gap: SPACING.sm,
+    minHeight: 48,
+  },
+  emptySquadText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+  },
+  notesInput: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 64,
+    textAlignVertical: 'top',
+  },
+  finalCtaWrapper: {
+    paddingHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+  },
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...TYPOGRAPHY.h3,
+    color: COLORS.text,
   },
-  modalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
+  modalList: {
+    padding: SPACING.lg,
   },
   modalMovieItem: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.md,
-    padding: 8,
-    marginBottom: 10,
+    padding: SPACING.sm,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
   },
   modalMoviePoster: {
-    width: 50,
-    height: 75,
+    width: 60,
+    height: 90,
     borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.surface,
   },
   modalMovieInfo: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: SPACING.md,
     justifyContent: 'center',
   },
   modalMovieTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+    marginBottom: 4,
   },
-  modalMovieMetaRow: {
+  modalMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 2,
+    marginBottom: 6,
+    gap: 4,
   },
-  modalMovieYear: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
-  },
-  modalMovieRating: {
-    fontSize: 11,
-    color: COLORS.secondary,
+  modalRating: {
+    ...TYPOGRAPHY.caption,
     fontWeight: '700',
+    color: COLORS.secondary,
+  },
+  customAddRow: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    gap: SPACING.sm,
+  },
+  customInput: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    ...TYPOGRAPHY.body,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 44,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 56,
+  },
+  contactItemSelected: {
+    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    borderColor: COLORS.primary,
+  },
+  contactAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  avatarText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.primary,
+  },
+  contactInfo: {
+    flex: 1,
+    marginLeft: SPACING.md,
+  },
+  contactName: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+  },
+  contactPhone: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  contactCheck: {
+    width: 26,
+    height: 26,
+    borderRadius: RADIUS.xs,
+    borderWidth: 1.5,
+    borderColor: COLORS.textMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contactCheckActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  modalFooter: {
+    padding: SPACING.lg,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.cardBorder,
   },
 });

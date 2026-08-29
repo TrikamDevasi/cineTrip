@@ -39,3 +39,6 @@ Thumbs.db
 backend/node_modules/
 backend/.env
 backend/.env.local
+
+# scratch
+scratch/

@@ -29,12 +29,33 @@ export const usePlannerStore = create(
         set({ isLoading: true, error: null });
         try {
           const data = await api.get('/api/plans');
-          const plans = data.data.map((p) => ({ ...p, _id: p._id || p.id }));
-          set({ plans, isLoading: false, isSynced: true });
+          const serverPlans = data.data.map((p) => ({ ...p, _id: p._id || p.id }));
+          const currentLocalUnsynced = get().plans.filter((p) => p._id && p._id.startsWith('plan-local-'));
+          
+          // Merge server plans while keeping pending local offline plans
+          set({ plans: [...currentLocalUnsynced, ...serverPlans], isLoading: false, isSynced: true });
+
+          // Background sync pending offline plans to server
+          if (currentLocalUnsynced.length > 0) {
+            for (const localPlan of currentLocalUnsynced) {
+              try {
+                const { _id, ...planPayload } = localPlan;
+                const res = await api.post('/api/plans', planPayload);
+                if (res.data) {
+                  set((state) => ({
+                    plans: state.plans.map((p) => (p._id === _id ? res.data : p)),
+                  }));
+                }
+              } catch (syncErr) {
+                // Keep local if still offline
+              }
+            }
+          }
         } catch (error) {
           set({ isLoading: false, error: error.message });
         }
       },
+
 
       // Draft management
       setDraftMovie: (movie) =>

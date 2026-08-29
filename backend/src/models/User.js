@@ -19,8 +19,24 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
-      required: true,
-      select: false, // never returned by default
+      required: false, // Optional: Google OAuth users have no password
+      select: false,
+    },
+    // OAuth provider linkage
+    googleId: {
+      type: String,
+      default: null,
+      index: true,
+      sparse: true,
+    },
+    provider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
+    avatar: {
+      type: String,
+      default: null,
     },
     profile: {
       city: { type: String, default: '' },
@@ -36,15 +52,16 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Hash password before saving
+// Hash password before saving (only if passwordHash is set and modified)
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('passwordHash')) return next();
+  if (!this.isModified('passwordHash') || !this.passwordHash) return next();
   this.passwordHash = await bcrypt.hash(this.passwordHash, 12);
   next();
 });
 
-// Compare password
+// Compare password (safe for OAuth accounts)
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.passwordHash) return false;
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 
