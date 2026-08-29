@@ -214,15 +214,15 @@ export default function MapScreen() {
         ) : !cinemas.length ? (
           <EmptyState
             icon="MapPin"
-            title="Live theatres aren't available here yet"
+            title="Live theatres aren't connected yet"
             description={
               providerAvailable
                 ? 'No verified cinemas were returned for your area.'
-                : 'CineTrip needs a ticketing provider connected to show real cinemas, addresses and showtimes. Sample theatres are never shown as real.'
+                : 'CineTrip requires a cinema partner integration to display live auditoriums and showtimes in your area.'
             }
-            actionLabel={providerAvailable ? 'Search again' : undefined}
-            actionIcon="Search"
-            onAction={() => loadCinemas(selectedLocation)}
+            actionLabel="Browse Movies"
+            actionIcon="Compass"
+            onAction={() => router.push('/(tabs)/discover')}
           />
         ) : (
           cinemas.map((cinema) => (

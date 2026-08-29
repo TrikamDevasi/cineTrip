@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Film, MapPin, ChevronRight, Ticket, Sparkles } from 'lucide-react-native';
+import { Film, MapPin, ChevronRight, Ticket, Sparkles, Compass, Calendar, RefreshCw } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import HeroBanner from '../../components/HeroBanner';
@@ -18,6 +18,7 @@ import TicketCard from '../../components/TicketCard';
 import SectionHeader from '../../components/SectionHeader';
 import FormatBadge from '../../components/FormatBadge';
 import DataSourceBadge from '../../components/DataSourceBadge';
+import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
 import { MovieCardSkeleton, CinemaCardSkeleton } from '../../components/ui/Skeleton';
 import { useMovieCatalog } from '../../hooks/useMovieCatalog';
@@ -96,9 +97,9 @@ export default function HomeScreen() {
           <View style={styles.heroSkeletonWrap}>
             <MovieCardSkeleton width="100%" />
           </View>
-        ) : (
+        ) : nowPlaying.length > 0 ? (
           <HeroBanner movies={nowPlaying.slice(0, 4)} />
-        )}
+        ) : null}
 
         {/* ACTIVE UPCOMING TICKET (Conditional) */}
         {nextPlan && (
@@ -111,15 +112,15 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* GROUP 2: NOW IN THEATERS CAROUSEL */}
+        {/* GROUP 2: NOW IN THEATERS SECTION */}
         <SectionHeader
           title="Now in Theaters"
           subtitle={
             !catalog.hasData
-              ? 'No verified screenings right now'
+              ? 'Connect TMDB for live theatrical catalog'
               : catalog.isCached
-              ? 'Cached from an earlier check — pull to refresh'
-              : 'Verified from live movie listings'
+              ? 'Cached snapshot — pull down to refresh'
+              : 'Verified theatrical discovery'
           }
           icon="Film"
           actionText={catalog.hasData ? 'See All' : undefined}
@@ -131,8 +132,8 @@ export default function HomeScreen() {
             source={catalog.dataSource || 'UNAVAILABLE'}
             label={
               catalog.dataSource
-                ? `${catalog.dataSource} — now playing`
-                : 'No movie catalog connected'
+                ? `${catalog.dataSource} — movie catalog`
+                : 'Live movie metadata unconfigured'
             }
           />
         </View>
@@ -144,18 +145,33 @@ export default function HomeScreen() {
             <MovieCardSkeleton />
           </ScrollView>
         ) : nowPlaying.length === 0 ? (
-          <EmptyState
-            icon="Film"
-            title="No Verified Screenings"
-            description={
-              catalog.error
-                ? "We couldn't reach the movie catalog. Check your connection and try again."
-                : 'Nothing is verified as currently in theatres right now. Connect a movie catalog (TMDB) to see what is really playing.'
-            }
-            actionLabel="Retry"
-            actionIcon="RefreshCw"
-            onAction={() => refreshCatalog()}
-          />
+          <View style={styles.unconnectedNoticeCard}>
+            <View style={styles.noticeIconCircle}>
+              <Film size={24} color={COLORS.primary} strokeWidth={2} />
+            </View>
+            <Text style={styles.noticeTitle}>Live cinema listings aren't connected yet</Text>
+            <Text style={styles.noticeDescription}>
+              Movie metadata is available via TMDB, but theatre-specific showtimes require a supported cinema provider.
+            </Text>
+            <View style={styles.noticeActionRow}>
+              <Button
+                title="Browse Movies"
+                icon="Compass"
+                variant="primary"
+                size="sm"
+                onPress={() => router.push('/(tabs)/discover')}
+                accessibilityLabel="Browse Movies in Discover"
+              />
+              <Button
+                title="View Upcoming"
+                icon="Calendar"
+                variant="surface"
+                size="sm"
+                onPress={() => router.push('/(tabs)/discover')}
+                accessibilityLabel="View Upcoming Releases"
+              />
+            </View>
+          </View>
         ) : (
           <FlatList
             horizontal
@@ -173,61 +189,79 @@ export default function HomeScreen() {
           subtitle={
             providerAvailable
               ? 'Verified from your showtime provider'
-              : 'Live theatres require a ticketing provider'
+              : 'Theatre showtimes require a ticketing provider'
           }
           icon="MapPin"
           actionText="Map"
           onAction={() => router.push('/map')}
         />
 
-        {loading ? (
-          <View style={{ paddingHorizontal: SPACING.lg }}>
+        <View style={styles.sourceBadgeRow}>
+          <DataSourceBadge
+            source={cinemaService.dataSource || 'UNAVAILABLE'}
+            label={
+              cinemaService.dataSource
+                ? `${cinemaService.dataSource} — showtime provider`
+                : 'Cinema ticketing provider unconfigured'
+            }
+          />
+        </View>
+
+        {cinemaLoading ? (
+          <View style={styles.cinemaSkeletonWrap}>
             <CinemaCardSkeleton />
             <CinemaCardSkeleton />
           </View>
-        ) : providerAvailable && cinemas.length > 0 ? (
-          <View style={styles.cinemaContainer}>
-            {cinemas.slice(0, 3).map((cinema) => (
-              <TouchableOpacity
-                key={cinema.id}
-                style={styles.cinemaCard}
-                activeOpacity={0.8}
+        ) : cinemas.length === 0 ? (
+          <View style={styles.unconnectedNoticeCard}>
+            <View style={styles.noticeIconCircle}>
+              <MapPin size={24} color={COLORS.primary} strokeWidth={2} />
+            </View>
+            <Text style={styles.noticeTitle}>Live Theatres Not Connected</Text>
+            <Text style={styles.noticeDescription}>
+              CineTrip requires a cinema partner API integration to display live local auditoriums and showtimes in your city.
+            </Text>
+            <View style={styles.noticeActionRow}>
+              <Button
+                title="Explore Map & Locations"
+                icon="MapPin"
+                variant="surface"
+                size="sm"
                 onPress={() => router.push('/map')}
-                accessibilityRole="button"
-                accessibilityLabel={`${cinema.name}, format ${cinema.screenType}, located at ${cinema.address}`}
-              >
-                <View style={styles.cinemaLeft}>
-                  <View style={styles.cinemaTitleRow}>
-                    <Text style={styles.cinemaName} numberOfLines={1}>
-                      {cinema.name}
-                    </Text>
-                    {cinema.distanceKm != null && (
-                      <Text style={styles.distanceBadge}>{cinema.distanceKm} km</Text>
-                    )}
-                  </View>
-                  <Text style={styles.cinemaAddress} numberOfLines={1}>
-                    {cinema.address}
-                  </Text>
-                  <View style={styles.cinemaFormatsRow}>
-                    {cinema.screenType ? <FormatBadge format={cinema.screenType} size="small" /> : null}
-                    {cinema.features && cinema.features[0] ? (
-                      <FormatBadge format={cinema.features[0]} size="small" />
-                    ) : null}
-                  </View>
-                </View>
-                <ChevronRight size={18} color={COLORS.textMuted} strokeWidth={2} />
-              </TouchableOpacity>
-            ))}
+                accessibilityLabel="Explore Map"
+              />
+            </View>
           </View>
         ) : (
-          <EmptyState
-            icon="MapPin"
-            title="Live theatres aren't available here yet"
-            description="CineTrip needs a ticketing provider for your area to list real cinemas and showtimes. Sample theatres are never shown as real."
-            actionLabel="Open Map"
-            actionIcon="MapPin"
-            onAction={() => router.push('/map')}
-          />
+          cinemas.slice(0, 3).map((cinema) => (
+            <TouchableOpacity
+              key={cinema.id}
+              style={styles.cinemaCard}
+              activeOpacity={0.8}
+              onPress={() => {
+                usePlannerStore.getState().setDraftCinema(cinema);
+                router.push('/(tabs)/planner');
+              }}
+              accessibilityLabel={`${cinema.name}, format ${cinema.screenType}`}
+            >
+              <View style={styles.cinemaCardTop}>
+                <View style={styles.cinemaInfoCol}>
+                  <Text style={styles.cinemaName}>{cinema.name}</Text>
+                  <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+                </View>
+                {cinema.distanceKm != null && (
+                  <Text style={styles.distanceText}>{cinema.distanceKm} km</Text>
+                )}
+              </View>
+
+              <View style={styles.cinemaMetaRow}>
+                {cinema.screenType ? <FormatBadge format={cinema.screenType} size="small" /> : null}
+                {cinema.features && cinema.features[0] ? (
+                  <FormatBadge format={cinema.features[0]} size="small" />
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          ))
         )}
       </ScrollView>
     </SafeAreaView>
@@ -243,86 +277,125 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: SPACING.xxl,
+    paddingBottom: SPACING.xxl * 2,
   },
   heroSkeletonWrap: {
     paddingHorizontal: SPACING.lg,
-    marginVertical: SPACING.md,
+    marginVertical: SPACING.sm,
   },
   activePlanContainer: {
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.md,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.xs,
   },
   activePlanHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SPACING.lg,
     marginBottom: SPACING.xs,
-    gap: 6,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: COLORS.primary,
+    marginRight: 6,
   },
   activePlanTitle: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
     color: COLORS.primary,
-    letterSpacing: 1,
-  },
-  horizontalList: {
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.sm,
+    letterSpacing: 0.8,
   },
   sourceBadgeRow: {
     paddingHorizontal: SPACING.lg,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
   },
-  cinemaContainer: {
+  horizontalList: {
     paddingHorizontal: SPACING.lg,
-    gap: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  cinemaSkeletonWrap: {
+    paddingHorizontal: SPACING.lg,
   },
   cinemaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: COLORS.card,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     ...SHADOWS.card,
   },
-  cinemaLeft: {
-    flex: 1,
-    marginRight: SPACING.sm,
-  },
-  cinemaTitleRow: {
+  cinemaCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
+    alignItems: 'flex-start',
+    marginBottom: SPACING.xs,
+  },
+  cinemaInfoCol: {
+    flex: 1,
+    marginRight: SPACING.sm,
   },
   cinemaName: {
     ...TYPOGRAPHY.bodyBold,
     color: COLORS.text,
-    flex: 1,
-    marginRight: SPACING.xs,
-  },
-  distanceBadge: {
-    ...TYPOGRAPHY.captionBold,
-    color: COLORS.primary,
   },
   cinemaAddress: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
+    marginTop: 2,
   },
-  cinemaFormatsRow: {
+  distanceText: {
+    ...TYPOGRAPHY.captionBold,
+    color: COLORS.primary,
+  },
+  cinemaMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 2,
+    gap: SPACING.xs,
+  },
+  unconnectedNoticeCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    marginHorizontal: SPACING.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    alignItems: 'center',
+    marginVertical: SPACING.xs,
+    ...SHADOWS.card,
+  },
+  noticeIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primarySubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 169, 60, 0.3)',
+    marginBottom: SPACING.sm,
+  },
+  noticeTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  noticeDescription: {
+    ...TYPOGRAPHY.body,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 320,
+    marginBottom: SPACING.md,
+  },
+  noticeActionRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
 });
