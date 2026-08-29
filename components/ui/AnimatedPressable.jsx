@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Pressable, Animated, StyleSheet } from 'react-native';
+import { Pressable, Animated, Platform, StyleSheet } from 'react-native';
 
 /**
  * Animated Pressable Component
@@ -21,7 +21,7 @@ export default function AnimatedPressable({
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {
       toValue: scaleValue,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       speed: 40,
       bounciness: 4,
     }).start();
@@ -30,7 +30,7 @@ export default function AnimatedPressable({
   const handlePressOut = () => {
     Animated.spring(scaleAnim, {
       toValue: 1,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       speed: 40,
       bounciness: 4,
     }).start();

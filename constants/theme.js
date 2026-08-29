@@ -149,26 +149,43 @@ export const ICON_SIZES = {
 
 export const ICON_STROKE_WIDTH = 2;
 
+import { Platform } from 'react-native';
+
 export const SHADOWS = {
-  card: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  modal: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  focus: {
-    shadowColor: '#E5A93C',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+  card: Platform.select({
+    web: {
+      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.35)',
+    },
+    default: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+  }),
+  modal: Platform.select({
+    web: {
+      boxShadow: '0px 10px 24px rgba(0, 0, 0, 0.6)',
+    },
+    default: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.6,
+      shadowRadius: 20,
+      elevation: 12,
+    },
+  }),
+  focus: Platform.select({
+    web: {
+      boxShadow: '0px 0px 8px rgba(229, 169, 60, 0.35)',
+    },
+    default: {
+      shadowColor: '#E5A93C',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+  }),
 };
