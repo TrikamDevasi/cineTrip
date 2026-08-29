@@ -77,6 +77,19 @@ export default function LoginScreen() {
     } finally {
       setGoogleLoading(false);
     }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.flex}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Logo / Header */}
           <View style={styles.heroSection}>
             <View style={styles.logoBadge}>
