@@ -68,7 +68,11 @@ export default function LoginScreen() {
     try {
       const result = await loginWithGoogle();
       if (result.success) {
-        router.replace('/(tabs)');
+        if (!result.redirecting) {
+          router.replace('/(tabs)');
+        }
+        // If redirecting, browser will navigate immediately
+        return;
       } else if (!result.cancelled) {
         setError(result.error || 'Google Sign-In was not completed.');
       }

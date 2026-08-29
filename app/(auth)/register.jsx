@@ -78,7 +78,10 @@ export default function RegisterScreen() {
     try {
       const result = await loginWithGoogle();
       if (result.success) {
-        router.replace('/(tabs)');
+        if (!result.redirecting) {
+          router.replace('/(tabs)');
+        }
+        return;
       } else if (!result.cancelled) {
         setError(result.error || 'Google Sign-In was not completed.');
       }

@@ -156,6 +156,9 @@ export const useAuthStore = create((set, get) => ({
     set({ error: null });
     try {
       const result = await signInWithGoogle();
+      if (result.success && result.redirecting) {
+        return { success: true, redirecting: true };
+      }
       if (result.success && result.user) {
         if (result.token) {
           await saveToken(result.token);

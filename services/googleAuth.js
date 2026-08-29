@@ -156,12 +156,33 @@ async function buildAuthResult(session, providerToken = null) {
  */
 export async function signInWithGoogle() {
   try {
+    // 1. Web Platform: Direct browser redirect (never blocked by popup blockers)
+    if (Platform.OS === 'web') {
+      const redirectUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : makeRedirectUri({ scheme: 'cinetrip', path: 'auth/callback' });
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.url && typeof window !== 'undefined') {
+        window.location.href = data.url;
+        return { success: true, redirecting: true };
+      }
+      return { success: true, redirecting: true };
+    }
+
+    // 2. Native Platforms (iOS / Android): In-App Browser AuthSession
     const redirectUrl = makeRedirectUri({
       scheme: 'cinetrip',
       path: 'auth/callback',
     });
 
-    // Initiate OAuth flow with Supabase
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -173,7 +194,6 @@ export async function signInWithGoogle() {
     if (error) throw error;
 
     if (!data?.url) {
-      // Fallback: If no URL generated, check existing session
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData?.session) {
         return buildAuthResult(sessionData.session);
@@ -184,7 +204,6 @@ export async function signInWithGoogle() {
       };
     }
 
-    // Open in-app browser session
     const authResult = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
     if (authResult.type === 'success' && authResult.url) {
@@ -199,7 +218,6 @@ export async function signInWithGoogle() {
       };
     }
 
-    // If browser closed but session was established in background
     const { data: fallbackSession } = await supabase.auth.getSession();
     if (fallbackSession?.session) {
       return buildAuthResult(fallbackSession.session);
