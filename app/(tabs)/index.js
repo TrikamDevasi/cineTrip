@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Navigation, Film, MapPin, ChevronRight, Ticket, Sparkles } from 'lucide-react-native';
+import { Film, MapPin, ChevronRight, Ticket, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import HeroBanner from '../../components/HeroBanner';
@@ -60,7 +60,6 @@ export default function HomeScreen() {
         setCinemas(SAMPLE_CINEMAS);
       }
     } catch (e) {
-      console.warn('Home data load error:', e.message);
       setTrending(FALLBACK_MOVIES);
       setNowPlaying(FALLBACK_MOVIES);
       setCinemas(SAMPLE_CINEMAS);
@@ -152,7 +151,7 @@ export default function HomeScreen() {
         />
 
         {loading ? (
-          <View>
+          <View style={{ paddingHorizontal: SPACING.lg }}>
             <CinemaCardSkeleton />
             <CinemaCardSkeleton />
           </View>
@@ -184,7 +183,7 @@ export default function HomeScreen() {
                     )}
                   </View>
                 </View>
-                <ChevronRight size={20} color={COLORS.textMuted} strokeWidth={2} />
+                <ChevronRight size={18} color={COLORS.textMuted} strokeWidth={2} />
               </TouchableOpacity>
             ))}
           </View>
@@ -221,15 +220,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.success,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.primary,
   },
   activePlanTitle: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
-    color: COLORS.success,
+    fontSize: 10,
+    color: COLORS.primary,
     letterSpacing: 1,
   },
   horizontalList: {
@@ -268,9 +267,8 @@ const styles = StyleSheet.create({
     marginRight: SPACING.xs,
   },
   distanceBadge: {
-    ...TYPOGRAPHY.caption,
-    fontWeight: '700',
-    color: COLORS.secondary,
+    ...TYPOGRAPHY.captionBold,
+    color: COLORS.primary,
   },
   cinemaAddress: {
     ...TYPOGRAPHY.caption,

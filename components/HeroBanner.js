@@ -10,7 +10,7 @@ import Button from './ui/Button';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const HERO_WIDTH = Math.min(SCREEN_WIDTH - SPACING.lg * 2, 480);
+const HERO_WIDTH = Math.min(SCREEN_WIDTH - SPACING.lg * 2, 460);
 
 export default function HeroBanner({ movies = [] }) {
   const router = useRouter();
@@ -58,19 +58,19 @@ export default function HeroBanner({ movies = [] }) {
               resizeMode="cover"
             />
             <LinearGradient
-              colors={['rgba(7, 9, 14, 0.1)', 'transparent', 'rgba(7, 9, 14, 0.75)', '#07090E']}
-              locations={[0, 0.3, 0.72, 1]}
+              colors={['rgba(7, 9, 14, 0.1)', 'transparent', 'rgba(7, 9, 14, 0.72)', '#07090E']}
+              locations={[0, 0.28, 0.7, 1]}
               style={styles.gradientOverlay}
             />
 
             <View style={styles.contentOverlay}>
               <View style={styles.topBadgeRow}>
                 <View style={styles.featuredBadge}>
-                  <Sparkles size={13} color="#FFB800" strokeWidth={2.2} />
+                  <Sparkles size={12} color="#E5A93C" strokeWidth={2.5} />
                   <Text style={styles.featuredText}>SPOTLIGHT</Text>
                 </View>
                 <View style={styles.ratingBadge}>
-                  <Star size={13} color="#FFB800" fill="#FFB800" strokeWidth={1.5} />
+                  <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
                   <Text style={styles.ratingText}>
                     {movie.vote_average ? movie.vote_average.toFixed(1) : '8.2'}
                   </Text>
@@ -141,21 +141,21 @@ export default function HeroBanner({ movies = [] }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: SPACING.sm,
+    marginVertical: SPACING.xs,
   },
   scrollContainer: {
     paddingHorizontal: SPACING.lg,
   },
   heroCard: {
     width: HERO_WIDTH,
-    height: 400,
-    borderRadius: RADIUS.xl,
+    height: 390,
+    borderRadius: RADIUS.lg,
     overflow: 'hidden',
     position: 'relative',
     marginRight: SPACING.md,
-    backgroundColor: '#0F1524',
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: COLORS.cardBorder,
     ...SHADOWS.card,
   },
   backdropImage: {
@@ -185,60 +185,52 @@ const styles = StyleSheet.create({
   featuredBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.18)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(229, 169, 60, 0.16)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 184, 0, 0.4)',
-    gap: 5,
+    borderColor: 'rgba(229, 169, 60, 0.35)',
+    gap: 4,
   },
   featuredText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: '#FFB800',
+    fontSize: 10,
+    color: '#E5A93C',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 14, 24, 0.88)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(7, 9, 14, 0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: COLORS.cardBorder,
     gap: 4,
   },
   ratingText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
     color: COLORS.text,
   },
   movieTitle: {
-    ...TYPOGRAPHY.h1,
-    fontSize: 25,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
+    ...TYPOGRAPHY.displayMedium,
+    color: COLORS.text,
+    letterSpacing: -0.4,
     marginBottom: 4,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
   },
   movieTagline: {
     ...TYPOGRAPHY.body,
     fontSize: 13,
-    color: '#CBD5E1',
+    color: COLORS.textSecondary,
     fontStyle: 'italic',
     marginBottom: SPACING.xs,
   },
   formatRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 4,
     marginBottom: SPACING.md,
   },
   ctaRow: {
@@ -263,7 +255,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   activeDot: {
-    width: 20,
+    width: 18,
     height: 6,
     borderRadius: 3,
     backgroundColor: COLORS.primary,

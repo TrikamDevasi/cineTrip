@@ -5,6 +5,7 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
@@ -27,7 +28,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function WatchlistScreen() {
   const router = useRouter();
-  const [filterType, setFilterType] = useState('all'); // 'all' | 'imax'
+  const [filterType, setFilterType] = useState('all');
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -98,7 +99,7 @@ export default function WatchlistScreen() {
         </View>
 
         <Button
-          title="Add More"
+          title="Add Films"
           icon="Plus"
           variant="primary"
           size="sm"
@@ -108,37 +109,39 @@ export default function WatchlistScreen() {
       </View>
 
       {/* Filter Chips */}
-      <View style={styles.filterRow}>
-        <Chip
-          label={`All (${watchlist.length})`}
-          selected={filterType === 'all'}
-          onPress={() => setFilterType('all')}
-          accessibilityLabel="Show all queued films"
-        />
-        <Chip
-          label="Now in Theaters"
-          selected={filterType === 'now_playing'}
-          onPress={() => setFilterType('now_playing')}
-          accessibilityLabel="Show movies currently in theaters"
-        />
-        <Chip
-          label="Coming Soon"
-          selected={filterType === 'coming_soon'}
-          onPress={() => setFilterType('coming_soon')}
-          accessibilityLabel="Show upcoming films"
-        />
-        <Chip
-          label="IMAX & Premium"
-          selected={filterType === 'imax'}
-          onPress={() => setFilterType('imax')}
-          accessibilityLabel="Show IMAX and premium screens only"
-        />
+      <View style={styles.filterSection}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          <Chip
+            label={`All (${watchlist.length})`}
+            selected={filterType === 'all'}
+            onPress={() => setFilterType('all')}
+            accessibilityLabel="Show all queued films"
+          />
+          <Chip
+            label="Now in Theaters"
+            selected={filterType === 'now_playing'}
+            onPress={() => setFilterType('now_playing')}
+            accessibilityLabel="Show movies currently in theaters"
+          />
+          <Chip
+            label="Coming Soon"
+            selected={filterType === 'coming_soon'}
+            onPress={() => setFilterType('coming_soon')}
+            accessibilityLabel="Show upcoming films"
+          />
+          <Chip
+            label="IMAX & Premium"
+            selected={filterType === 'imax'}
+            onPress={() => setFilterType('imax')}
+            accessibilityLabel="Show IMAX and premium screens only"
+          />
+        </ScrollView>
       </View>
 
       {/* Search Filter in Watchlist */}
       {watchlist.length > 3 && (
         <View style={styles.searchWrapper}>
-          <Search size={18} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: SPACING.sm }} />
+          <Search size={16} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: SPACING.sm }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Filter saved films..."
@@ -183,7 +186,7 @@ export default function WatchlistScreen() {
             />
           }
           renderItem={({ item }) => (
-            <MovieCard movie={item} width={columnWidth} />
+            <MovieCard movie={item} cardWidth={columnWidth} />
           )}
         />
       )}
@@ -216,22 +219,24 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACING.lg,
+  filterSection: {
     marginBottom: SPACING.xs,
+  },
+  filterRow: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xs,
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 44,
+    minHeight: 42,
   },
   searchInput: {
     flex: 1,

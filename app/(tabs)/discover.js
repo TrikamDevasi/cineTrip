@@ -12,7 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, X, Sparkles, Film, CloudOff } from 'lucide-react-native';
+import { Search, X, Film } from 'lucide-react-native';
 import Header from '../../components/Header';
 import MovieCard from '../../components/MovieCard';
 import Chip from '../../components/ui/Chip';
@@ -23,7 +23,6 @@ import {
   searchMovies,
   getTrendingMovies,
   FALLBACK_MOVIES,
-  FALLBACK_GENRES,
 } from '../../services/tmdb';
 import { useDebounce } from '../../hooks/useDebounce';
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
@@ -135,7 +134,6 @@ export default function DiscoverScreen() {
     return matchesFormat && matchesGenre && matchesMood;
   });
 
-  // Calculate 2-column grid item width responsively
   const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
 
   return (
@@ -145,10 +143,10 @@ export default function DiscoverScreen() {
       {/* SEARCH BAR */}
       <View style={styles.searchBarWrapper}>
         <View style={styles.searchContainer}>
-          <Search size={20} color={COLORS.primary} strokeWidth={2} style={styles.searchIcon} />
+          <Search size={18} color={COLORS.primary} strokeWidth={2.2} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search films, actors, directors, IMAX..."
+            placeholder="Search films, directors, IMAX..."
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -162,7 +160,7 @@ export default function DiscoverScreen() {
               accessibilityRole="button"
               accessibilityLabel="Clear search text"
             >
-              <X size={18} color={COLORS.textMuted} strokeWidth={2} />
+              <X size={16} color={COLORS.textMuted} strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
@@ -183,7 +181,7 @@ export default function DiscoverScreen() {
         </ScrollView>
       </View>
 
-      {/* MOOD SELECTOR (DISCOVER EXCLUSIVE) */}
+      {/* MOOD SELECTOR */}
       <View style={styles.moodSection}>
         <MoodSelector
           selectedMood={selectedMood}
@@ -236,7 +234,7 @@ export default function DiscoverScreen() {
             />
           }
           renderItem={({ item }) => (
-            <MovieCard movie={item} width={columnWidth} />
+            <MovieCard movie={item} cardWidth={columnWidth} />
           )}
           ListFooterComponent={
             loadingMore ? (
@@ -258,18 +256,18 @@ const styles = StyleSheet.create({
   },
   searchBarWrapper: {
     paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.sm,
+    marginTop: SPACING.xs,
     marginBottom: SPACING.xs,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 48,
+    minHeight: 44,
   },
   searchIcon: {
     marginRight: SPACING.sm,
@@ -280,8 +278,8 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   clearBtn: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },

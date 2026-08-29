@@ -1,134 +1,174 @@
+/**
+ * CineTrip Premium Cinematic Design System Tokens
+ * Luxury Entertainment + Theatrical Ambiance + Modern Mobile Usability
+ */
+
 export const COLORS = {
-  // The definitive CineTrip palette — neon is an accent, not the entire design
-  primary: '#00F0FF',          // Neon cyan — primary accent & focus
-  secondary: '#FFB800',        // Cinema gold — rating & secondary highlights
-  accentPink: '#FF2E63',       // Neon crimson — subtle highlights
-  accentPurple: '#8B5CF6',     // IMAX violet — format highlights
+  // Brand Accents (Warm Cinematic Amber & Gold + Refined Accents)
+  primary: '#E5A93C',           // Warm Cinematic Amber / Marquee Gold
+  primaryHover: '#F5B94E',      // Lighter Gold on active press
+  primarySubtle: 'rgba(229, 169, 60, 0.14)',
+  primaryGlow: 'rgba(229, 169, 60, 0.28)',
 
-  // Dark Neutrals (CineTrip core identity)
-  background: '#07090E',       // Pure deep cinema black
-  backgroundElevated: '#0D1322',// Layer 1 elevation
-  card: '#131B2E',             // Card containers
-  cardBorder: 'rgba(255, 255, 255, 0.08)', // Subtle structural borders
-  surface: '#1A233A',          // Elevated interactive surfaces
-  surfaceHighlight: '#232E4A', // Hover / active surfaces
+  secondary: '#D4AF37',         // Champagne Gold for ratings & milestones
+  secondarySubtle: 'rgba(212, 175, 55, 0.12)',
 
-  // Text Hierarchy
-  text: '#FFFFFF',             // High-contrast primary text
-  textSecondary: '#94A3B8',    // Supporting metadata & descriptions
-  textMuted: '#64748B',        // Captions, placeholders & inactive states
+  accentViolet: '#8B5CF6',      // IMAX 70mm & Special format accent
+  accentCrimson: '#E11D48',     // Dolby Cinema & Premiere badges
+  accentCyan: '#06B6D4',        // Digital Pass & Turnstile accents
+  accentGreen: '#10B981',       // Success & Confirmed RSVP
 
-  // Status & Feedback
+  // Theatrical Dark Neutrals (Pure Cinema Onyx & Graphite Layers)
+  background: '#07090E',        // Deep pitch cinema black
+  backgroundSecondary: '#0C0F17',// Layer 0.5 subtle contrast
+  card: '#121722',              // Layer 1 card containers
+  cardElevated: '#171E2D',      // Layer 2 floating cards
+  cardBorder: 'rgba(255, 255, 255, 0.08)', // Crisp structural border
+  cardBorderActive: 'rgba(229, 169, 60, 0.35)', // Amber focus border
+
+  surface: '#171E2D',           // Interactive surface (inputs, buttons)
+  surfaceElevated: '#1E2638',   // Elevated chips, modal bodies
+  surfaceHighlight: '#263148',  // Pressed / active selection
+
+  // Text Hierarchy (Warm High-Contrast)
+  text: '#F8FAFC',              // Warm White (98% contrast)
+  textSecondary: '#94A3B8',     // Slate Secondary (body metadata)
+  textMuted: '#64748B',         // Subtle Captions / Disabled
+  textInverse: '#07090E',       // Dark text on gold buttons
+
+  // Feedback States
   success: '#10B981',
+  successSubtle: 'rgba(16, 185, 129, 0.14)',
   warning: '#F59E0B',
+  warningSubtle: 'rgba(245, 158, 11, 0.14)',
   danger: '#EF4444',
+  dangerSubtle: 'rgba(239, 68, 68, 0.14)',
 
-  // Formats
-  formatImax: '#0072CE',
-  formatDolby: '#FF1352',
-  format4DX: '#10B981',
-  formatLaser: '#8B5CF6',
+  // Theatrical Format Tags
+  formatImax: '#7C3AED',
+  formatDolby: '#E11D48',
+  format4DX: '#059669',
+  formatLaser: '#E5A93C',
+  formatScreenX: '#0284C7',
 
-  // Overlays
-  overlayDark: 'rgba(7, 9, 14, 0.85)',
-  overlayGradient: ['transparent', 'rgba(7, 9, 14, 0.6)', 'rgba(7, 9, 14, 0.95)', '#07090E'],
-  heroGradient: ['transparent', 'rgba(7, 9, 14, 0.3)', 'rgba(7, 9, 14, 0.9)', '#07090E'],
+  // Overlays & Gradients
+  overlayDark: 'rgba(7, 9, 14, 0.88)',
+  overlayGradient: ['transparent', 'rgba(7, 9, 14, 0.65)', 'rgba(7, 9, 14, 0.95)', '#07090E'],
+  heroGradient: ['rgba(7, 9, 14, 0.15)', 'transparent', 'rgba(7, 9, 14, 0.75)', '#07090E'],
+  ticketPerforation: 'rgba(255, 255, 255, 0.12)',
 };
 
 export const LIGHT_COLORS = {
   background: '#F8FAFC',
-  backgroundElevated: '#FFFFFF',
+  backgroundSecondary: '#F1F5F9',
   card: '#FFFFFF',
+  cardElevated: '#FFFFFF',
   cardBorder: 'rgba(0, 0, 0, 0.08)',
+  cardBorderActive: 'rgba(217, 119, 6, 0.4)',
+
   surface: '#F1F5F9',
-  surfaceHighlight: '#E2E8F0',
+  surfaceElevated: '#E2E8F0',
+  surfaceHighlight: '#CBD5E1',
 
-  primary: '#0891B2',
-  secondary: '#D97706',
-  accentPink: '#E11D48',
-  accentPurple: '#7C3AED',
-  success: '#059669',
-  warning: '#D97706',
-  danger: '#DC2626',
+  primary: '#D97706',
+  primaryHover: '#B45309',
+  primarySubtle: 'rgba(217, 119, 6, 0.12)',
+  primaryGlow: 'rgba(217, 119, 6, 0.25)',
 
-  formatImax: '#0072CE',
-  formatDolby: '#FF1352',
-  format4DX: '#10B981',
-  formatLaser: '#8B5CF6',
+  secondary: '#B45309',
+  secondarySubtle: 'rgba(180, 83, 9, 0.1)',
+
+  accentViolet: '#7C3AED',
+  accentCrimson: '#BE123C',
+  accentCyan: '#0891B2',
+  accentGreen: '#059669',
 
   text: '#0F172A',
   textSecondary: '#475569',
   textMuted: '#94A3B8',
+  textInverse: '#FFFFFF',
 
-  overlayDark: 'rgba(15, 23, 42, 0.7)',
-  overlayGradient: ['transparent', 'rgba(15, 23, 42, 0.4)', 'rgba(15, 23, 42, 0.8)', '#0F172A'],
-  heroGradient: ['transparent', 'rgba(15, 23, 42, 0.2)', 'rgba(15, 23, 42, 0.8)'],
+  success: '#059669',
+  warning: '#D97706',
+  danger: '#DC2626',
+
+  formatImax: '#7C3AED',
+  formatDolby: '#BE123C',
+  format4DX: '#059669',
+  formatLaser: '#D97706',
+  formatScreenX: '#0284C7',
+
+  overlayDark: 'rgba(15, 23, 42, 0.75)',
+  overlayGradient: ['transparent', 'rgba(15, 23, 42, 0.4)', 'rgba(15, 23, 42, 0.85)', '#0F172A'],
+  heroGradient: ['transparent', 'rgba(15, 23, 42, 0.2)', 'rgba(15, 23, 42, 0.85)'],
+  ticketPerforation: 'rgba(0, 0, 0, 0.12)',
 };
 
 export const TYPOGRAPHY = {
-  // Standardized typography scale — minimum readable text is 12px for badges/captions, 14px for body
-  h1: { fontSize: 28, fontWeight: '900', letterSpacing: 0.3, lineHeight: 34 },
-  h2: { fontSize: 22, fontWeight: '800', letterSpacing: 0.2, lineHeight: 28 },
-  h3: { fontSize: 18, fontWeight: '700', letterSpacing: 0.1, lineHeight: 24 },
+  displayLarge: { fontSize: 30, fontWeight: '900', letterSpacing: -0.5, lineHeight: 36 },
+  displayMedium: { fontSize: 24, fontWeight: '800', letterSpacing: -0.3, lineHeight: 30 },
+  h1: { fontSize: 22, fontWeight: '800', letterSpacing: -0.2, lineHeight: 28 },
+  h2: { fontSize: 18, fontWeight: '700', letterSpacing: -0.1, lineHeight: 24 },
+  h3: { fontSize: 16, fontWeight: '700', letterSpacing: 0, lineHeight: 22 },
   bodyLarge: { fontSize: 16, fontWeight: '400', lineHeight: 24 },
   body: { fontSize: 14, fontWeight: '400', lineHeight: 20 },
   bodyBold: { fontSize: 14, fontWeight: '700', lineHeight: 20 },
   caption: { fontSize: 12, fontWeight: '500', letterSpacing: 0.2, lineHeight: 16 },
-  badge: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+  captionBold: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2, lineHeight: 16 },
+  badge: { fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
+  ticketMono: { fontSize: 13, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
 };
 
 export const SPACING = {
   xs: 4,
   sm: 8,
-  md: 14,
-  lg: 20,
-  xl: 26,
-  xxl: 36,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+  xxxl: 48,
 };
 
 export const RADIUS = {
-  xs: 4,
-  sm: 8,
-  md: 12,
+  xs: 6,
+  sm: 10,
+  md: 14,
   lg: 18,
   xl: 24,
   full: 9999,
 };
 
 export const ICON_SIZES = {
-  sm: 16,   // Inline / micro-controls
-  md: 20,   // Button icons / action items
-  lg: 24,   // Navigation tabs / screen headers
-  xl: 48,   // Empty state & illustration icons
-  xxl: 56,  // Large feature headers
+  xs: 14,
+  sm: 18,
+  md: 20,
+  lg: 24,
+  xl: 36,
+  xxl: 48,
 };
 
 export const ICON_STROKE_WIDTH = 2;
 
-// Restrained elevation shadows (NO neon glow floods on every element)
 export const SHADOWS = {
   card: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 8,
+    shadowRadius: 10,
     elevation: 4,
   },
   modal: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 12,
   },
   focus: {
-    shadowColor: '#00F0FF',
+    shadowColor: '#E5A93C',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
   },
 };
-
-
-

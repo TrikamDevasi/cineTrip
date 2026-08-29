@@ -26,20 +26,20 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
           >
             {isSelected ? (
               <LinearGradient
-                colors={mood.gradient || ['#00F0FF', '#7928CA']}
+                colors={['#E5A93C', '#B45309']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientPill}
               >
-                <Icon name={mood.icon} size={16} color="#FFFFFF" style={styles.icon} />
+                <Icon name={mood.icon} size={14} color="#07090E" style={styles.icon} />
                 <Text style={styles.selectedLabel}>{mood.label}</Text>
               </LinearGradient>
             ) : (
               <LinearGradient
-                colors={['rgba(26, 35, 58, 0.9)', 'rgba(19, 27, 46, 0.9)']}
+                colors={[COLORS.surface, COLORS.card]}
                 style={styles.unselectedPill}
               >
-                <Icon name={mood.icon} size={16} color={COLORS.textSecondary} style={styles.icon} />
+                <Icon name={mood.icon} size={14} color={COLORS.textSecondary} style={styles.icon} />
                 <Text style={styles.unselectedLabel}>{mood.label}</Text>
               </LinearGradient>
             )}
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
     borderRadius: RADIUS.full,
     overflow: 'hidden',
-    minHeight: 44,
+    minHeight: 38,
   },
   pillSelected: {
     borderWidth: 1,
@@ -69,29 +69,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingVertical: 6,
     borderRadius: RADIUS.full,
-    minHeight: 44,
+    minHeight: 38,
   },
   unselectedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingVertical: 6,
     borderRadius: RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 44,
+    minHeight: 38,
   },
   icon: {
-    marginRight: SPACING.xs + 2,
+    marginRight: 6,
   },
   selectedLabel: {
-    ...TYPOGRAPHY.bodyBold,
-    color: '#FFFFFF',
+    ...TYPOGRAPHY.captionBold,
+    color: '#07090E',
   },
   unselectedLabel: {
-    ...TYPOGRAPHY.body,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     fontWeight: '600',
   },

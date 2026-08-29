@@ -73,8 +73,6 @@ export default function ProfileScreen() {
     favoriteGenres,
     notificationsEnabled,
     autoExportCalendar,
-    themeMode,
-    setThemeMode,
     updateProfile,
     toggleGenre,
   } = usePreferencesStore();
@@ -134,7 +132,7 @@ export default function ProfileScreen() {
           {/* PROFILE IDENTITY CARD */}
           <View style={styles.profileCard}>
             <View style={styles.avatarCircle}>
-              <User size={32} color={COLORS.primary} strokeWidth={2} />
+              <User size={28} color={COLORS.primary} strokeWidth={2} />
             </View>
 
             {isEditing ? (
@@ -204,9 +202,9 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${plansCount} planned movie nights`}
             >
-              <Ticket size={20} color={COLORS.primary} strokeWidth={2} />
+              <Ticket size={18} color={COLORS.primary} strokeWidth={2.2} />
               <Text style={styles.statNum}>{plansCount}</Text>
-              <Text style={styles.statTxt}>Plans</Text>
+              <Text style={styles.statTxt}>Passes</Text>
             </TouchableOpacity>
 
             <View style={styles.statDivider} />
@@ -218,7 +216,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${watchlistCount} movies in watchlist`}
             >
-              <Bookmark size={20} color={COLORS.secondary} strokeWidth={2} />
+              <Bookmark size={18} color="#E5A93C" strokeWidth={2.2} />
               <Text style={styles.statNum}>{watchlistCount}</Text>
               <Text style={styles.statTxt}>Watchlist</Text>
             </TouchableOpacity>
@@ -232,7 +230,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${memoriesCount} memories in journal`}
             >
-              <Camera size={20} color={COLORS.success} strokeWidth={2} />
+              <Camera size={18} color={COLORS.accentGreen} strokeWidth={2.2} />
               <Text style={styles.statNum}>{memoriesCount}</Text>
               <Text style={styles.statTxt}>Memories</Text>
             </TouchableOpacity>
@@ -265,7 +263,7 @@ export default function ProfileScreen() {
               <View style={styles.milestoneDivider} />
 
               <View style={styles.milestoneItem}>
-                <Text style={[styles.milestoneVal, { color: COLORS.secondary }]}>{avgRating} ★</Text>
+                <Text style={[styles.milestoneVal, { color: COLORS.primary }]}>{avgRating} ★</Text>
                 <Text style={styles.milestoneLbl}>Avg Rating</Text>
               </View>
             </View>
@@ -405,9 +403,9 @@ const styles = StyleSheet.create({
     ...SHADOWS.card,
   },
   avatarCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -496,7 +494,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textMuted,
     marginBottom: SPACING.sm,
     letterSpacing: 1,
@@ -511,10 +509,12 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.badge,
     fontSize: 10,
     color: COLORS.primary,
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+    backgroundColor: COLORS.primarySubtle,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 169, 60, 0.3)',
   },
   milestonesGrid: {
     flexDirection: 'row',
@@ -528,12 +528,12 @@ const styles = StyleSheet.create({
   },
   milestoneVal: {
     ...TYPOGRAPHY.h2,
-    fontSize: 20,
+    fontSize: 18,
     color: COLORS.text,
   },
   milestoneLbl: {
     ...TYPOGRAPHY.caption,
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginTop: 2,

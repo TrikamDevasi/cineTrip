@@ -17,6 +17,8 @@ import {
   LocateFixed,
   Navigation,
   ChevronRight,
+  ArrowLeft,
+  Ticket,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from '../components/ui/IconButton';
@@ -25,7 +27,6 @@ import FormatBadge from '../components/FormatBadge';
 import { useLocation } from '../hooks/useLocation';
 import { SAMPLE_CINEMAS } from '../services/location';
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
-
 import { usePlannerStore } from '../store/usePlannerStore';
 
 let MapView, Marker;
@@ -98,27 +99,27 @@ export default function MapScreen() {
 
   const handleSelectSearchResult = (result) => {
     setSearchQuery(result.name);
-    setSelectedAddress(`${result.name}, ${result.address}`);
     setSearchResults([]);
-    if (location) {
-      const fakeCoords = {
-        latitude: location.latitude + (Math.random() - 0.5) * 0.02,
-        longitude: location.longitude + (Math.random() - 0.5) * 0.02,
-      };
-      setSelectedLocation(fakeCoords);
-      if (mapRef.current) {
-        mapRef.current.animateToRegion({
-          ...fakeCoords,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        }, 800);
-      }
+    setSelectedLocation({ latitude: result.latitude, longitude: result.longitude });
+    setSelectedAddress(result.address);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: result.latitude,
+        longitude: result.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      }, 600);
     }
   };
 
+  const handleSelectCinemaForTrip = (cinema) => {
+    setDraftCinema(cinema);
+    router.push('/(tabs)/planner');
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      {/* Header */}
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/* Top Header */}
       <View style={styles.header}>
         <IconButton
           icon="ArrowLeft"
@@ -126,138 +127,90 @@ export default function MapScreen() {
           onPress={() => router.back()}
           accessibilityLabel="Go back"
         />
-        <Text style={styles.headerTitle}>Cinema Map & Screens</Text>
+        <Text style={styles.headerTitle}>Auditorium Locator</Text>
         <IconButton
           icon="LocateFixed"
           variant="surface"
-          color={COLORS.primary}
           onPress={handleGoToMyLocation}
-          accessibilityLabel="Recenter map to my location"
+          accessibilityLabel="Center on current location"
         />
       </View>
 
       {/* Search Input Bar */}
       <View style={styles.searchSection}>
         <View style={styles.searchContainer}>
-          <Search size={18} color={COLORS.primary} strokeWidth={2} style={styles.searchIcon} />
+          <Search size={18} color={COLORS.primary} strokeWidth={2.2} style={{ marginRight: SPACING.sm }} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search theaters, cities, IMAX..."
+            placeholder="Search IMAX & certified theaters..."
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={handleSearch}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => { setSearchQuery(''); setSearchResults([]); }}
-              style={styles.clearBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search text"
-            >
+            <TouchableOpacity onPress={() => handleSearch('')}>
               <X size={16} color={COLORS.textMuted} strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Live Search Results Dropdown */}
+        {/* Search Results Dropdown */}
         {searchResults.length > 0 && (
-          <View style={styles.dropdownResults}>
+          <View style={styles.searchResultsDropdown}>
             {searchResults.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                style={styles.dropdownItem}
+                style={styles.searchResultItem}
                 onPress={() => handleSelectSearchResult(item)}
-                accessibilityRole="button"
-                accessibilityLabel={`Select cinema ${item.name}`}
               >
-                <MapPin size={16} color={COLORS.secondary} strokeWidth={2} style={{ marginRight: SPACING.sm }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dropdownTitle}>{item.name}</Text>
-                  <Text style={styles.dropdownSub}>{item.address}</Text>
+                <MapPin size={16} color={COLORS.primary} strokeWidth={2} />
+                <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                  <Text style={styles.searchResultName}>{item.name}</Text>
+                  <Text style={styles.searchResultAddress}>{item.address}</Text>
                 </View>
-                <ChevronRight size={16} color={COLORS.textMuted} strokeWidth={2} />
               </TouchableOpacity>
             ))}
           </View>
         )}
       </View>
 
-      {/* Map or Fallback View */}
-      <View style={styles.mapContainer}>
-        {MapView && location ? (
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }}
-          >
-            <Marker
-              coordinate={{
-                latitude: location.latitude,
-                longitude: location.longitude,
-              }}
-              title="My Location"
-              pinColor={COLORS.primary}
-            />
-
-            {cinemas.map((c, i) => (
-              <Marker
-                key={c.id}
-                coordinate={{
-                  latitude: location.latitude + (i === 0 ? 0.01 : i === 1 ? -0.012 : 0.008),
-                  longitude: location.longitude + (i === 0 ? -0.008 : i === 1 ? 0.015 : -0.018),
-                }}
-                title={c.name}
-                description={c.screenType}
-                pinColor={COLORS.secondary}
-              />
-            ))}
-          </MapView>
-        ) : (
-          <View style={styles.mapFallback}>
-            <MapPin size={48} color={COLORS.primary} strokeWidth={2} />
-            <Text style={styles.mapFallbackTitle}>Auditorium Locator</Text>
-            <Text style={styles.mapFallbackSub}>
-              {address ? `Located near ${address}` : 'GPS coordinates resolved. Showing nearby certified auditoriums.'}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Nearby Screens List */}
-      <View style={styles.bottomListWrapper}>
-        <Text style={styles.bottomListTitle}>NEARBY CERTIFIED SCREENS</Text>
-        <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false}>
-          {cinemas.map((cinema) => (
-            <View key={cinema.id} style={styles.cinemaItem}>
-              <View style={styles.cinemaItemLeft}>
-                <Text style={styles.cinemaItemName}>{cinema.name}</Text>
-                <Text style={styles.cinemaItemAddress}>{cinema.address}</Text>
-                <View style={styles.badgeRow}>
-                  <FormatBadge format={cinema.screenType || 'IMAX Laser'} size="small" />
-                  <Text style={styles.cinemaDistance}>{cinema.distance || '2.4 km away'}</Text>
-                </View>
+      {/* Cinema Auditoriums List */}
+      <ScrollView
+        style={styles.cinemaListScroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.cinemaListContent}
+      >
+        <Text style={styles.listHeading}>CERTIFIED PREMIUM THEATERS NEARBY</Text>
+        {cinemas.map((cinema) => (
+          <View key={cinema.id} style={styles.cinemaCard}>
+            <View style={styles.cinemaCardHeader}>
+              <View style={styles.cinemaTitleCol}>
+                <Text style={styles.cinemaName}>{cinema.name}</Text>
+                <Text style={styles.cinemaAddress}>{cinema.address}</Text>
               </View>
+              <Text style={styles.distanceBadge}>{cinema.distance || '2.1 km'}</Text>
+            </View>
 
+            <View style={styles.formatRow}>
+              <FormatBadge format={cinema.screenType || 'IMAX Laser'} size="small" />
+              {cinema.features && cinema.features[0] && (
+                <FormatBadge format={cinema.features[0]} size="small" />
+              )}
+            </View>
+
+            <View style={styles.cardActionRow}>
               <Button
-                title="Plan Here"
+                title="Plan Movie Night Here"
                 icon="Ticket"
                 variant="primary"
                 size="sm"
-                onPress={() => {
-                  setDraftCinema(cinema);
-                  router.push('/(tabs)/planner');
-                }}
+                onPress={() => handleSelectCinemaForTrip(cinema)}
                 accessibilityLabel={`Plan movie night at ${cinema.name}`}
               />
             </View>
-          ))}
-        </ScrollView>
-      </View>
+          </View>
+        ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -274,15 +227,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.cardBorder,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   headerTitle: {
-    ...TYPOGRAPHY.h3,
+    ...TYPOGRAPHY.h2,
     color: COLORS.text,
   },
   searchSection: {
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.sm,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.xs,
     position: 'relative',
     zIndex: 10,
   },
@@ -290,128 +244,98 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 48,
-  },
-  searchIcon: {
-    marginRight: SPACING.sm,
+    minHeight: 44,
   },
   searchInput: {
     flex: 1,
     ...TYPOGRAPHY.body,
     color: COLORS.text,
   },
-  clearBtn: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dropdownResults: {
+  searchResultsDropdown: {
     position: 'absolute',
-    top: 56,
+    top: 48,
     left: SPACING.lg,
     right: SPACING.lg,
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.surfaceElevated,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    zIndex: 20,
+    padding: SPACING.xs,
     ...SHADOWS.modal,
+    zIndex: 20,
   },
-  dropdownItem: {
+  searchResultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: SPACING.md,
+    padding: SPACING.sm,
     borderBottomWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  dropdownTitle: {
+  searchResultName: {
     ...TYPOGRAPHY.bodyBold,
     color: COLORS.text,
   },
-  dropdownSub: {
+  searchResultAddress: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  mapContainer: {
+  cinemaListScroll: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-    position: 'relative',
   },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  mapFallback: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.xl,
-    backgroundColor: COLORS.backgroundElevated,
-  },
-  mapFallbackTitle: {
-    ...TYPOGRAPHY.h2,
-    color: COLORS.text,
-    marginTop: SPACING.md,
-  },
-  mapFallbackSub: {
-    ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: SPACING.xs,
-  },
-  bottomListWrapper: {
-    height: 220,
-    backgroundColor: COLORS.card,
+  cinemaListContent: {
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderColor: COLORS.cardBorder,
+    paddingBottom: SPACING.xxl * 2,
   },
-  bottomListTitle: {
+  listHeading: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textMuted,
-    marginBottom: SPACING.sm,
-    letterSpacing: 1,
+    marginBottom: SPACING.md,
   },
-  bottomScroll: {
-    flex: 1,
+  cinemaCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    marginBottom: SPACING.md,
+    ...SHADOWS.card,
   },
-  cinemaItem: {
+  cinemaCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderColor: COLORS.cardBorder,
+    alignItems: 'flex-start',
   },
-  cinemaItemLeft: {
+  cinemaTitleCol: {
     flex: 1,
+    marginRight: SPACING.sm,
   },
-  cinemaItemName: {
-    ...TYPOGRAPHY.bodyBold,
+  cinemaName: {
+    ...TYPOGRAPHY.h3,
     color: COLORS.text,
+    marginBottom: 2,
   },
-  cinemaItemAddress: {
+  cinemaAddress: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: 2,
   },
-  badgeRow: {
+  distanceBadge: {
+    ...TYPOGRAPHY.captionBold,
+    color: COLORS.primary,
+  },
+  formatRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    gap: SPACING.sm,
+    flexWrap: 'wrap',
+    marginVertical: SPACING.sm,
   },
-  cinemaDistance: {
-    ...TYPOGRAPHY.caption,
-    fontWeight: '700',
-    color: COLORS.secondary,
+  cardActionRow: {
+    marginTop: SPACING.xs,
+    alignItems: 'flex-start',
   },
 });

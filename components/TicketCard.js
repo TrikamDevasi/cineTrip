@@ -36,7 +36,7 @@ export default function TicketCard({ plan, isFullPass = false }) {
       <View style={styles.topSection}>
         <View style={styles.headerRow}>
           <View style={styles.brandingRow}>
-            <Ticket size={16} color={COLORS.primary} strokeWidth={2} />
+            <Ticket size={15} color={COLORS.primary} strokeWidth={2.2} />
             <Text style={styles.passHeaderTitle}>CINETRIP PASS</Text>
           </View>
           <View style={styles.statusBadge}>
@@ -49,9 +49,9 @@ export default function TicketCard({ plan, isFullPass = false }) {
         </Text>
 
         <View style={styles.cinemaRow}>
-          <Film size={16} color={COLORS.secondary} strokeWidth={2} />
+          <Film size={14} color={COLORS.primary} strokeWidth={2} />
           <Text style={styles.cinemaName} numberOfLines={1}>
-            {cinema.name || 'Cinema City Center'}
+            {cinema.name || 'Cinema Auditorium'}
           </Text>
         </View>
 
@@ -61,8 +61,12 @@ export default function TicketCard({ plan, isFullPass = false }) {
         </View>
       </View>
 
-      {/* Structural Divider */}
-      <View style={styles.solidDivider} />
+      {/* Perforated Stub Divider Line with Notches */}
+      <View style={styles.perforationWrapper}>
+        <View style={styles.leftNotch} />
+        <View style={styles.dashedLine} />
+        <View style={styles.rightNotch} />
+      </View>
 
       {/* Bottom Details Section */}
       <View style={styles.bottomSection}>
@@ -78,14 +82,14 @@ export default function TicketCard({ plan, isFullPass = false }) {
             <Text style={styles.metaValue} numberOfLines={1}>
               {plan.seats || 'Row F (Center)'}
             </Text>
-            <Text style={styles.bookingRefText}>REF: {plan.bookingRef || 'CIN-8921'}</Text>
+            <Text style={styles.bookingRefText}>REF: {plan.bookingRef || 'CT-8921'}</Text>
           </View>
         </View>
 
         {/* Squad Attendees */}
         {friends.length > 0 && (
           <View style={styles.squadRow}>
-            <Users size={16} color={COLORS.textSecondary} strokeWidth={2} />
+            <Users size={14} color={COLORS.textSecondary} strokeWidth={2} />
             <Text style={styles.squadCount}>{friends.length} Squad Members</Text>
           </View>
         )}
@@ -100,15 +104,16 @@ export default function TicketCard({ plan, isFullPass = false }) {
                 variant="primary"
                 size="md"
                 onPress={handleOpenTicket}
-                accessibilityLabel={`View ticket pass for ${movie.title}`}
+                accessibilityLabel={`Open cinema pass for ${movie.title}`}
               />
             </View>
+
             <IconButton
               icon="Share2"
               variant="surface"
-              size={20}
+              size={18}
               onPress={handleShare}
-              accessibilityLabel={`Share pass for ${movie.title} with squad`}
+              accessibilityLabel={`Share cinema pass for ${movie.title}`}
             />
           </View>
         )}
@@ -122,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
+    marginVertical: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     overflow: 'hidden',
@@ -130,16 +135,17 @@ const styles = StyleSheet.create({
   },
   fullPassContainer: {
     marginHorizontal: 0,
+    marginVertical: 0,
   },
   topSection: {
     padding: SPACING.lg,
-    backgroundColor: COLORS.card,
+    paddingBottom: SPACING.md,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   brandingRow: {
     flexDirection: 'row',
@@ -147,50 +153,83 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   passHeaderTitle: {
-    ...TYPOGRAPHY.badge,
+    ...TYPOGRAPHY.ticketMono,
+    fontSize: 11,
     color: COLORS.primary,
   },
   statusBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.primarySubtle,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: 'rgba(229, 169, 60, 0.3)',
   },
   statusText: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.success,
+    fontSize: 10,
+    color: COLORS.primary,
   },
   movieTitle: {
-    ...TYPOGRAPHY.h2,
+    ...TYPOGRAPHY.h1,
     color: COLORS.text,
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.xs,
+    marginBottom: 4,
   },
   cinemaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
     gap: 6,
+    marginBottom: SPACING.sm,
   },
   cinemaName: {
     ...TYPOGRAPHY.body,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    fontWeight: '600',
   },
   formatRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 2,
+    gap: 4,
   },
-  solidDivider: {
+  perforationWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 20,
+    position: 'relative',
+  },
+  leftNotch: {
+    width: 16,
+    height: 20,
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderColor: COLORS.cardBorder,
+    marginLeft: -1,
+  },
+  rightNotch: {
+    width: 16,
+    height: 20,
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderColor: COLORS.cardBorder,
+    marginRight: -1,
+  },
+  dashedLine: {
+    flex: 1,
     height: 1,
-    backgroundColor: COLORS.cardBorder,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    marginHorizontal: 8,
   },
   bottomSection: {
     padding: SPACING.lg,
-    backgroundColor: COLORS.backgroundElevated,
+    paddingTop: SPACING.md,
   },
   metaGrid: {
     flexDirection: 'row',
@@ -202,36 +241,37 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textMuted,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metaValue: {
     ...TYPOGRAPHY.bodyBold,
     color: COLORS.text,
   },
   metaHighlight: {
-    ...TYPOGRAPHY.bodyBold,
+    ...TYPOGRAPHY.captionBold,
     color: COLORS.primary,
     marginTop: 2,
   },
   bookingRefText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.secondary,
-    fontWeight: '700',
-    marginTop: 4,
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    marginTop: 2,
   },
   squadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: SPACING.sm,
-    borderTopWidth: 1,
-    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.xs,
+    gap: 6,
     marginBottom: SPACING.md,
-    gap: SPACING.sm,
   },
   squadCount: {
-    ...TYPOGRAPHY.body,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
   },
   actionRow: {

@@ -47,7 +47,6 @@ import { usePlannerStore } from '../../store/usePlannerStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
-
 const TIME_SLOTS = [
   { time: '11:00 AM', label: 'Morning Matinee', badge: 'Save 20%' },
   { time: '03:30 PM', label: 'Afternoon Show', badge: 'Popular' },
@@ -62,14 +61,6 @@ const SNACK_OPTIONS = [
   'Cherry ICEE',
   'Gourmet Hot Dog',
   'Dark Chocolate Bites',
-];
-
-const SEAT_OPTIONS = [
-  'Row F (Center Prime)',
-  'Row E (Front-Center)',
-  'Row G (Back Royal)',
-  'VIP Recliner Row D',
-  'General Admission',
 ];
 
 export default function PlannerScreen() {
@@ -125,10 +116,6 @@ export default function PlannerScreen() {
     setDraftDateTime(draft.date || 'Today', slot.time, slot.label);
   };
 
-  const handleSelectSeat = (seat) => {
-    setDraftNotes({ seats: seat });
-  };
-
   const handleToggleSnack = (snack) => {
     const currentSnacks = draft.snacks || [];
     const exists = currentSnacks.includes(snack);
@@ -166,7 +153,7 @@ export default function PlannerScreen() {
         friends: draft.friends || [],
         notes: draft.notes || '',
         seats: draft.seats || 'Row F (Center Prime)',
-        bookingRef: draft.bookingRef || `CIN-${Math.floor(10000 + Math.random() * 90000)}`,
+        bookingRef: draft.bookingRef || `CT-${Math.floor(10000 + Math.random() * 90000)}`,
         snacks: draft.snacks || [],
       });
 
@@ -213,9 +200,9 @@ export default function PlannerScreen() {
             accessibilityLabel="Switch to Trip Builder"
           >
             <Film
-              size={18}
+              size={16}
               color={activeTab === 'builder' ? '#07090E' : COLORS.textSecondary}
-              strokeWidth={2}
+              strokeWidth={2.2}
             />
             <Text style={[styles.modeTabText, activeTab === 'builder' && styles.modeTabTextActive]}>
               Trip Builder
@@ -231,12 +218,12 @@ export default function PlannerScreen() {
             accessibilityLabel={`Active plans. ${plans.length} scheduled.`}
           >
             <Calendar
-              size={18}
+              size={16}
               color={activeTab === 'plans' ? '#07090E' : COLORS.textSecondary}
-              strokeWidth={2}
+              strokeWidth={2.2}
             />
             <Text style={[styles.modeTabText, activeTab === 'plans' && styles.modeTabTextActive]}>
-              My Schedule ({plans.length})
+              My Passes ({plans.length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -319,11 +306,11 @@ export default function PlannerScreen() {
                       {draft.movie.title}
                     </Text>
                     <View style={styles.selectedMovieMetaRow}>
-                      <Clock size={16} color={COLORS.textSecondary} strokeWidth={2} />
+                      <Clock size={14} color={COLORS.textSecondary} strokeWidth={2} />
                       <Text style={styles.selectedMovieMeta}>
                         {draft.movie.runtime || 165} min
                       </Text>
-                      <Star size={16} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} style={{ marginLeft: 8 }} />
+                      <Star size={14} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} style={{ marginLeft: 8 }} />
                       <Text style={styles.selectedMovieMeta}>
                         {draft.movie.vote_average ? draft.movie.vote_average.toFixed(1) : '8.2'}
                       </Text>
@@ -352,14 +339,14 @@ export default function PlannerScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Tap to select a movie"
                 >
-                  <Film size={24} color={COLORS.primary} strokeWidth={2} />
+                  <Film size={22} color={COLORS.primary} strokeWidth={2.2} />
                   <Text style={styles.emptyMoviePickerTitle}>Select Movie from Catalog</Text>
                   <Text style={styles.emptyMoviePickerSub}>Browse Now Playing, IMAX & Trending films</Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* ═════════ STEP 2: CINEMA & SHOWTIME (CONSOLIDATED) ═════════ */}
+            {/* ═════════ STEP 2: CINEMA & SHOWTIME ═════════ */}
             <View style={styles.stepCard}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
@@ -393,7 +380,7 @@ export default function PlannerScreen() {
                           </Text>
                           {isSelected && (
                             <View style={styles.selectedCheckIcon}>
-                              <Check size={16} color={COLORS.primary} strokeWidth={2.5} />
+                              <Check size={14} color={COLORS.primary} strokeWidth={2.5} />
                             </View>
                           )}
                         </View>
@@ -427,7 +414,7 @@ export default function PlannerScreen() {
                         <Text style={[styles.timeSlotTime, isSelected && styles.timeSlotTimeSelected]}>
                           {slot.time}
                         </Text>
-                        {isSelected && <Check size={16} color={COLORS.primary} strokeWidth={2.5} />}
+                        {isSelected && <Check size={14} color={COLORS.primary} strokeWidth={2.5} />}
                       </View>
                       <Text style={[styles.timeSlotLabel, isSelected && styles.timeSlotLabelSelected]}>
                         {slot.label}
@@ -461,9 +448,8 @@ export default function PlannerScreen() {
                 ticketPrice={350}
               />
 
-
               {/* Snacks Concession Selector */}
-              <Text style={[styles.subStepLabel, { marginTop: SPACING.md }]}>THEATER REFRESHMENTS</Text>
+              <Text style={[styles.subStepLabel, { marginTop: SPACING.lg }]}>THEATER REFRESHMENTS</Text>
               <View style={styles.snacksWrap}>
                 {SNACK_OPTIONS.map((snack) => {
                   const isSelected = (draft.snacks || []).includes(snack);
@@ -488,7 +474,7 @@ export default function PlannerScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Add squad companions"
                 >
-                  <Plus size={16} color={COLORS.primary} strokeWidth={2} />
+                  <Plus size={14} color={COLORS.primary} strokeWidth={2.2} />
                   <Text style={styles.addSquadBtnText}>Manage Squad</Text>
                 </TouchableOpacity>
               </View>
@@ -504,7 +490,7 @@ export default function PlannerScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`Remove ${friend.name}`}
                       >
-                        <X size={16} color={COLORS.textMuted} strokeWidth={2} />
+                        <X size={14} color={COLORS.textMuted} strokeWidth={2} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -517,7 +503,7 @@ export default function PlannerScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Invite companions from contacts"
                 >
-                  <Users size={20} color={COLORS.textSecondary} strokeWidth={2} />
+                  <Users size={18} color={COLORS.textSecondary} strokeWidth={2} />
                   <Text style={styles.emptySquadText}>Tap to invite friends from your address book</Text>
                 </TouchableOpacity>
               )}
@@ -550,7 +536,7 @@ export default function PlannerScreen() {
         </KeyboardAvoidingView>
       )}
 
-      {/* ═════════ MOVIE SELECTION MODAL ═════════ */}
+      {/* MOVIE SELECTION MODAL */}
       <Modal
         visible={movieModalVisible}
         animationType="slide"
@@ -589,7 +575,7 @@ export default function PlannerScreen() {
                     {item.title}
                   </Text>
                   <View style={styles.modalMetaRow}>
-                    <Star size={14} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
+                    <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
                     <Text style={styles.modalRating}>
                       {item.vote_average ? item.vote_average.toFixed(1) : '8.0'}
                     </Text>
@@ -606,7 +592,7 @@ export default function PlannerScreen() {
         </SafeAreaView>
       </Modal>
 
-      {/* ═════════ SQUAD CONTACTS MODAL ═════════ */}
+      {/* SQUAD CONTACTS MODAL */}
       <Modal
         visible={contactsModalVisible}
         animationType="slide"
@@ -665,7 +651,7 @@ export default function PlannerScreen() {
                     <Text style={styles.contactPhone}>{item.phone || 'Cinephile Squad'}</Text>
                   </View>
                   <View style={[styles.contactCheck, isSelected && styles.contactCheckActive]}>
-                    {isSelected && <Check size={16} color="#07090E" strokeWidth={3} />}
+                    {isSelected && <Check size={14} color="#07090E" strokeWidth={3} />}
                   </View>
                 </TouchableOpacity>
               );
@@ -701,7 +687,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
-    padding: SPACING.xs,
+    padding: 3,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
@@ -710,9 +696,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 40,
     borderRadius: RADIUS.sm,
-    gap: SPACING.xs + 2,
+    gap: 6,
   },
   modeTabActive: {
     backgroundColor: COLORS.primary,
@@ -720,6 +706,7 @@ const styles = StyleSheet.create({
   modeTabText: {
     ...TYPOGRAPHY.bodyBold,
     color: COLORS.textSecondary,
+    fontSize: 13,
   },
   modeTabTextActive: {
     color: '#07090E',
@@ -768,18 +755,19 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   stepBadge: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: RADIUS.full,
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    backgroundColor: COLORS.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: 'rgba(229, 169, 60, 0.35)',
     marginRight: SPACING.sm,
   },
   stepBadgeText: {
     ...TYPOGRAPHY.bodyBold,
+    fontSize: 12,
     color: COLORS.primary,
   },
   stepHeaderTitles: {
@@ -802,10 +790,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
   },
   selectedPoster: {
-    width: 80,
-    height: 120,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.backgroundElevated,
+    width: 75,
+    height: 110,
+    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.backgroundSecondary,
   },
   selectedMovieInfo: {
     flex: 1,
@@ -814,34 +802,34 @@ const styles = StyleSheet.create({
   },
   selectedMovieTitle: {
     ...TYPOGRAPHY.bodyBold,
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.text,
   },
   selectedMovieMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: SPACING.xs,
+    marginVertical: 2,
   },
   selectedMovieMeta: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginLeft: SPACING.xs,
+    marginLeft: 4,
   },
   formatRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   emptyMoviePicker: {
-    minHeight: 110,
+    minHeight: 96,
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
+    borderColor: 'rgba(229, 169, 60, 0.3)',
     borderStyle: 'dashed',
-    backgroundColor: 'rgba(0, 240, 255, 0.04)',
+    backgroundColor: COLORS.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.md,
-    gap: SPACING.xs,
+    gap: 4,
   },
   emptyMoviePickerTitle: {
     ...TYPOGRAPHY.bodyBold,
@@ -853,7 +841,7 @@ const styles = StyleSheet.create({
   },
   subStepLabel: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textMuted,
     marginBottom: SPACING.sm,
   },
@@ -869,7 +857,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   cinemaOptionSelected: {
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    backgroundColor: COLORS.primarySubtle,
     borderColor: COLORS.primary,
   },
   cinemaLeft: {
@@ -888,10 +876,10 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   selectedCheckIcon: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     borderRadius: RADIUS.full,
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    backgroundColor: COLORS.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -903,13 +891,12 @@ const styles = StyleSheet.create({
   cinemaBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: SPACING.xs + 2,
+    marginTop: 6,
     gap: SPACING.sm,
   },
   cinemaDistance: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.secondary,
-    fontWeight: '700',
+    ...TYPOGRAPHY.captionBold,
+    color: COLORS.primary,
   },
   timeSlotsGrid: {
     flexDirection: 'row',
@@ -923,11 +910,11 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 64,
+    minHeight: 60,
     justifyContent: 'center',
   },
   timeSlotCardSelected: {
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+    backgroundColor: COLORS.primarySubtle,
     borderColor: COLORS.primary,
   },
   timeSlotTop: {
@@ -937,7 +924,7 @@ const styles = StyleSheet.create({
   },
   timeSlotTime: {
     ...TYPOGRAPHY.bodyBold,
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.text,
   },
   timeSlotTimeSelected: {
@@ -950,10 +937,6 @@ const styles = StyleSheet.create({
   },
   timeSlotLabelSelected: {
     color: COLORS.text,
-  },
-  horizontalChips: {
-    flexDirection: 'row',
-    marginBottom: SPACING.xs,
   },
   snacksWrap: {
     flexDirection: 'row',
@@ -970,11 +953,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    minHeight: 44,
+    minHeight: 38,
     paddingHorizontal: SPACING.xs,
   },
   addSquadBtnText: {
     ...TYPOGRAPHY.bodyBold,
+    fontSize: 12,
     color: COLORS.primary,
   },
   selectedFriendsList: {
@@ -987,15 +971,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingVertical: 6,
     borderRadius: RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    gap: SPACING.sm,
-    minHeight: 44,
+    gap: 6,
   },
   friendTagName: {
     ...TYPOGRAPHY.bodyBold,
+    fontSize: 12,
     color: COLORS.text,
   },
   emptySquadPicker: {
@@ -1007,10 +991,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     gap: SPACING.sm,
-    minHeight: 48,
+    minHeight: 46,
   },
   emptySquadText: {
-    ...TYPOGRAPHY.body,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
   },
   notesInput: {
@@ -1021,7 +1005,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 64,
+    minHeight: 60,
     textAlignVertical: 'top',
   },
   finalCtaWrapper: {
@@ -1042,7 +1026,7 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.cardBorder,
   },
   modalTitle: {
-    ...TYPOGRAPHY.h3,
+    ...TYPOGRAPHY.h2,
     color: COLORS.text,
   },
   modalList: {
@@ -1058,8 +1042,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
   },
   modalMoviePoster: {
-    width: 60,
-    height: 90,
+    width: 55,
+    height: 80,
     borderRadius: RADIUS.xs,
     backgroundColor: COLORS.surface,
   },
@@ -1076,13 +1060,12 @@ const styles = StyleSheet.create({
   modalMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
     gap: 4,
   },
   modalRating: {
-    ...TYPOGRAPHY.caption,
-    fontWeight: '700',
-    color: COLORS.secondary,
+    ...TYPOGRAPHY.captionBold,
+    color: '#E5A93C',
   },
   customAddRow: {
     flexDirection: 'row',
@@ -1110,15 +1093,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 56,
+    minHeight: 54,
   },
   contactItemSelected: {
-    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    backgroundColor: COLORS.primarySubtle,
     borderColor: COLORS.primary,
   },
   contactAvatar: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
@@ -1141,11 +1124,10 @@ const styles = StyleSheet.create({
   contactPhone: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: 2,
   },
   contactCheck: {
-    width: 26,
-    height: 26,
+    width: 24,
+    height: 24,
     borderRadius: RADIUS.xs,
     borderWidth: 1.5,
     borderColor: COLORS.textMuted,

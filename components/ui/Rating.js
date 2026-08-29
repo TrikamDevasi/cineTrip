@@ -3,17 +3,13 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Star } from 'lucide-react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
-/**
- * Accessible Star Rating Component
- * Each star has a full 44x44px touch target with visible 24px icon.
- */
 export default function Rating({
   rating = 0,
   maxRating = 5,
   onRatingChange,
   readonly = false,
   showNumeric = true,
-  size = 24,
+  size = 22,
 }) {
   const stars = Array.from({ length: maxRating }, (_, i) => i + 1);
 
@@ -35,9 +31,9 @@ export default function Rating({
             >
               <Star
                 size={size}
-                color={isFilled ? COLORS.secondary : COLORS.textMuted}
-                fill={isFilled ? COLORS.secondary : 'transparent'}
-                strokeWidth={2}
+                color={isFilled ? '#E5A93C' : COLORS.textMuted}
+                fill={isFilled ? '#E5A93C' : 'transparent'}
+                strokeWidth={1.5}
               />
             </TouchableOpacity>
           );
@@ -58,7 +54,7 @@ export default function Rating({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginVertical: SPACING.sm,
+    marginVertical: SPACING.xs,
   },
   starsRow: {
     flexDirection: 'row',
@@ -75,14 +71,13 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
     backgroundColor: COLORS.surface,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
+    paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
   numericText: {
-    ...TYPOGRAPHY.caption,
-    fontWeight: '700',
-    color: COLORS.secondary,
+    ...TYPOGRAPHY.captionBold,
+    color: '#E5A93C',
   },
 });

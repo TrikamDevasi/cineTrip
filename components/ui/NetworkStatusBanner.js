@@ -3,10 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { WifiOff, RefreshCw } from 'lucide-react-native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
-/**
- * Sync / Network State Indicator Banner
- * Explicitly communicates when the app is in offline cache mode vs live synced.
- */
 export default function NetworkStatusBanner({ isOffline = false, isSyncing = false, style }) {
   if (!isOffline && !isSyncing) return null;
 
@@ -50,12 +46,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   offlineBanner: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    backgroundColor: COLORS.warningSubtle,
     borderColor: 'rgba(245, 158, 11, 0.3)',
   },
   syncingBanner: {
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
-    borderColor: 'rgba(0, 240, 255, 0.3)',
+    backgroundColor: COLORS.primarySubtle,
+    borderColor: 'rgba(229, 169, 60, 0.3)',
   },
   icon: {
     marginRight: 6,
@@ -63,7 +59,7 @@ const styles = StyleSheet.create({
   bannerText: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    fontWeight: '700',
     color: COLORS.warning,
+    fontWeight: '600',
   },
 });

@@ -12,7 +12,7 @@ export default function MemoryCard({ memory, onDelete }) {
 
   return (
     <View style={styles.card}>
-      {/* 1. HERO MEMORY PHOTO / POSTER (SIGNATURE VISUAL ANCHOR) */}
+      {/* 1. HERO MEMORY PHOTO / POSTER */}
       {memory.photoUri ? (
         <View style={styles.photoContainer}>
           <Image
@@ -21,7 +21,7 @@ export default function MemoryCard({ memory, onDelete }) {
             resizeMode="cover"
           />
           <View style={styles.photoDateBadge}>
-            <Calendar size={14} color="#FFFFFF" strokeWidth={2} />
+            <Calendar size={12} color="#FFFFFF" strokeWidth={2} />
             <Text style={styles.photoDateText}>{memory.watchedDate || 'Opening Night'}</Text>
           </View>
         </View>
@@ -35,7 +35,7 @@ export default function MemoryCard({ memory, onDelete }) {
               {movie.title || 'Theatrical Experience'}
             </Text>
             <View style={styles.cinemaRow}>
-              <MapPin size={14} color={COLORS.secondary} strokeWidth={2} />
+              <MapPin size={12} color={COLORS.primary} strokeWidth={2} />
               <Text style={styles.cinemaText} numberOfLines={1}>
                 {memory.cinemaName || 'Certified IMAX Laser Auditorium'}
               </Text>
@@ -44,7 +44,7 @@ export default function MemoryCard({ memory, onDelete }) {
 
           {/* Rating Pill */}
           <View style={styles.ratingBadge}>
-            <Star size={14} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
+            <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
             <Text style={styles.ratingText}>{rating}.0</Text>
           </View>
         </View>
@@ -62,9 +62,9 @@ export default function MemoryCard({ memory, onDelete }) {
         {/* 5. MEMORY HIGHLIGHT QUOTE */}
         {memory.favoriteMoment ? (
           <View style={styles.highlightBox}>
-            <Sparkles size={16} color={COLORS.secondary} strokeWidth={2} />
+            <Sparkles size={14} color={COLORS.primary} strokeWidth={2} />
             <Text style={styles.highlightText} numberOfLines={2}>
-              <Text style={styles.highlightBold}>Moment: </Text>
+              <Text style={styles.highlightBold}>Highlight: </Text>
               {memory.favoriteMoment}
             </Text>
           </View>
@@ -75,7 +75,7 @@ export default function MemoryCard({ memory, onDelete }) {
           <View style={styles.footerRow}>
             {memory.companions && memory.companions.length > 0 && (
               <View style={styles.companionsRow}>
-                <Users size={14} color={COLORS.primary} strokeWidth={2} style={{ marginRight: 6 }} />
+                <Users size={12} color={COLORS.textSecondary} strokeWidth={2} style={{ marginRight: 4 }} />
                 {memory.companions.map((c, idx) => (
                   <View key={idx} style={styles.avatarTag}>
                     <Text style={styles.companionName}>{c.name}</Text>
@@ -86,7 +86,7 @@ export default function MemoryCard({ memory, onDelete }) {
 
             {memory.snackHighlight ? (
               <View style={styles.snackRow}>
-                <Utensils size={14} color={COLORS.secondary} strokeWidth={2} />
+                <Utensils size={12} color={COLORS.primary} strokeWidth={2} />
                 <Text style={styles.snackText} numberOfLines={1}>
                   {memory.snackHighlight}
                 </Text>
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     overflow: 'hidden',
@@ -113,8 +113,8 @@ const styles = StyleSheet.create({
   photoContainer: {
     width: '100%',
     height: 200,
-    position: 'relative',
     backgroundColor: COLORS.surface,
+    position: 'relative',
   },
   photo: {
     width: '100%',
@@ -124,18 +124,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: SPACING.sm,
     left: SPACING.sm,
+    backgroundColor: 'rgba(7, 9, 14, 0.82)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(7, 9, 14, 0.85)',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: RADIUS.xs,
     gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   photoDateText: {
-    ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
     color: '#FFFFFF',
+    fontWeight: '600',
   },
   content: {
     padding: SPACING.lg,
@@ -144,7 +147,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: SPACING.xs,
+    marginBottom: 6,
   },
   titleCol: {
     flex: 1,
@@ -152,74 +155,73 @@ const styles = StyleSheet.create({
   },
   movieTitle: {
     ...TYPOGRAPHY.h2,
-    fontSize: 18,
     color: COLORS.text,
+    marginBottom: 2,
   },
   cinemaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 3,
     gap: 4,
   },
   cinemaText: {
     ...TYPOGRAPHY.caption,
+    fontSize: 12,
     color: COLORS.textSecondary,
-    fontWeight: '600',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.15)',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     gap: 4,
   },
   ratingText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
-    color: COLORS.secondary,
+    fontSize: 11,
+    color: COLORS.text,
   },
   formatRow: {
     flexDirection: 'row',
-    marginVertical: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   storyText: {
     ...TYPOGRAPHY.body,
     color: COLORS.text,
-    lineHeight: 22,
-    marginVertical: SPACING.xs,
+    lineHeight: 20,
+    marginBottom: SPACING.sm,
   },
   highlightBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.08)',
-    padding: SPACING.md,
-    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.primarySubtle,
+    borderRadius: RADIUS.xs,
+    padding: SPACING.sm,
+    gap: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 184, 0, 0.25)',
-    marginVertical: SPACING.xs,
-    gap: SPACING.sm,
-  },
-  highlightBold: {
-    ...TYPOGRAPHY.bodyBold,
-    color: COLORS.secondary,
+    borderColor: 'rgba(229, 169, 60, 0.25)',
+    marginBottom: SPACING.sm,
   },
   highlightText: {
-    ...TYPOGRAPHY.body,
+    ...TYPOGRAPHY.caption,
     color: COLORS.text,
     flex: 1,
+    lineHeight: 16,
+  },
+  highlightBold: {
+    fontWeight: '800',
+    color: COLORS.primary,
   },
   footerRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: SPACING.sm,
     borderTopWidth: 1,
-    borderColor: COLORS.cardBorder,
-    marginTop: SPACING.sm,
-    gap: SPACING.xs,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   companionsRow: {
     flexDirection: 'row',
@@ -228,30 +230,24 @@ const styles = StyleSheet.create({
   },
   avatarTag: {
     backgroundColor: COLORS.surface,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: RADIUS.xs,
     marginRight: 4,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
   },
   companionName: {
     ...TYPOGRAPHY.caption,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontSize: 11,
+    color: COLORS.textSecondary,
   },
   snackRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.1)',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 3,
-    borderRadius: RADIUS.xs,
     gap: 4,
   },
   snackText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.secondary,
-    fontWeight: '700',
+    fontSize: 11,
+    color: COLORS.textSecondary,
   },
 });

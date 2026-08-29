@@ -14,7 +14,6 @@ import * as Clipboard from 'expo-clipboard';
 import TicketCard from '../../components/TicketCard';
 import QRCodeView from '../../components/ui/QRCodeView';
 import Button from '../../components/ui/Button';
-
 import IconButton from '../../components/ui/IconButton';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
@@ -46,7 +45,7 @@ export default function TicketModalScreen() {
   }
 
   const handleCopyRef = async () => {
-    const ref = plan.bookingRef || 'CIN-88429';
+    const ref = plan.bookingRef || 'CT-88429';
     await Clipboard.setStringAsync(ref);
     Alert.alert('Copied!', `Booking reference "${ref}" copied to clipboard.`);
   };
@@ -90,7 +89,7 @@ export default function TicketModalScreen() {
             
             <View style={styles.bookingRefRow}>
               <Text style={styles.refLabel}>BOOKING REFERENCE</Text>
-              <Text style={styles.bookingRef}>{plan.bookingRef || 'CIN-88429'}</Text>
+              <Text style={styles.bookingRef}>{plan.bookingRef || 'CT-88429'}</Text>
             </View>
 
             <View style={styles.qrActionRow}>
@@ -105,7 +104,6 @@ export default function TicketModalScreen() {
             </View>
           </View>
         </View>
-
 
         {/* Primary Bottom Actions */}
         <View style={styles.actionsWrapper}>
@@ -151,10 +149,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.cardBorder,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   headerTitle: {
-    ...TYPOGRAPHY.h3,
+    ...TYPOGRAPHY.h2,
     color: COLORS.text,
   },
   scroll: {
@@ -177,36 +175,19 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
     ...SHADOWS.card,
   },
-  qrVisualContainer: {
-    padding: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.25)',
-    marginBottom: SPACING.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scanInstruction: {
-    ...TYPOGRAPHY.bodyBold,
-    color: COLORS.textSecondary,
-    letterSpacing: 1.2,
-    textAlign: 'center',
-  },
   bookingRefRow: {
     alignItems: 'center',
     marginTop: SPACING.sm,
     marginBottom: SPACING.sm,
   },
   refLabel: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 12,
+    ...TYPOGRAPHY.badge,
+    fontSize: 10,
     color: COLORS.textMuted,
-    letterSpacing: 1,
   },
   bookingRef: {
-    ...TYPOGRAPHY.h2,
-    fontSize: 24,
+    ...TYPOGRAPHY.displayMedium,
+    fontSize: 22,
     color: COLORS.text,
     letterSpacing: 2,
     marginTop: 2,

@@ -4,8 +4,7 @@ import { Check } from 'lucide-react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
 /**
- * Standardized Chip Component for filters and options
- * Has minimum 44px touch target, clear active indicator (check icon), and typography tokens.
+ * Standardized Chip Component for filters, categories and tags
  */
 export default function Chip({
   label,
@@ -33,7 +32,7 @@ export default function Chip({
       <View style={styles.contentRow}>
         {selected ? (
           <View style={styles.iconWrapper}>
-            <Check size={16} color={COLORS.primary} strokeWidth={2.5} />
+            <Check size={14} color={COLORS.primary} strokeWidth={2.5} />
           </View>
         ) : icon ? (
           <View style={styles.iconWrapper}>{icon}</View>
@@ -64,14 +63,14 @@ export default function Chip({
 
 const styles = StyleSheet.create({
   chipContainer: {
-    minHeight: 44,
+    minHeight: 38,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.md,
+    paddingVertical: 6,
+    borderRadius: RADIUS.full,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.sm,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.xs,
     borderWidth: 1,
   },
   chipUnselected: {
@@ -79,7 +78,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.cardBorder,
   },
   chipSelected: {
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+    backgroundColor: COLORS.primarySubtle,
     borderColor: COLORS.primary,
   },
   contentRow: {
@@ -87,34 +86,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconWrapper: {
-    marginRight: SPACING.xs + 2,
+    marginRight: 6,
   },
   label: {
-    ...TYPOGRAPHY.bodyBold,
+    ...TYPOGRAPHY.captionBold,
+    fontSize: 13,
   },
   labelUnselected: {
     color: COLORS.textSecondary,
   },
   labelSelected: {
-    color: COLORS.text,
+    color: COLORS.primary,
   },
   badge: {
-    marginLeft: SPACING.xs + 2,
-    backgroundColor: COLORS.background,
+    marginLeft: 6,
+    backgroundColor: COLORS.surfaceElevated,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
   },
   badgeSelected: {
-    backgroundColor: 'rgba(0, 240, 255, 0.25)',
+    backgroundColor: COLORS.primary,
   },
   badgeText: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
+    ...TYPOGRAPHY.badge,
+    fontSize: 10,
+    color: COLORS.textMuted,
   },
   badgeTextSelected: {
-    color: COLORS.primary,
+    color: '#07090E',
   },
 });

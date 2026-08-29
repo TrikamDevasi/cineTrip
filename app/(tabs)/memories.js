@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   statsBanner: {
     flexDirection: 'row',
     backgroundColor: COLORS.card,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,
     padding: SPACING.md,
@@ -210,7 +210,8 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.secondary,
+    color: COLORS.primary,
+    fontWeight: '900',
   },
   statLabel: {
     ...TYPOGRAPHY.caption,

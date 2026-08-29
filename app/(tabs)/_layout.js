@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View, StyleSheet } from 'react-native';
 import { House, Compass, Ticket, Bookmark, Camera, User } from 'lucide-react-native';
 import { COLORS, TYPOGRAPHY } from '../../constants/theme';
 
@@ -13,8 +13,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarStyle: {
-          backgroundColor: '#080C16',
-          borderTopColor: 'rgba(255, 255, 255, 0.08)',
+          backgroundColor: '#090C14',
+          borderTopColor: 'rgba(255, 255, 255, 0.07)',
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 84 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 6,
@@ -26,7 +26,7 @@ export default function TabLayout() {
           marginTop: 2,
           marginBottom: 2,
           lineHeight: 12,
-          letterSpacing: 0.2,
+          letterSpacing: 0.3,
         },
         tabBarItemStyle: {
           justifyContent: 'center',
@@ -43,7 +43,7 @@ export default function TabLayout() {
             <House
               size={20}
               color={color}
-              strokeWidth={focused ? 2.4 : 2}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -57,7 +57,7 @@ export default function TabLayout() {
             <Compass
               size={20}
               color={color}
-              strokeWidth={focused ? 2.4 : 2}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -71,7 +71,7 @@ export default function TabLayout() {
             <Ticket
               size={20}
               color={color}
-              strokeWidth={focused ? 2.4 : 2}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -85,7 +85,7 @@ export default function TabLayout() {
             <Bookmark
               size={20}
               color={color}
-              strokeWidth={focused ? 2.4 : 2}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -99,7 +99,7 @@ export default function TabLayout() {
             <Camera
               size={20}
               color={color}
-              strokeWidth={focused ? 2.4 : 2}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}
@@ -113,7 +113,7 @@ export default function TabLayout() {
             <User
               size={20}
               color={color}
-              strokeWidth={focused ? 2.4 : 2}
+              strokeWidth={focused ? 2.4 : 1.8}
             />
           ),
         }}

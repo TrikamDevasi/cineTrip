@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { Film, User, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, Globe } from 'lucide-react-native';
+import { Film, User, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -21,8 +21,7 @@ import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/th
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register, loginWithGoogle, enterGuestMode } = useAuthStore();
-
+  const { register, loginWithGoogle } = useAuthStore();
   const updateProfile = usePreferencesStore((s) => s.updateProfile);
 
   const [name, setName] = useState('');
@@ -101,177 +100,158 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Bar with Back Button */}
-          <View style={styles.topBar}>
+          {/* Top Bar */}
+          <View style={styles.topNav}>
             <IconButton
               icon="ArrowLeft"
               variant="surface"
               onPress={() => router.back()}
-              accessibilityLabel="Back to sign in"
+              accessibilityLabel="Back to Login"
             />
           </View>
 
-          {/* Header Branding */}
-          <View style={styles.header}>
+          {/* Logo / Header */}
+          <View style={styles.heroSection}>
             <View style={styles.logoBadge}>
-              <Film size={32} color={COLORS.primary} strokeWidth={2} />
+              <Film size={28} color={COLORS.primary} strokeWidth={2.2} />
             </View>
-            <Text style={styles.appName}>Create Account</Text>
-            <Text style={styles.tagline}>Join the cinematic community</Text>
+            <Text style={styles.appName}>Join CineTrip</Text>
+            <Text style={styles.tagline}>Create your theatrical cinephile passport</Text>
           </View>
 
-          {/* Registration Form Card */}
-          <View style={styles.card}>
-            {/* Google OAuth Button */}
-            <TouchableOpacity
-              style={styles.googleBtn}
-              onPress={handleGoogleRegister}
-              disabled={googleLoading || loading}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel="Sign up with Google"
-            >
-              {googleLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <View style={styles.googleIconBox}>
-                    <Globe size={18} color="#FFFFFF" strokeWidth={2.2} />
-                  </View>
-                  <Text style={styles.googleBtnText}>Continue with Google</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR SIGN UP WITH EMAIL</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Full Name */}
-            <Text style={styles.label}>YOUR NAME</Text>
-            <View style={styles.inputWrapper}>
-              <User size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
-
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={(t) => { setName(t); setError(''); }}
-                placeholder="Alex Cinephile"
-                placeholderTextColor={COLORS.textMuted}
-                autoCapitalize="words"
-                returnKeyType="next"
-                accessibilityLabel="Your full name"
-              />
-            </View>
-
-            {/* Email */}
-            <Text style={styles.label}>EMAIL ADDRESS</Text>
-            <View style={styles.inputWrapper}>
-              <Mail size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={(t) => { setEmail(t); setError(''); }}
-                placeholder="alex@example.com"
-                placeholderTextColor={COLORS.textMuted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="next"
-                accessibilityLabel="Email address"
-              />
-            </View>
-
-            {/* Password */}
-            <Text style={styles.label}>PASSWORD (MIN. 6 CHARACTERS)</Text>
-            <View style={styles.inputWrapper}>
-              <Lock size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, styles.inputFlex]}
-                value={password}
-                onChangeText={(t) => { setPassword(t); setError(''); }}
-                placeholder="Create password"
-                placeholderTextColor={COLORS.textMuted}
-                secureTextEntry={!showPassword}
-                returnKeyType="next"
-                accessibilityLabel="Password"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword((p) => !p)}
-                style={styles.eyeBtn}
-                accessibilityRole="button"
-                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? (
-                  <EyeOff size={18} color={COLORS.textMuted} strokeWidth={2} />
-                ) : (
-                  <Eye size={18} color={COLORS.textMuted} strokeWidth={2} />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Confirm Password */}
-            <Text style={styles.label}>CONFIRM PASSWORD</Text>
-            <View style={styles.inputWrapper}>
-              <Lock size={18} color={COLORS.textMuted} strokeWidth={2} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, styles.inputFlex]}
-                value={confirmPassword}
-                onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
-                placeholder="Confirm password"
-                placeholderTextColor={COLORS.textMuted}
-                secureTextEntry={!showConfirm}
-                returnKeyType="done"
-                onSubmitEditing={handleRegister}
-                accessibilityLabel="Confirm password"
-              />
-              <TouchableOpacity
-                onPress={() => setShowConfirm((p) => !p)}
-                style={styles.eyeBtn}
-                accessibilityRole="button"
-                accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
-              >
-                {showConfirm ? (
-                  <EyeOff size={18} color={COLORS.textMuted} strokeWidth={2} />
-                ) : (
-                  <Eye size={18} color={COLORS.textMuted} strokeWidth={2} />
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Error banner */}
+          {/* Form Card */}
+          <View style={styles.formCard}>
             {error ? (
-              <View style={styles.errorBox}>
+              <View style={styles.errorBanner}>
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            {/* Register Submit */}
-            <View style={styles.btnWrap}>
-              <Button
-                title={loading ? "Creating Account..." : "Create Account 🎬"}
-                variant="primary"
-                size="lg"
-                loading={loading}
-                onPress={handleRegister}
-                accessibilityLabel="Create CineTrip account"
-              />
+            {/* Google Sign-In */}
+            <TouchableOpacity
+              style={styles.googleBtn}
+              onPress={handleGoogleRegister}
+              disabled={googleLoading || loading}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Sign up with Google"
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : (
+                <View style={styles.googleContent}>
+                  <View style={styles.googleIconCircle}>
+                    <Text style={styles.googleG}>G</Text>
+                  </View>
+                  <Text style={styles.googleBtnText}>Continue with Google</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or register with email</Text>
+              <View style={styles.dividerLine} />
             </View>
+
+            {/* Name Field */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>FULL NAME</Text>
+              <View style={styles.inputWrapper}>
+                <User size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={(t) => { setName(t); setError(''); }}
+                  placeholder="Your Name"
+                  placeholderTextColor={COLORS.textMuted}
+                  autoCapitalize="words"
+                />
+              </View>
+            </View>
+
+            {/* Email Field */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>EMAIL ADDRESS</Text>
+              <View style={styles.inputWrapper}>
+                <Mail size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={(t) => { setEmail(t); setError(''); }}
+                  placeholder="name@example.com"
+                  placeholderTextColor={COLORS.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
+
+            {/* Password Field */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>PASSWORD</Text>
+              <View style={styles.inputWrapper}>
+                <Lock size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={(t) => { setPassword(t); setError(''); }}
+                  placeholder="At least 6 characters"
+                  placeholderTextColor={COLORS.textMuted}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((p) => !p)}
+                  style={styles.eyeBtn}
+                >
+                  {showPassword ? <EyeOff size={18} color={COLORS.textMuted} /> : <Eye size={18} color={COLORS.textMuted} />}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Confirm Password Field */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>CONFIRM PASSWORD</Text>
+              <View style={styles.inputWrapper}>
+                <Lock size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={confirmPassword}
+                  onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
+                  placeholder="••••••••"
+                  placeholderTextColor={COLORS.textMuted}
+                  secureTextEntry={!showConfirm}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirm((p) => !p)}
+                  style={styles.eyeBtn}
+                >
+                  {showConfirm ? <EyeOff size={18} color={COLORS.textMuted} /> : <Eye size={18} color={COLORS.textMuted} />}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <Button
+              title="Create Account"
+              variant="primary"
+              size="lg"
+              loading={loading}
+              onPress={handleRegister}
+              accessibilityLabel="Create Account"
+              style={styles.submitBtn}
+            />
           </View>
 
-          {/* Switch to Login */}
-          <View style={styles.loginRow}>
-            <Text style={styles.loginText}>Already have an account? </Text>
+          {/* Footer Navigation */}
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>Already have an account? </Text>
             <Link href="/(auth)/login" asChild>
-              <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel="Go to sign in screen"
-                style={styles.loginTouch}
-              >
-                <Text style={styles.loginLink}>Sign In</Text>
+              <TouchableOpacity>
+                <Text style={styles.footerLink}>Sign in</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -291,29 +271,29 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xxl,
+    paddingVertical: SPACING.lg,
   },
-  topBar: {
+  topNav: {
     marginBottom: SPACING.sm,
   },
-  header: {
+  heroSection: {
     alignItems: 'center',
     marginBottom: SPACING.lg,
   },
   logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: RADIUS.lg,
-    backgroundColor: 'rgba(0, 240, 255, 0.12)',
+    width: 56,
+    height: 56,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
     marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 169, 60, 0.35)',
+    ...SHADOWS.focus,
   },
   appName: {
-    ...TYPOGRAPHY.h1,
+    ...TYPOGRAPHY.displayLarge,
     fontSize: 26,
     color: COLORS.text,
   },
@@ -322,105 +302,91 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
-  demoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  formCard: {
     backgroundColor: COLORS.card,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
-    ...SHADOWS.card,
-  },
-  demoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: SPACING.sm,
-  },
-  demoIconBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.md,
-  },
-  demoTexts: {
-    flex: 1,
-  },
-  demoTitle: {
-    ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
-  },
-  demoSubtitle: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xl,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
     ...SHADOWS.card,
   },
+  errorBanner: {
+    backgroundColor: COLORS.dangerSubtle,
+    borderRadius: RADIUS.xs,
+    padding: SPACING.sm,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  errorText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.danger,
+    textAlign: 'center',
+  },
   googleBtn: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  googleContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    minHeight: 52,
+    gap: SPACING.sm,
   },
-  googleIconBox: {
-    marginRight: SPACING.sm,
+  googleIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleG: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#4285F4',
   },
   googleBtnText: {
     ...TYPOGRAPHY.bodyBold,
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: COLORS.text,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: SPACING.lg,
+    marginVertical: SPACING.md,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.cardBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   dividerText: {
-    ...TYPOGRAPHY.badge,
-    fontSize: 11,
+    ...TYPOGRAPHY.caption,
     color: COLORS.textMuted,
-    marginHorizontal: SPACING.md,
-    letterSpacing: 0.8,
+    marginHorizontal: SPACING.sm,
+  },
+  inputGroup: {
+    marginBottom: SPACING.md,
   },
   label: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textMuted,
-    marginBottom: SPACING.xs,
+    marginBottom: 6,
   },
-
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.md,
     minHeight: 48,
   },
   inputIcon: {
@@ -431,46 +397,24 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.body,
     color: COLORS.text,
   },
-  inputFlex: {
-    flex: 1,
-  },
   eyeBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 6,
   },
-  errorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: RADIUS.xs,
-    padding: SPACING.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    marginBottom: SPACING.md,
-  },
-  errorText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.danger,
-    fontWeight: '600',
-  },
-  btnWrap: {
+  submitBtn: {
     marginTop: SPACING.xs,
   },
-  loginRow: {
+  footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
-  loginText: {
+  footerText: {
     ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
   },
-  loginTouch: {
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  loginLink: {
+  footerLink: {
     ...TYPOGRAPHY.bodyBold,
     color: COLORS.primary,
   },

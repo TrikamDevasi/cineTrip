@@ -11,7 +11,7 @@ export default function SectionHeader({ title, subtitle, actionText, onAction, i
         <View style={styles.titleRow}>
           {icon && (
             <View style={styles.iconWrapper}>
-              <Icon name={icon} size={20} color={COLORS.primary} strokeWidth={2} />
+              <Icon name={icon} size={18} color={COLORS.primary} strokeWidth={2.2} />
             </View>
           )}
           <Text style={styles.title}>{title}</Text>
@@ -28,7 +28,7 @@ export default function SectionHeader({ title, subtitle, actionText, onAction, i
           accessibilityLabel={`${actionText} ${title}`}
         >
           <Text style={styles.actionText}>{actionText}</Text>
-          <ChevronRight size={16} color={COLORS.primary} strokeWidth={2} />
+          <ChevronRight size={14} color={COLORS.primary} strokeWidth={2.2} />
         </TouchableOpacity>
       )}
     </View>
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
+    marginTop: SPACING.xl,
     marginBottom: SPACING.sm,
   },
   left: {
@@ -53,11 +53,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconWrapper: {
-    marginRight: SPACING.sm,
+    marginRight: 6,
   },
   title: {
     ...TYPOGRAPHY.h2,
-    fontSize: 20,
     color: COLORS.text,
   },
   subtitle: {
@@ -68,15 +67,12 @@ const styles = StyleSheet.create({
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-    minWidth: 44,
-    paddingVertical: SPACING.xs,
-    paddingHorizontal: SPACING.xs,
+    paddingVertical: 4,
+    gap: 2,
   },
   actionText: {
-    ...TYPOGRAPHY.bodyBold,
+    ...TYPOGRAPHY.captionBold,
     color: COLORS.primary,
-    marginRight: SPACING.xs,
+    letterSpacing: 0.2,
   },
 });

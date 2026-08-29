@@ -5,43 +5,27 @@ import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
 /**
  * Structured Digital Pass QR Component
- * Generates structured, verifiable digital pass payload data for turnstile validation.
  */
 export default function QRCodeView({ plan }) {
   if (!plan) return null;
 
   const movie = plan.movie || {};
   const cinema = plan.cinema || {};
-  const bookingRef = plan.bookingRef || 'CIN-88429';
-
-  // Construct structured verifiable payload
-  const passPayload = JSON.stringify({
-    app: 'CINETRIP_DIGITAL_PASS',
-    version: '1.0',
-    ref: bookingRef,
-    movie: movie.title || 'Movie',
-    cinema: cinema.name || 'Cinema',
-    format: cinema.screenType || 'IMAX Laser',
-    date: plan.date,
-    time: plan.time,
-    seats: plan.seats || 'General',
-    status: plan.status || 'upcoming',
-    issuedAt: plan.createdAt || new Date().toISOString(),
-  });
+  const bookingRef = plan.bookingRef || 'CT-88429';
 
   return (
     <View style={styles.container}>
       <View style={styles.qrMatrix}>
-        <QrCode size={148} color={COLORS.primary} strokeWidth={1.8} />
+        <QrCode size={140} color={COLORS.primary} strokeWidth={1.8} />
       </View>
 
       <View style={styles.verificationRow}>
-        <ShieldCheck size={14} color={COLORS.success} strokeWidth={2} />
-        <Text style={styles.verificationText}>CRYPTOGRAPHICALLY VERIFIED DIGITAL PASS</Text>
+        <ShieldCheck size={14} color={COLORS.primary} strokeWidth={2} />
+        <Text style={styles.verificationText}>VERIFIED THEATRICAL DIGITAL PASS</Text>
       </View>
 
       <Text style={styles.turnstileNote}>
-        Present at cinema turnstile or usher scanner for admission verification.
+        Present at cinema turnstile or usher scanner for seamless admission.
       </Text>
     </View>
   );
@@ -57,7 +41,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
+    borderColor: 'rgba(229, 169, 60, 0.35)',
     marginBottom: SPACING.sm,
   },
   verificationRow: {
@@ -68,8 +52,8 @@ const styles = StyleSheet.create({
   },
   verificationText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 10,
-    color: COLORS.success,
+    fontSize: 9,
+    color: COLORS.primary,
     letterSpacing: 0.8,
   },
   turnstileNote: {

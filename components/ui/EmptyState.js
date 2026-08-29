@@ -4,9 +4,6 @@ import Icon from './Icon';
 import Button from './Button';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING, ICON_SIZES } from '../../constants/theme';
 
-/**
- * Standardized Empty State Component
- */
 export default function EmptyState({
   icon = 'Film',
   title = 'No Items Found',
@@ -19,7 +16,7 @@ export default function EmptyState({
   return (
     <View style={[styles.container, style]}>
       <View style={styles.iconCircle}>
-        <Icon name={icon} size={ICON_SIZES.xl} color={COLORS.textMuted} strokeWidth={1.8} />
+        <Icon name={icon} size={ICON_SIZES.lg} color={COLORS.primary} strokeWidth={1.8} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {description ? <Text style={styles.description}>{description}</Text> : null}
@@ -42,34 +39,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACING.xl,
-    paddingVertical: SPACING.xl,
+    paddingVertical: SPACING.xxl,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.surface,
+    width: 68,
+    height: 68,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: 'rgba(229, 169, 60, 0.25)',
   },
   title: {
-    ...TYPOGRAPHY.h3,
+    ...TYPOGRAPHY.h2,
     color: COLORS.text,
     textAlign: 'center',
-    marginBottom: SPACING.xs,
+    marginBottom: 4,
   },
   description: {
     ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: SPACING.lg,
+    lineHeight: 20,
     maxWidth: 280,
+    marginBottom: SPACING.lg,
   },
   actionBtn: {
-    marginTop: SPACING.xs,
+    minWidth: 180,
   },
 });

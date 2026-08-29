@@ -3,10 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { Armchair, Check, Info } from 'lucide-react-native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
-// Layout definition: 6 rows (A to F), 8 seats per row with an aisle in the middle (between seat 4 and 5)
 const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const SEATS_PER_ROW = 8;
-const OCCUPIED_PRESETS = ['A3', 'A4', 'B5', 'C2', 'D4', 'D5', 'E1', 'E8']; // Deterministic occupied demo seats
+const OCCUPIED_PRESETS = ['A3', 'A4', 'B5', 'C2', 'D4', 'D5', 'E1', 'E8'];
 
 export default function InteractiveSeatMap({
   selectedSeats = [],
@@ -23,9 +22,7 @@ export default function InteractiveSeatMap({
     if (isSeatSelected(seatId)) {
       onSeatsChange(selectedSeats.filter((s) => s !== seatId));
     } else {
-      if (selectedSeats.length >= maxSeats) {
-        return; // Exceeded maximum allowable seats
-      }
+      if (selectedSeats.length >= maxSeats) return;
       onSeatsChange([...selectedSeats, seatId]);
     }
   };
@@ -37,7 +34,7 @@ export default function InteractiveSeatMap({
       {/* Curved Screen Indicator */}
       <View style={styles.screenContainer}>
         <View style={styles.screenArc} />
-        <Text style={styles.screenText}>ALL EYES ON SCREEN (IMAX LASER)</Text>
+        <Text style={styles.screenText}>CURVED LASER SCREEN</Text>
       </View>
 
       {/* Seat Legend */}
@@ -69,7 +66,7 @@ export default function InteractiveSeatMap({
                   const seatId = `${row}${seatNum}`;
                   const occupied = isSeatOccupied(seatId);
                   const selected = isSeatSelected(seatId);
-                  const isAisle = idx === 3; // Aisle after seat 4
+                  const isAisle = idx === 3;
 
                   return (
                     <React.Fragment key={seatId}>
@@ -104,32 +101,29 @@ export default function InteractiveSeatMap({
                   );
                 })}
               </View>
-
               <Text style={styles.rowLabel}>{row}</Text>
             </View>
           ))}
         </View>
       </ScrollView>
 
-      {/* Selected Summary Footer */}
-      <View style={styles.summaryBar}>
+      {/* Selected Seats & Pricing Summary Pill */}
+      <View style={styles.summaryCard}>
         <View style={styles.summaryLeft}>
           <Text style={styles.summaryLabel}>
             {selectedSeats.length > 0
               ? `${selectedSeats.length} SEAT${selectedSeats.length > 1 ? 'S' : ''} SELECTED`
-              : 'TAP SEATS TO SELECT'}
+              : 'SELECT YOUR SEATS'}
           </Text>
-          <Text style={styles.summarySeats} numberOfLines={1}>
-            {selectedSeats.length > 0 ? selectedSeats.join(', ') : 'No seats chosen yet (Max 6)'}
+          <Text style={styles.summarySeatsText} numberOfLines={1}>
+            {selectedSeats.length > 0 ? selectedSeats.join(', ') : 'Tap seats in the grid above'}
           </Text>
         </View>
 
-        {selectedSeats.length > 0 && (
-          <View style={styles.summaryRight}>
-            <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
-            <Text style={styles.summarySub}>Estimated Pass</Text>
-          </View>
-        )}
+        <View style={styles.summaryRight}>
+          <Text style={styles.priceLabel}>EST. TOTAL</Text>
+          <Text style={styles.priceValue}>₹{totalPrice}</Text>
+        </View>
       </View>
     </View>
   );
@@ -137,44 +131,38 @@ export default function InteractiveSeatMap({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    marginTop: SPACING.xs,
   },
   screenContainer: {
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.lg,
   },
   screenArc: {
-    width: '85%',
+    width: '80%',
     height: 6,
+    borderRadius: 3,
     backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.full,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.8,
     shadowRadius: 6,
-    elevation: 3,
     marginBottom: 6,
   },
   screenText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 11,
+    fontSize: 9,
+    letterSpacing: 1.5,
     color: COLORS.textMuted,
-    letterSpacing: 1.2,
   },
   legendRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
     gap: SPACING.lg,
     marginBottom: SPACING.md,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: 1,
-    borderColor: COLORS.cardBorder,
   },
   legendItem: {
     flexDirection: 'row',
@@ -184,31 +172,30 @@ const styles = StyleSheet.create({
   legendBox: {
     width: 14,
     height: 14,
-    borderRadius: RADIUS.xs,
+    borderRadius: 4,
   },
   legendText: {
     ...TYPOGRAPHY.caption,
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textSecondary,
   },
   gridScroll: {
-    paddingVertical: SPACING.xs,
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
   },
   grid: {
-    gap: SPACING.xs + 2,
-    alignItems: 'center',
+    gap: 8,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs + 2,
+    gap: 8,
   },
   rowLabel: {
-    ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    ...TYPOGRAPHY.captionBold,
     color: COLORS.textMuted,
-    width: 16,
+    width: 14,
     textAlign: 'center',
   },
   seatsRow: {
@@ -219,25 +206,28 @@ const styles = StyleSheet.create({
   seat: {
     width: 32,
     height: 32,
-    borderRadius: RADIUS.xs,
+    borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
   },
   seatAvailable: {
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.surface,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   seatSelected: {
     backgroundColor: COLORS.primary,
     borderColor: '#FFFFFF',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
   },
   seatOccupied: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   seatText: {
-    ...TYPOGRAPHY.caption,
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.textSecondary,
@@ -247,18 +237,20 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   seatTextOccupied: {
-    color: 'rgba(255, 255, 255, 0.15)',
+    color: 'rgba(255, 255, 255, 0.2)',
   },
   aisleSpace: {
-    width: 16,
+    width: 14,
   },
-  summaryBar: {
+  summaryCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: SPACING.md,
-    paddingTop: SPACING.sm,
-    borderTopWidth: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginTop: SPACING.lg,
+    borderWidth: 1,
     borderColor: COLORS.cardBorder,
   },
   summaryLeft: {
@@ -267,24 +259,25 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     ...TYPOGRAPHY.badge,
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
-  summarySeats: {
-    ...TYPOGRAPHY.bodyBold,
+    fontSize: 10,
     color: COLORS.primary,
-    marginTop: 2,
+    marginBottom: 2,
+  },
+  summarySeatsText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
   },
   summaryRight: {
     alignItems: 'flex-end',
   },
-  summaryPrice: {
-    ...TYPOGRAPHY.h3,
-    color: COLORS.secondary,
-  },
-  summarySub: {
-    ...TYPOGRAPHY.caption,
-    fontSize: 11,
+  priceLabel: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 9,
     color: COLORS.textMuted,
+  },
+  priceValue: {
+    ...TYPOGRAPHY.h2,
+    color: COLORS.text,
+    fontWeight: '900',
   },
 });

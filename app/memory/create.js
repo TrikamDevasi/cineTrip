@@ -27,6 +27,7 @@ import {
   Sparkles,
   Trash2,
   Check,
+  ArrowLeft,
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -36,7 +37,6 @@ import Rating from '../../components/ui/Rating';
 import Chip from '../../components/ui/Chip';
 import { mediaUploader } from '../../services/media/mediaUploader';
 import { FALLBACK_MOVIES, getImageUri } from '../../services/tmdb';
-
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useContacts } from '../../hooks/useContacts';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
@@ -64,7 +64,7 @@ export default function CreateMemoryScreen() {
   const [flashMode, setFlashMode] = useState('off');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [mediaMode, setMediaMode] = useState('photo'); // 'photo' | 'video'
+  const [mediaMode, setMediaMode] = useState('photo');
   const cameraRef = useRef(null);
   const recordingTimerRef = useRef(null);
 
@@ -254,7 +254,6 @@ export default function CreateMemoryScreen() {
     }
   };
 
-
   if (cameraActive) {
     return (
       <SafeAreaView style={styles.cameraSafeArea}>
@@ -364,14 +363,14 @@ export default function CreateMemoryScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          {/* 1. MEDIA PICKER / PREVIEW (PHOTO FIRST) */}
+          {/* 1. MEDIA PICKER / PREVIEW */}
           <View style={styles.mediaCard}>
             {photoUri || videoUri ? (
               <View style={styles.previewContainer}>
                 <RNImage source={{ uri: photoUri || videoUri }} style={styles.previewMedia} resizeMode="cover" />
                 <View style={styles.previewOverlay}>
                   <Button
-                    title="Retake / Change"
+                    title="Retake"
                     icon="RotateCcw"
                     variant="surface"
                     size="sm"
@@ -381,7 +380,7 @@ export default function CreateMemoryScreen() {
                   <IconButton
                     icon="Trash2"
                     variant="danger"
-                    size={20}
+                    size={18}
                     onPress={() => {
                       setPhotoUri(null);
                       setVideoUri(null);
@@ -399,9 +398,9 @@ export default function CreateMemoryScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Open camera to take photo or video"
                 >
-                  <Camera size={24} color={COLORS.primary} strokeWidth={2} />
+                  <Camera size={22} color={COLORS.primary} strokeWidth={2.2} />
                   <Text style={styles.pickerTileTitle}>Take Theater Photo / Video</Text>
-                  <Text style={styles.pickerTileSub}>Capture the marquee, lobby or ticket</Text>
+                  <Text style={styles.pickerTileSub}>Capture the marquee, lobby or ticket stub</Text>
                 </TouchableOpacity>
 
                 <View style={styles.galleryButtonWrap}>
@@ -462,7 +461,7 @@ export default function CreateMemoryScreen() {
             />
           </View>
 
-          {/* 4. RATING (ACCESSIBLE 44px TOUCH TARGETS) */}
+          {/* 4. RATING */}
           <View style={styles.formSection}>
             <Text style={styles.sectionHeading}>YOUR RATING</Text>
             <Rating
@@ -470,7 +469,7 @@ export default function CreateMemoryScreen() {
               maxRating={5}
               onRatingChange={setRating}
               showNumeric={true}
-              size={24}
+              size={22}
             />
           </View>
 
@@ -559,11 +558,11 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
   },
   mediaModeTabActive: {
-    backgroundColor: 'rgba(0, 240, 255, 0.25)',
+    backgroundColor: COLORS.primarySubtle,
   },
   mediaModeText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textMuted,
   },
   mediaModeTextActive: {
@@ -574,10 +573,10 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl,
   },
   shutterBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 4,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -586,14 +585,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.danger,
   },
   shutterInner: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: COLORS.primary,
   },
   shutterInnerSquare: {
-    width: 32,
-    height: 32,
+    width: 28,
+    height: 28,
     borderRadius: 6,
     backgroundColor: COLORS.danger,
   },
@@ -604,10 +603,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.cardBorder,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   headerTitle: {
-    ...TYPOGRAPHY.h3,
+    ...TYPOGRAPHY.h2,
     color: COLORS.text,
   },
   scroll: {
@@ -626,7 +625,7 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     position: 'relative',
-    height: 220,
+    height: 210,
   },
   previewMedia: {
     width: '100%',
@@ -645,16 +644,16 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   pickerTile: {
-    minHeight: 120,
+    minHeight: 110,
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
+    borderColor: 'rgba(229, 169, 60, 0.3)',
     borderStyle: 'dashed',
-    backgroundColor: 'rgba(0, 240, 255, 0.04)',
+    backgroundColor: COLORS.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.md,
-    gap: SPACING.xs,
+    gap: 4,
   },
   pickerTileTitle: {
     ...TYPOGRAPHY.bodyBold,
@@ -678,7 +677,7 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 10,
     color: COLORS.textMuted,
     marginBottom: SPACING.sm,
   },
@@ -689,7 +688,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
+    paddingVertical: 10,
     ...TYPOGRAPHY.body,
     color: COLORS.text,
     borderWidth: 1,

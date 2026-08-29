@@ -83,7 +83,8 @@ export default function MovieDetailScreen() {
             resizeMode="cover"
           />
           <LinearGradient
-            colors={COLORS.overlayGradient}
+            colors={['rgba(7, 9, 14, 0.2)', 'transparent', 'rgba(7, 9, 14, 0.75)', '#07090E']}
+            locations={[0, 0.3, 0.75, 1]}
             style={styles.backdropGradient}
           />
 
@@ -136,7 +137,7 @@ export default function MovieDetailScreen() {
 
               <View style={styles.metaRow}>
                 <View style={styles.ratingBadge}>
-                  <Star size={14} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
+                  <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
                   <Text style={styles.ratingText}>{rating}</Text>
                 </View>
                 <Text style={styles.metaDivider}>•</Text>
@@ -151,11 +152,11 @@ export default function MovieDetailScreen() {
             </View>
           </View>
 
-          {/* 3. PRIMARY CTA ACTION BAR (DOMINANT ONE CTA) */}
+          {/* 3. PRIMARY CTA ACTION BAR */}
           <View style={styles.actionBlock}>
             <View style={styles.primaryActionWrap}>
               <Button
-                title="Plan Movie Night 🎬"
+                title="Plan Movie Night"
                 icon="Ticket"
                 variant="primary"
                 size="lg"
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl * 2,
   },
   backdropWrapper: {
-    height: 280,
+    height: 300,
     position: 'relative',
   },
   backdropImage: {
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
   },
   mainInfoSection: {
     paddingHorizontal: SPACING.lg,
-    marginTop: -SPACING.xl,
+    marginTop: -SPACING.xxl,
   },
   posterAndHeaderRow: {
     flexDirection: 'row',
@@ -277,8 +278,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   posterImage: {
-    width: 110,
-    height: 165,
+    width: 115,
+    height: 172,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -291,10 +292,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   movieTitle: {
-    ...TYPOGRAPHY.h1,
-    fontSize: 24,
+    ...TYPOGRAPHY.displayMedium,
+    fontSize: 22,
     color: COLORS.text,
-    lineHeight: 30,
+    lineHeight: 28,
   },
   tagline: {
     ...TYPOGRAPHY.caption,
@@ -312,45 +313,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    paddingHorizontal: SPACING.xs + 2,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
     gap: 4,
   },
   ratingText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.text,
   },
   metaDivider: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textMuted,
-    marginHorizontal: SPACING.xs,
+    marginHorizontal: 4,
   },
   metaText: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
   },
   genreText: {
-    ...TYPOGRAPHY.caption,
+    ...TYPOGRAPHY.captionBold,
     color: COLORS.primary,
-    fontWeight: '600',
     marginTop: 2,
   },
   actionBlock: {
     flexDirection: 'row',
     gap: SPACING.sm,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
   primaryActionWrap: {
     flex: 1,
   },
   sectionBlock: {
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
   sectionHeading: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textMuted,
     marginBottom: SPACING.sm,
     letterSpacing: 1,

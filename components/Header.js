@@ -16,22 +16,23 @@ export default function Header({ showSearch = true, onSearchPress }) {
       <View style={styles.left}>
         <View style={styles.brandRow}>
           <View style={styles.brandIconWrapper}>
-            <Film size={18} color={COLORS.primary} strokeWidth={2} />
+            <Film size={16} color={COLORS.primary} strokeWidth={2.2} />
           </View>
           <Text style={styles.brandText}>
             Cine<Text style={styles.brandAccent}>Trip</Text>
           </Text>
         </View>
+
         <TouchableOpacity
           style={styles.locationRow}
           onPress={() => router.push('/map')}
           accessibilityRole="button"
           accessibilityLabel={`Current location: ${city || 'Select city'}. Tap to view cinema map.`}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
         >
-          <MapPin size={14} color={COLORS.secondary} strokeWidth={2} />
+          <MapPin size={12} color={COLORS.primary} strokeWidth={2} />
           <Text style={styles.locationText} numberOfLines={1}>
-            {city || 'Mumbai Metro'}
+            {city || 'Local Metro'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -41,7 +42,7 @@ export default function Header({ showSearch = true, onSearchPress }) {
           <IconButton
             icon="Search"
             variant="surface"
-            size={20}
+            size={18}
             onPress={onSearchPress || (() => router.push('/(tabs)/discover'))}
             accessibilityLabel="Search movies and cinemas"
             style={{ marginRight: SPACING.sm }}
@@ -51,7 +52,7 @@ export default function Header({ showSearch = true, onSearchPress }) {
         <IconButton
           icon="User"
           variant="surface"
-          size={20}
+          size={18}
           color={COLORS.primary}
           onPress={() => router.push('/(tabs)/profile')}
           accessibilityLabel={userName ? `Profile for ${userName}` : 'View profile and settings'}
@@ -69,7 +70,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.sm,
-    backgroundColor: '#07090E',
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
   left: {
     flexDirection: 'column',
@@ -79,26 +82,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brandIconWrapper: {
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.md,
-    backgroundColor: 'rgba(0, 240, 255, 0.14)',
+    width: 30,
+    height: 30,
+    borderRadius: RADIUS.xs,
+    backgroundColor: COLORS.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.35)',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    borderColor: 'rgba(229, 169, 60, 0.3)',
   },
   brandText: {
-    ...TYPOGRAPHY.h2,
-    fontSize: 22,
+    ...TYPOGRAPHY.h1,
+    fontSize: 20,
     fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
+    color: COLORS.text,
+    letterSpacing: -0.3,
   },
   brandAccent: {
     color: COLORS.primary,
@@ -106,14 +105,13 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 3,
-    minHeight: 24,
-    gap: 5,
+    marginTop: 2,
+    gap: 4,
   },
   locationText: {
     ...TYPOGRAPHY.caption,
-    fontSize: 12,
-    color: '#94A3B8',
+    fontSize: 11,
+    color: COLORS.textSecondary,
     fontWeight: '600',
   },
   right: {

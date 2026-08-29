@@ -171,11 +171,11 @@ export const FALLBACK_GENRES = [
 ];
 
 export const MOODS = [
-  { id: 'epic', label: 'Adrenaline & Epic', icon: 'Flame', gradient: ['#FF2E63', '#FFB800'] },
-  { id: 'mindbending', label: 'Mind Benders', icon: 'Sparkles', gradient: ['#7928CA', '#00F0FF'] },
-  { id: 'laughs', label: 'Pure Laughs', icon: 'Smile', gradient: ['#00F0FF', '#00DFD8'] },
-  { id: 'cozy', label: 'Cozy & Chill', icon: 'Coffee', gradient: ['#FFB800', '#FF8E53'] },
-  { id: 'date', label: 'Date Night', icon: 'Heart', gradient: ['#FF2E63', '#9B51E0'] },
+  { id: 'epic', label: 'Adrenaline & Epic', icon: 'Flame', gradient: ['#E11D48', '#E5A93C'] },
+  { id: 'mindbending', label: 'Mind Benders', icon: 'Sparkles', gradient: ['#8B5CF6', '#E5A93C'] },
+  { id: 'laughs', label: 'Pure Laughs', icon: 'Smile', gradient: ['#E5A93C', '#F59E0B'] },
+  { id: 'cozy', label: 'Cozy & Chill', icon: 'Coffee', gradient: ['#D97706', '#92400E'] },
+  { id: 'date', label: 'Date Night', icon: 'Heart', gradient: ['#E11D48', '#8B5CF6'] },
 ];
 
 
