@@ -8,6 +8,12 @@ export class CinemaProvider {
     this.dataSource = 'LIVE'; // 'LIVE' | 'CACHED' | 'REGIONAL SCHEDULE' | 'USER CREATED'
     this.isLiveSource = true;
     this.sourceLabel = 'Live Ticketing API';
+    this.capabilities = {
+      cinemas: false,
+      showtimes: false,
+      seats: false,
+      booking: false,
+    };
   }
 
   /**

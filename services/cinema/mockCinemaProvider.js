@@ -7,6 +7,13 @@ export class MockCinemaProvider extends CinemaProvider {
     this.dataSource = 'REGIONAL SCHEDULE';
     this.isLiveSource = false;
     this.sourceLabel = 'Regional Theater Schedule (Sample)';
+    this.isProviderAvailable = true;
+    this.capabilities = {
+      cinemas: true,
+      showtimes: true,
+      seats: true,
+      booking: true,
+    };
   }
 
   async getNearbyCinemas(location) {

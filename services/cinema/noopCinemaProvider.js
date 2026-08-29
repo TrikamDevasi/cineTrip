@@ -16,6 +16,12 @@ export class NoopCinemaProvider extends CinemaProvider {
     this.sourceLabel = 'No live ticketing provider connected';
     this.unavailableReason =
       'Live showtimes are not available for this location yet. Connect a ticketing provider to see real cinemas, showtimes and seats.';
+    this.capabilities = {
+      cinemas: false,
+      showtimes: false,
+      seats: false,
+      booking: false,
+    };
   }
 
   async getNearbyCinemas() {

@@ -78,6 +78,34 @@ const buildDateOptions = () => {
 const DATE_OPTIONS = buildDateOptions();
 const providerAvailable = Boolean(cinemaService.isProviderAvailable);
 
+/**
+ * Parse a showtime slot time string into a Date object for today.
+ * Supports 12-hour formats ("7:30 PM", "11:00 AM") and 24-hour formats ("19:30", "07:30").
+ * Returns null if parsing fails.
+ */
+function parseSlotTime(timeStr) {
+  try {
+    const str = timeStr.trim().toUpperCase();
+    const base = new Date();
+    const ampm = str.includes('AM') || str.includes('PM');
+    if (ampm) {
+      const isPM = str.includes('PM');
+      const clean = str.replace(/AM|PM/g, '').trim();
+      const [h, m] = clean.split(':').map(Number);
+      let hour = h;
+      if (isPM && hour < 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
+      base.setHours(hour, m || 0, 0, 0);
+    } else {
+      const [h, m] = str.split(':').map(Number);
+      base.setHours(h, m || 0, 0, 0);
+    }
+    return base;
+  } catch {
+    return null;
+  }
+}
+
 export default function PlannerScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'plans'
@@ -157,7 +185,22 @@ export default function PlannerScreen() {
         draft.cinema.id,
         draft.date
       );
-      setShowtimes(Array.isArray(list) ? list : []);
+      const allSlots = Array.isArray(list) ? list : [];
+
+      // Filter out expired slots when the selected date is today.
+      const todayIso = new Date().toISOString().split('T')[0];
+      const isToday = draft.date === todayIso;
+      let filtered = allSlots;
+      if (isToday) {
+        const now = new Date();
+        filtered = allSlots.filter((slot) => {
+          if (!slot.time) return true; // keep if no time string
+          // Expect slot.time like "7:30 PM" or "19:30"
+          const parsed = parseSlotTime(slot.time);
+          return parsed ? parsed > now : true;
+        });
+      }
+      setShowtimes(filtered);
     } catch (e) {
       console.warn('Failed to load showtimes:', e.message);
       setShowtimes([]);
@@ -630,14 +673,14 @@ export default function PlannerScreen() {
 
               {/* Seat Selection */}
               <Text style={styles.subStepLabel}>AUDITORIUM SEAT SELECTION</Text>
-              {!providerAvailable && (
+              {(!providerAvailable || !cinemaService.capabilities?.seats) && (
                 <Text style={styles.demoNote}>
-                  DEMO SEAT LAYOUT — illustrative only. Live seats appear once a showtime provider is
-                  connected for this theatre.
+                  PREVIEW SEAT LAYOUT — Seat inventory is illustrative only. Real-time seat availability
+                  will appear once a verified ticketing provider is connected for this theatre.
                 </Text>
               )}
               <InteractiveSeatMap
-                demo={!providerAvailable}
+                demo={!providerAvailable || !cinemaService.capabilities?.seats}
                 selectedSeats={draft.seats ? draft.seats.split(', ').filter(Boolean) : []}
                 onSeatsChange={(newSeats) => {
                   setDraftNotes({ seats: newSeats.join(', ') });

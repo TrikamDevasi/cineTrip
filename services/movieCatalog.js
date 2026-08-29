@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getNowPlayingMovies } from './tmdb';
 import APP_CONFIG from '../constants/config';
+import { cinemaService } from './cinema';
 
 /**
  * Verifiable "currently in theatres" movie catalog.
@@ -205,7 +206,13 @@ export function getMovieAvailability(movie) {
     };
   }
 
+  // Restrict booking eligibility based on real cinema provider connection status
+  const providerAvailable = Boolean(cinemaService.isProviderAvailable);
+
   if (snapshot.ids.has(id)) {
+    if (!providerAvailable) {
+      return { status: 'NOW_PLAYING', canBook: false, label: 'No verified screenings' };
+    }
     return { status: 'NOW_PLAYING', canBook: true, label: 'In Theatres' };
   }
 
@@ -227,6 +234,7 @@ export function getMovieAvailability(movie) {
 export function isMovieNowPlaying(movie) {
   const snapshot = makeSnapshot();
   if (!snapshot.hasData) return false;
+  if (!cinemaService.isProviderAvailable) return false;
   const id = toNumber(movie && movie.id);
   return id ? snapshot.ids.has(id) : false;
 }

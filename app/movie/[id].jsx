@@ -240,6 +240,32 @@ export default function MovieDetailScreen() {
             </View>
           )}
 
+          {/* THEATRICAL AVAILABILITY */}
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionHeading}>THEATRICAL AVAILABILITY</Text>
+            {availability.canBook ? (
+              <View style={styles.availabilityCard}>
+                <View style={styles.statusDotLive} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.availabilityTitle}>Currently Playing Near You</Text>
+                  <Text style={styles.availabilitySubtitle}>
+                    Verified showtimes are available for planning. Tap 'Plan Movie Night' to start.
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.availabilityCardUnavail}>
+                <View style={styles.statusDotUnavail} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.availabilityTitleUnavail}>Not currently showing near you</Text>
+                  <Text style={styles.availabilitySubtitle}>
+                    No active screenings or showtimes were returned by your regional cinema provider.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+
           {/* 5. SYNOPSIS */}
           {movie.overview ? (
             <View style={styles.sectionBlock}>
@@ -467,5 +493,56 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textMuted,
     textAlign: 'center',
+  },
+  availabilityCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.25)',
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+  availabilityCardUnavail: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: SPACING.sm,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+  statusDotLive: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#22c55e',
+    marginTop: 5,
+  },
+  statusDotUnavail: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: COLORS.textMuted,
+    marginTop: 5,
+  },
+  availabilityTitle: {
+    ...TYPOGRAPHY.body,
+    fontWeight: '700',
+    color: '#22c55e',
+    marginBottom: 2,
+  },
+  availabilityTitleUnavail: {
+    ...TYPOGRAPHY.body,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginBottom: 2,
+  },
+  availabilitySubtitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textMuted,
+    lineHeight: 18,
   },
 });
