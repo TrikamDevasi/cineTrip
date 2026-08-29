@@ -1,5 +1,10 @@
 import * as Location from 'expo-location';
 
+/**
+ * DEMO-ONLY sample theatres used by MockCinemaProvider when DEMO_MODE is
+ * enabled. These are fabricated (names, addresses, distances) and must never
+ * be rendered as real theatres in production flows.
+ */
 export const SAMPLE_CINEMAS = [
   {
     id: 'cinema-1',
@@ -63,54 +68,43 @@ export const SAMPLE_CINEMAS = [
   },
 ];
 
-export async function getCurrentCityAndCinemas() {
+/**
+ * Resolve the user's current city and coordinates.
+ * Returns location facts only — cinema discovery is delegated to the cinema
+ * provider so no fabricated theatres/distance ever reach production.
+ */
+export async function getCurrentCity() {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      return {
-        city: 'Mumbai',
-        cinemas: SAMPLE_CINEMAS,
-        permissionGranted: false,
-      };
+      return { city: null, coordinates: null, permissionGranted: false };
     }
 
     const location = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,
     });
 
-    let city = 'Local Metro';
+    let city = null;
     try {
       const reverse = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
       if (reverse && reverse.length > 0) {
-        city = reverse[0].city || reverse[0].subregion || reverse[0].name || 'Current City';
+        city = reverse[0].city || reverse[0].subregion || reverse[0].name || null;
       }
     } catch (e) {
       console.warn('Reverse geocode warning:', e.message);
     }
 
-    // Dynamic cinema distances tailored to user location
-    const dynamicCinemas = SAMPLE_CINEMAS.map((c, i) => ({
-      ...c,
-      city: city,
-      distanceKm: Number((1.5 + i * 2.3).toFixed(1)),
-    }));
-
     return {
       city,
       coordinates: location.coords,
-      cinemas: dynamicCinemas,
       permissionGranted: true,
     };
   } catch (error) {
-    console.warn('Location service fallback:', error.message);
-    return {
-      city: 'Mumbai',
-      cinemas: SAMPLE_CINEMAS,
-      permissionGranted: false,
-    };
+    console.warn('Location service error:', error.message);
+    return { city: null, coordinates: null, permissionGranted: false };
   }
 }
 
@@ -182,10 +176,11 @@ export async function reverseGeocode(coords) {
 }
 
 /**
- * Calculate distance in km between two lat/lng coordinates (Haversine formula)
+ * Calculate distance in km between two lat/lng coordinates (Haversine formula).
+ * Returns null when coordinates are missing — never a fabricated value.
  */
 export function getDistanceKm(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return '2.1';
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
   const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;

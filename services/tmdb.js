@@ -9,6 +9,7 @@ export const getImageUri = (path, size = 'w500') => {
 
 const API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY || '';
 const API_TOKEN = process.env.EXPO_PUBLIC_TMDB_API_TOKEN || '';
+const isApiConfigured = Boolean(API_KEY || API_TOKEN);
 
 const getHeaders = () => {
   const headers = { 'Content-Type': 'application/json' };
@@ -18,7 +19,9 @@ const getHeaders = () => {
   return headers;
 };
 
-// Curated high-fidelity fallback dataset for offline/zero-config use
+// Curated sample dataset for DEMO mode / development only.
+// NEVER served in production flows: it is not verifiable as currently
+// screening, so it is never eligible for planning/booking.
 export const FALLBACK_MOVIES = [
   {
     id: 693134,
@@ -179,121 +182,85 @@ export const MOODS = [
 ];
 
 
-export const CINEMA_CHAINS = [
-  { id: 'imax', name: 'IMAX Laser 3D', brand: 'IMAX', tag: 'Ultimate Screen', color: '#0072CE' },
-  { id: 'dolby', name: 'Dolby Cinema at AMC', brand: 'Dolby', tag: 'Atmos & Vision', color: '#FF1352' },
-  { id: 'pvr', name: 'PVR INOX Director’s Cut', brand: 'PVR', tag: 'Luxury Dining', color: '#FFB800' },
-  { id: '4dx', name: '4DX Dynamic Cinema', brand: '4DX', tag: 'Motion & FX', color: '#10B981' },
-  { id: 'cinemark', name: 'Cinemark XD', brand: 'Cinemark', tag: 'Custom Sound', color: '#8B5CF6' },
-  { id: 'regal', name: 'Regal ScreenX 270°', brand: 'Regal', tag: 'Panoramic View', color: '#00F0FF' },
-];
-
 // Service API Methods
-export async function getTrendingMovies(page = 1) {
-  if (API_KEY || API_TOKEN) {
-    try {
-      const url = API_KEY
-        ? `${TMDB_BASE_URL}/trending/movie/week?api_key=${API_KEY}&page=${page}`
-        : `${TMDB_BASE_URL}/trending/movie/week?page=${page}`;
-      const res = await fetch(url, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        return data.results || FALLBACK_MOVIES;
-      }
-    } catch (e) {
-      console.warn('TMDB Trending fetch failed, using fallback:', e.message);
-    }
+// These methods return ONLY verifiable, live TMDB data. On failure or when no
+// API credentials are configured they return empty results (never fabricated
+// movies) so the UI can show honest empty/retry states.
+
+async function fetchJson(url, headers) {
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new Error(`TMDB request failed (${res.status})`);
   }
-  return FALLBACK_MOVIES;
+  return res.json();
+}
+
+export async function getTrendingMovies(page = 1) {
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/trending/movie/week?api_key=${API_KEY}&page=${page}`
+      : `${TMDB_BASE_URL}/trending/movie/week?page=${page}`;
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB Trending fetch failed:', e.message);
+    return [];
+  }
 }
 
 export async function getNowPlayingMovies(page = 1) {
-  if (API_KEY || API_TOKEN) {
-    try {
-      const url = API_KEY
-        ? `${TMDB_BASE_URL}/movie/now_playing?api_key=${API_KEY}&page=${page}`
-        : `${TMDB_BASE_URL}/movie/now_playing?page=${page}`;
-      const res = await fetch(url, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        return data.results || FALLBACK_MOVIES;
-      }
-    } catch (e) {
-      console.warn('TMDB Now Playing fetch failed, using fallback:', e.message);
-    }
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/movie/now_playing?api_key=${API_KEY}&page=${page}`
+      : `${TMDB_BASE_URL}/movie/now_playing?page=${page}`;
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB Now Playing fetch failed:', e.message);
+    return [];
   }
-  return FALLBACK_MOVIES.filter(m => m.status === 'Now Playing' || m.status.includes('IMAX'));
 }
 
 export async function getUpcomingMovies(page = 1) {
-  if (API_KEY || API_TOKEN) {
-    try {
-      const url = API_KEY
-        ? `${TMDB_BASE_URL}/movie/upcoming?api_key=${API_KEY}&page=${page}`
-        : `${TMDB_BASE_URL}/movie/upcoming?page=${page}`;
-      const res = await fetch(url, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        return data.results || FALLBACK_MOVIES;
-      }
-    } catch (e) {
-      console.warn('TMDB Upcoming fetch failed, using fallback:', e.message);
-    }
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/movie/upcoming?api_key=${API_KEY}&page=${page}`
+      : `${TMDB_BASE_URL}/movie/upcoming?page=${page}`;
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB Upcoming fetch failed:', e.message);
+    return [];
   }
-  return FALLBACK_MOVIES;
 }
 
 export async function searchMovies(query) {
   if (!query || !query.trim()) return [];
-  if (API_KEY || API_TOKEN) {
-    try {
-      const url = API_KEY
-        ? `${TMDB_BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
-        : `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`;
-      const res = await fetch(url, { headers: getHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        return data.results || [];
-      }
-    } catch (e) {
-      console.warn('TMDB search failed, fallback search:', e.message);
-    }
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
+      : `${TMDB_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`;
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB search failed:', e.message);
+    return [];
   }
-  const q = query.toLowerCase();
-  return FALLBACK_MOVIES.filter(m => 
-    m.title.toLowerCase().includes(q) || 
-    (m.overview && m.overview.toLowerCase().includes(q))
-  );
 }
 
 export async function getMovieDetails(id) {
-  if (API_KEY || API_TOKEN) {
-    try {
-      const url = API_KEY
-        ? `${TMDB_BASE_URL}/movie/${id}?api_key=${API_KEY}&append_to_response=credits,videos,similar`
-        : `${TMDB_BASE_URL}/movie/${id}?append_to_response=credits,videos,similar`;
-      const res = await fetch(url, { headers: getHeaders() });
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (e) {
-      console.warn('TMDB Movie Details failed:', e.message);
-    }
+  if (!isApiConfigured) return null;
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/movie/${id}?api_key=${API_KEY}&append_to_response=credits,videos,similar`
+      : `${TMDB_BASE_URL}/movie/${id}?append_to_response=credits,videos,similar`;
+    return await fetchJson(url, getHeaders());
+  } catch (e) {
+    console.warn('TMDB Movie Details failed:', e.message);
+    return null;
   }
-  const fallback = FALLBACK_MOVIES.find(m => m.id === Number(id)) || FALLBACK_MOVIES[0];
-  return {
-    ...fallback,
-    credits: {
-      cast: [
-        { id: 1, name: 'Timothée Chalamet', character: 'Paul Atreides', profile_path: '/BE2sdjpgsa2rNTFa66f7ikNVNZ.jpg' },
-        { id: 2, name: 'Zendaya', character: 'Chani', profile_path: '/tyl20sE6qPzM0y6lWk6mN5V0xP1.jpg' },
-        { id: 3, name: 'Rebecca Ferguson', character: 'Lady Jessica', profile_path: '/4qQnEvpL9HffN28x7hR8XpL2k0D.jpg' },
-        { id: 4, name: 'Austin Butler', character: 'Feyd-Rautha', profile_path: '/b44e0078028f0807b5ec1e66c6b3e.jpg' },
-        { id: 5, name: 'Javier Bardem', character: 'Stilgar', profile_path: '/3YpAeVrC4aDsm2j8uI3R3J2p7R8.jpg' },
-      ],
-    },
-    similar: {
-      results: FALLBACK_MOVIES.filter(m => m.id !== Number(id)).slice(0, 4),
-    },
-  };
 }

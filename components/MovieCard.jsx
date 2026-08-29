@@ -15,6 +15,7 @@ import AnimatedPressable from './ui/AnimatedPressable';
 import { getImageUri } from '../services/tmdb';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { usePlannerStore } from '../store/usePlannerStore';
+import { useMovieCatalog } from '../hooks/useMovieCatalog';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -30,6 +31,10 @@ export default function MovieCard({
   const isInWatchlist = useWatchlistStore((s) => s.isInWatchlist(movie.id));
   const toggleWatchlist = useWatchlistStore((s) => s.toggleWatchlist);
   const setDraftMovie = usePlannerStore((s) => s.setDraftMovie);
+  const { getAvailability } = useMovieCatalog();
+
+  const availability = getAvailability(movie);
+  const canPlanNight = availability.canBook;
 
   if (!movie) return null;
 
@@ -46,13 +51,14 @@ export default function MovieCard({
   };
 
   const handlePlanTrip = () => {
+    if (!canPlanNight) return;
     setDraftMovie(movie);
     router.push('/(tabs)/planner');
   };
 
-  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '8.2';
-  const year = movie.release_date ? movie.release_date.split('-')[0] : '2026';
-  const formats = movie.formats || ['IMAX Laser', 'Dolby Cinema', '4DX'];
+  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : null;
+  const year = movie.release_date ? movie.release_date.split('-')[0] : '';
+  const formats = movie.formats || [];
 
   if (layout === 'horizontal') {
     return (
@@ -60,7 +66,7 @@ export default function MovieCard({
         style={styles.horizontalCard}
         activeOpacity={0.85}
         onPress={handlePressCard}
-        accessibilityLabel={`${movie.title}, rated ${rating}`}
+        accessibilityLabel={`${movie.title}${rating ? `, rated ${rating}` : ''}`}
       >
         <Image
           source={{ uri: getImageUri(movie.poster_path, 'w342') }}
@@ -68,34 +74,44 @@ export default function MovieCard({
         />
         <View style={styles.horizontalContent}>
           <View style={styles.topMetaRow}>
-            <View style={styles.ratingBadge}>
-              <Star size={11} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
-              <Text style={styles.ratingText}>{rating}</Text>
-            </View>
-            <Text style={styles.yearText}>{year}</Text>
+            {rating && (
+              <View style={styles.ratingBadge}>
+                <Star size={11} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
+                <Text style={styles.ratingText}>{rating}</Text>
+              </View>
+            )}
+            {year ? <Text style={styles.yearText}>{year}</Text> : null}
           </View>
 
           <Text style={styles.title} numberOfLines={2}>
             {movie.title}
           </Text>
 
-          <View style={styles.formatRow}>
-            {formats.slice(0, 2).map((fmt, idx) => (
-              <FormatBadge key={idx} format={fmt} size="small" />
-            ))}
-          </View>
+          {formats.length > 0 && (
+            <View style={styles.formatRow}>
+              {formats.slice(0, 2).map((fmt, idx) => (
+                <FormatBadge key={idx} format={fmt} size="small" />
+              ))}
+            </View>
+          )}
 
           <View style={styles.horizontalActionRow}>
-            <TouchableOpacity
-              style={styles.quickPlanBtn}
-              onPress={handlePlanTrip}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={`Plan movie night for ${movie.title}`}
-            >
-              <Ticket size={14} color="#07090E" strokeWidth={2.2} />
-              <Text style={styles.quickPlanText}>Plan Night</Text>
-            </TouchableOpacity>
+            {canPlanNight ? (
+              <TouchableOpacity
+                style={styles.quickPlanBtn}
+                onPress={handlePlanTrip}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`Plan movie night for ${movie.title}`}
+              >
+                <Ticket size={14} color="#07090E" strokeWidth={2.2} />
+                <Text style={styles.quickPlanText}>Plan Night</Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.notPlayingLabel} numberOfLines={1}>
+                {availability.label}
+              </Text>
+            )}
 
             <TouchableOpacity
               style={styles.bookmarkBtn}
@@ -120,7 +136,7 @@ export default function MovieCard({
     <AnimatedPressable
       style={[styles.verticalCard, { width: cardWidth }]}
       onPress={handlePressCard}
-      accessibilityLabel={`${movie.title}, rated ${rating}`}
+      accessibilityLabel={`${movie.title}${rating ? `, rated ${rating}` : ''}`}
     >
       <View style={styles.posterContainer}>
         <Image
@@ -149,10 +165,12 @@ export default function MovieCard({
         </TouchableOpacity>
 
         {/* Rating pill */}
-        <View style={styles.floatingRating}>
-          <Star size={11} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
-          <Text style={styles.floatingRatingText}>{rating}</Text>
-        </View>
+        {rating && (
+          <View style={styles.floatingRating}>
+            <Star size={11} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
+            <Text style={styles.floatingRatingText}>{rating}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.verticalContent}>
@@ -160,19 +178,26 @@ export default function MovieCard({
           {movie.title}
         </Text>
         <Text style={styles.verticalSubtitle} numberOfLines={1}>
-          {year} • {movie.genres && movie.genres[0] ? (movie.genres[0].name || movie.genres[0]) : 'Cinema'}
+          {year ? `${year} • ` : ''}
+          {movie.genres && movie.genres[0] ? (movie.genres[0].name || movie.genres[0]) : 'Cinema'}
         </Text>
 
-        <TouchableOpacity
-          style={styles.verticalPlanBtn}
-          onPress={handlePlanTrip}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={`Plan movie night for ${movie.title}`}
-        >
-          <Ticket size={13} color={COLORS.primary} strokeWidth={2.2} />
-          <Text style={styles.verticalPlanText}>Plan Night</Text>
-        </TouchableOpacity>
+        {canPlanNight ? (
+          <TouchableOpacity
+            style={styles.verticalPlanBtn}
+            onPress={handlePlanTrip}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Plan movie night for ${movie.title}`}
+          >
+            <Ticket size={13} color={COLORS.primary} strokeWidth={2.2} />
+            <Text style={styles.verticalPlanText}>Plan Night</Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.verticalNotPlayingLabel} numberOfLines={1}>
+            {availability.label}
+          </Text>
+        )}
       </View>
     </AnimatedPressable>
   );
@@ -269,6 +294,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.primary,
   },
+  verticalNotPlayingLabel: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    minHeight: 32,
+    paddingVertical: 6,
+    textAlign: 'center',
+  },
   horizontalCard: {
     flexDirection: 'row',
     backgroundColor: COLORS.card,
@@ -344,6 +377,13 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.captionBold,
     fontSize: 12,
     color: '#07090E',
+  },
+  notPlayingLabel: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    flex: 1,
+    marginRight: SPACING.sm,
   },
   bookmarkBtn: {
     width: 38,

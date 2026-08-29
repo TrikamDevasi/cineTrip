@@ -16,9 +16,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FormatBadge from '../../components/FormatBadge';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
-import { getMovieDetails, getImageUri, FALLBACK_MOVIES } from '../../services/tmdb';
+import { getMovieDetails, getImageUri } from '../../services/tmdb';
 import { useWatchlistStore } from '../../store/useWatchlistStore';
 import { usePlannerStore } from '../../store/usePlannerStore';
+import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function MovieDetailScreen() {
@@ -26,10 +27,12 @@ export default function MovieDetailScreen() {
   const router = useRouter();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   const isInWatchlist = useWatchlistStore((s) => (movie ? s.isInWatchlist(movie.id) : false));
   const toggleWatchlist = useWatchlistStore((s) => s.toggleWatchlist);
   const setDraftMovie = usePlannerStore((s) => s.setDraftMovie);
+  const { getAvailability } = useMovieCatalog();
 
   useEffect(() => {
     loadMovie();
@@ -37,13 +40,21 @@ export default function MovieDetailScreen() {
 
   const loadMovie = async () => {
     setLoading(true);
+    setNotFound(false);
     const data = await getMovieDetails(id);
-    setMovie(data || FALLBACK_MOVIES[0]);
+    if (!data) {
+      setNotFound(true);
+      setMovie(null);
+    } else {
+      setMovie(data);
+    }
     setLoading(false);
   };
 
   const handlePlanNight = () => {
     if (!movie) return;
+    const availability = getAvailability(movie);
+    if (!availability.canBook) return;
     setDraftMovie(movie);
     router.push('/(tabs)/planner');
   };
@@ -57,7 +68,7 @@ export default function MovieDetailScreen() {
     } catch (e) {}
   };
 
-  if (loading || !movie) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -65,12 +76,29 @@ export default function MovieDetailScreen() {
     );
   }
 
+  if (notFound || !movie) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Movie not found, or the catalog is unavailable.</Text>
+        <View style={{ marginTop: SPACING.md }}>
+          <Button
+            title="Go Back"
+            variant="surface"
+            size="md"
+            onPress={() => router.back()}
+          />
+        </View>
+      </View>
+    );
+  }
+
   const cast = movie.credits && movie.credits.cast ? movie.credits.cast.slice(0, 8) : [];
-  const formats = movie.formats || ['IMAX Laser', 'Dolby Cinema', '4DX'];
-  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : '8.2';
-  const year = movie.release_date ? movie.release_date.split('-')[0] : '2026';
-  const runtime = movie.runtime ? `${movie.runtime} min` : '165 min';
-  const genres = movie.genres ? movie.genres.map(g => (typeof g === 'object' ? g.name : g)).join(' • ') : 'Action • Sci-Fi';
+  const formats = movie.formats || [];
+  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : null;
+  const year = movie.release_date ? movie.release_date.split('-')[0] : '';
+  const runtime = movie.runtime ? `${movie.runtime} min` : '';
+  const genres = movie.genres ? movie.genres.map(g => (typeof g === 'object' ? g.name : g)).join(' • ') : '';
+  const availability = getAvailability(movie);
 
   return (
     <View style={styles.container}>
@@ -135,34 +163,59 @@ export default function MovieDetailScreen() {
                 </Text>
               ) : null}
 
-              <View style={styles.metaRow}>
-                <View style={styles.ratingBadge}>
-                  <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
-                  <Text style={styles.ratingText}>{rating}</Text>
+              {rating || year || runtime ? (
+                <View style={styles.metaRow}>
+                  {rating && (
+                    <View style={styles.ratingBadge}>
+                      <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
+                      <Text style={styles.ratingText}>{rating}</Text>
+                    </View>
+                  )}
+                  {year ? (
+                    <React.Fragment>
+                      <Text style={styles.metaDivider}>•</Text>
+                      <Text style={styles.metaText}>{year}</Text>
+                    </React.Fragment>
+                  ) : null}
+                  {runtime ? (
+                    <React.Fragment>
+                      <Text style={styles.metaDivider}>•</Text>
+                      <Text style={styles.metaText}>{runtime}</Text>
+                    </React.Fragment>
+                  ) : null}
                 </View>
-                <Text style={styles.metaDivider}>•</Text>
-                <Text style={styles.metaText}>{year}</Text>
-                <Text style={styles.metaDivider}>•</Text>
-                <Text style={styles.metaText}>{runtime}</Text>
-              </View>
+              ) : null}
 
-              <Text style={styles.genreText} numberOfLines={1}>
-                {genres}
-              </Text>
+              {genres ? (
+                <Text style={styles.genreText} numberOfLines={1}>
+                  {genres}
+                </Text>
+              ) : null}
             </View>
           </View>
 
           {/* 3. PRIMARY CTA ACTION BAR */}
           <View style={styles.actionBlock}>
             <View style={styles.primaryActionWrap}>
-              <Button
-                title="Plan Movie Night"
-                icon="Ticket"
-                variant="primary"
-                size="lg"
-                onPress={handlePlanNight}
-                accessibilityLabel={`Plan movie night for ${movie.title}`}
-              />
+              {availability.canBook ? (
+                <Button
+                  title="Plan Movie Night"
+                  icon="Ticket"
+                  variant="primary"
+                  size="lg"
+                  onPress={handlePlanNight}
+                  accessibilityLabel={`Plan movie night for ${movie.title}`}
+                />
+              ) : (
+                <Button
+                  title={availability.status === 'UPCOMING' ? 'Coming Soon' : availability.label}
+                  icon="Ticket"
+                  variant="primary"
+                  size="lg"
+                  disabled
+                  accessibilityLabel={`${movie.title} is not bookable`}
+                />
+              )}
             </View>
 
             <Button
@@ -176,22 +229,24 @@ export default function MovieDetailScreen() {
           </View>
 
           {/* 4. THEATRICAL FORMAT AVAILABILITY */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeading}>AVAILABLE FORMATS</Text>
-            <View style={styles.formatsWrap}>
-              {formats.map((fmt, idx) => (
-                <FormatBadge key={idx} format={fmt} size="medium" />
-              ))}
+          {formats.length > 0 && (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionHeading}>AVAILABLE FORMATS</Text>
+              <View style={styles.formatsWrap}>
+                {formats.map((fmt, idx) => (
+                  <FormatBadge key={idx} format={fmt} size="medium" />
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* 5. SYNOPSIS */}
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeading}>SYNOPSIS</Text>
-            <Text style={styles.overviewText}>
-              {movie.overview || 'Experience this cinematic masterpiece in certified high-format auditoriums.'}
-            </Text>
-          </View>
+          {movie.overview ? (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionHeading}>SYNOPSIS</Text>
+              <Text style={styles.overviewText}>{movie.overview}</Text>
+            </View>
+          ) : null}
 
           {/* 6. CAST & CHARACTERS */}
           {cast.length > 0 && (
@@ -233,6 +288,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: SPACING.lg,
+    maxWidth: 300,
   },
   scroll: {
     flex: 1,

@@ -16,13 +16,17 @@ export default function TicketCard({ plan, isFullPass = false }) {
   const movie = plan.movie;
   const cinema = plan.cinema || {};
   const friends = plan.friends || [];
+  const isPlan = !plan.bookingRef || plan.bookingStatus === 'plan';
 
   const handleOpenTicket = () => {
     router.push(`/ticket/${plan._id || plan.id}`);
   };
 
   const handleShare = async () => {
-    const message = `🎬 Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || 'IMAX Laser'}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || 'General Admission'}\n\n🎟 Pass: ${plan.bookingRef || 'CT-48291'}\n\nSee you there!`;
+    const title = isPlan ? 'Movie Night Plan' : 'Movie Night Pass';
+    const message = isPlan
+      ? `🎬 Movie Night Plan\n\nMovie: ${movie.title}\nDate: ${plan.date || 'TBD'}\n\nThis is a personal plan — live ticketing will be enabled once a showtime provider is connected.`
+      : `🎬 Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || ''}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || ''}\n\n🎟 ${title}: ${plan.bookingRef}\n\nSee you there!`;
     try {
       await Share.share({ message });
     } catch (err) {
@@ -37,10 +41,12 @@ export default function TicketCard({ plan, isFullPass = false }) {
         <View style={styles.headerRow}>
           <View style={styles.brandingRow}>
             <Ticket size={15} color={COLORS.primary} strokeWidth={2.2} />
-            <Text style={styles.passHeaderTitle}>CINETRIP PASS</Text>
+            <Text style={styles.passHeaderTitle}>{isPlan ? 'CINETRIP MOVIE PLAN' : 'CINETRIP PASS'}</Text>
           </View>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{plan.status || 'UPCOMING'}</Text>
+            <Text style={styles.statusText}>
+              {plan.status === 'cancelled' ? 'CANCELLED' : isPlan ? 'PLAN' : 'CONFIRMED'}
+            </Text>
           </View>
         </View>
 
@@ -51,14 +57,16 @@ export default function TicketCard({ plan, isFullPass = false }) {
         <View style={styles.cinemaRow}>
           <Film size={14} color={COLORS.primary} strokeWidth={2} />
           <Text style={styles.cinemaName} numberOfLines={1}>
-            {cinema.name || 'Cinema Auditorium'}
+            {cinema.name || (isPlan ? 'Live showtimes not connected yet' : 'Cinema Auditorium')}
           </Text>
         </View>
 
-        <View style={styles.formatRow}>
-          <FormatBadge format={cinema.screenType || 'IMAX Laser'} size="small" />
-          {cinema.city && <FormatBadge format={cinema.city} size="small" />}
-        </View>
+        {cinema.screenType || cinema.city ? (
+          <View style={styles.formatRow}>
+            {cinema.screenType ? <FormatBadge format={cinema.screenType} size="small" /> : null}
+            {cinema.city ? <FormatBadge format={cinema.city} size="small" /> : null}
+          </View>
+        ) : null}
       </View>
 
       {/* Perforated Stub Divider Line with Notches */}
@@ -73,16 +81,20 @@ export default function TicketCard({ plan, isFullPass = false }) {
         <View style={styles.metaGrid}>
           <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>DATE & TIME</Text>
-            <Text style={styles.metaValue}>{plan.date}</Text>
-            <Text style={styles.metaHighlight}>{plan.time}</Text>
+            <Text style={styles.metaValue}>{plan.date || 'TBD'}</Text>
+            {plan.time ? <Text style={styles.metaHighlight}>{plan.time}</Text> : <Text style={styles.metaHighlight}>Time TBD</Text>}
           </View>
 
           <View style={styles.metaItem}>
             <Text style={styles.metaLabel}>SEATS / ROW</Text>
             <Text style={styles.metaValue} numberOfLines={1}>
-              {plan.seats || 'Row F (Center)'}
+              {plan.seats || 'TBD'}
             </Text>
-            <Text style={styles.bookingRefText}>REF: {plan.bookingRef || 'CT-8921'}</Text>
+            {isPlan ? (
+              <Text style={styles.bookingRefText}>No live booking yet</Text>
+            ) : (
+              <Text style={styles.bookingRefText}>REF: {plan.bookingRef}</Text>
+            )}
           </View>
         </View>
 

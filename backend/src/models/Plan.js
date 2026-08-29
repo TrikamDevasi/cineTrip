@@ -27,8 +27,21 @@ const planSchema = new mongoose.Schema(
       distanceKm: { type: Number },
     },
     date: { type: String, required: true },
-    time: { type: String, required: true },
-    slotName: { type: String },
+    time: { type: String, default: '' },
+    slotName: { type: String, default: '' },
+    showtime: {
+      id: { type: String },
+      time: { type: String },
+      label: { type: String },
+      cinemaId: { type: String },
+    },
+    showtimeId: { type: String, default: '' },
+    bookingStatus: {
+      type: String,
+      enum: ['plan', 'pending', 'confirmed', 'cancelled'],
+      default: 'plan',
+    },
+    ticketingConnected: { type: Boolean, default: false },
     friends: [
       {
         id: { type: String },

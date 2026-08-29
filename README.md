@@ -264,9 +264,18 @@ Create `.env` in the project root:
 # API Base URL (leave as default for automatic detection)
 EXPO_PUBLIC_API_URL=http://localhost:5000
 
-# TMDB Configuration (Optional - offline catalog is pre-packaged)
+# TMDB Configuration (Required for verified "Now in Theaters" listings)
 EXPO_PUBLIC_TMDB_API_KEY=your_tmdb_api_key
 EXPO_PUBLIC_TMDB_API_TOKEN=your_tmdb_bearer_token
+
+# ----- Data Authenticity Flags ------------------------------------------
+# DEMO_MODE gates ALL sample/simulated data (fallback catalog, sample
+# theatres, simulated showtimes & seat maps). Keep false in production —
+# the app then only presents data it can verify from a real source.
+EXPO_PUBLIC_DEMO_MODE=false
+
+# Cinema / showtime provider: 'none' (default) | 'mock' (demo only)
+EXPO_PUBLIC_CINEMA_PROVIDER=none
 
 # Supabase Authentication (For Google OAuth PKCE)
 EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co

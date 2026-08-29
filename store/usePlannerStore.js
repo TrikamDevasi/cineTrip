@@ -6,13 +6,16 @@ import api from '../services/api';
 const DEFAULT_DRAFT = {
   movie: null,
   cinema: null,
+  showtime: null,
+  showtimeId: '',
   date: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-  time: '19:30',
-  slotName: 'Prime Evening (19:30)',
+  time: '',
+  slotName: '',
   friends: [],
   notes: '',
   seats: '',
   bookingRef: '',
+  bookingStatus: 'plan',
   snacks: [],
 };
 
@@ -76,6 +79,17 @@ export const usePlannerStore = create(
           },
         })),
 
+      setDraftShowtime: (showtime) =>
+        set((state) => ({
+          draft: {
+            ...state.draft,
+            showtime,
+            showtimeId: (showtime && (showtime.id || showtime.showtimeId)) || '',
+            time: (showtime && showtime.time) || state.draft.time,
+            slotName: (showtime && (showtime.label || showtime.slotName)) || state.draft.slotName,
+          },
+        })),
+
       setDraftNotes: ({ notes, seats, bookingRef, snacks }) =>
         set((state) => ({
           draft: {
@@ -121,6 +135,7 @@ export const usePlannerStore = create(
           _id: tempId,
           createdAt: new Date().toISOString(),
           status: 'upcoming',
+          bookingStatus: 'plan',
           ...newPlanData,
         };
 

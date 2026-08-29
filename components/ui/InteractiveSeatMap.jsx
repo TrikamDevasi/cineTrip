@@ -12,6 +12,7 @@ export default function InteractiveSeatMap({
   onSeatsChange,
   maxSeats = 6,
   ticketPrice = 350,
+  demo = false,
 }) {
   const isSeatOccupied = (seatId) => OCCUPIED_PRESETS.includes(seatId);
   const isSeatSelected = (seatId) => selectedSeats.includes(seatId);
@@ -31,10 +32,19 @@ export default function InteractiveSeatMap({
 
   return (
     <View style={styles.container}>
+      {demo && (
+        <View style={styles.demoNotice}>
+          <Info size={14} color={COLORS.textSecondary} strokeWidth={2} />
+          <Text style={styles.demoNoticeText}>
+            DEMO SEAT LAYOUT — occupancy and pricing are illustrative, not live availability.
+          </Text>
+        </View>
+      )}
+
       {/* Curved Screen Indicator */}
       <View style={styles.screenContainer}>
         <View style={styles.screenArc} />
-        <Text style={styles.screenText}>CURVED LASER SCREEN</Text>
+        <Text style={styles.screenText}>SCREEN</Text>
       </View>
 
       {/* Seat Legend */}
@@ -121,7 +131,7 @@ export default function InteractiveSeatMap({
         </View>
 
         <View style={styles.summaryRight}>
-          <Text style={styles.priceLabel}>EST. TOTAL</Text>
+          <Text style={styles.priceLabel}>{demo ? 'EST. TOTAL (DEMO)' : 'EST. TOTAL'}</Text>
           <Text style={styles.priceValue}>₹{totalPrice}</Text>
         </View>
       </View>
@@ -136,6 +146,24 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
+  },
+  demoNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xs,
+    padding: SPACING.sm,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  demoNoticeText: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    flex: 1,
+    lineHeight: 16,
   },
   screenContainer: {
     alignItems: 'center',

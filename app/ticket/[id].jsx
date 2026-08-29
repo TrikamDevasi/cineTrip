@@ -34,7 +34,7 @@ export default function TicketModalScreen() {
             onPress={() => router.back()}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle}>Digital Cinema Pass</Text>
+<Text style={styles.headerTitle}>{isPlan ? 'Movie Plan' : 'Digital Cinema Pass'}</Text>
           <View style={{ width: 44 }} />
         </View>
         <View style={styles.centerContainer}>
@@ -44,16 +44,23 @@ export default function TicketModalScreen() {
     );
   }
 
+  const isPlan = !plan.bookingRef || plan.bookingStatus === 'plan';
+
   const handleCopyRef = async () => {
-    const ref = plan.bookingRef || 'CT-88429';
-    await Clipboard.setStringAsync(ref);
-    Alert.alert('Copied!', `Booking reference "${ref}" copied to clipboard.`);
+    if (!plan.bookingRef) {
+      Alert.alert('No Booking Reference', 'A booking reference appears once live ticketing is connected.');
+      return;
+    }
+    await Clipboard.setStringAsync(plan.bookingRef);
+    Alert.alert('Copied!', `Booking reference "${plan.bookingRef}" copied to clipboard.`);
   };
 
   const handleSharePass = async () => {
     const movie = plan.movie || {};
     const cinema = plan.cinema || {};
-    const message = `🎬 Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || 'IMAX Laser'}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || 'General Admission'}\n\n🎟 Pass: ${plan.bookingRef || 'CT-48291'}\n\nSee you there!`;
+    const message = isPlan
+      ? `🎬 Movie Night Plan\n\nMovie: ${movie.title}\nDate: ${plan.date || 'TBD'}\n\nThis is a personal plan — live ticketing will be enabled once a showtime provider is connected.`
+      : `🎬 Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || ''}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || ''}\n\n🎟 Pass: ${plan.bookingRef}\n\nSee you there!`;
     try {
       await Share.share({ message });
     } catch (e) {}
@@ -86,10 +93,19 @@ export default function TicketModalScreen() {
           {/* Structured Verifiable Turnstile Entry Module */}
           <View style={styles.qrCard}>
             <QRCodeView plan={plan} />
-            
+
             <View style={styles.bookingRefRow}>
-              <Text style={styles.refLabel}>BOOKING REFERENCE</Text>
-              <Text style={styles.bookingRef}>{plan.bookingRef || 'CT-88429'}</Text>
+              <Text style={styles.refLabel}>
+                {isPlan ? 'BOOKING STATUS' : 'BOOKING REFERENCE'}
+              </Text>
+              <Text style={styles.bookingRef}>
+                {isPlan ? 'PLAN — NOT BOOKED YET' : plan.bookingRef}
+              </Text>
+              {isPlan ? (
+                <Text style={styles.refNote}>
+                  A live booking reference appears here once a showtime provider is connected.
+                </Text>
+              ) : null}
             </View>
 
             <View style={styles.qrActionRow}>
@@ -184,6 +200,15 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.badge,
     fontSize: 10,
     color: COLORS.textMuted,
+  },
+  refNote: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 16,
+    marginTop: 4,
   },
   bookingRef: {
     ...TYPOGRAPHY.displayMedium,

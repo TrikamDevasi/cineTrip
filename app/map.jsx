@@ -24,8 +24,9 @@ import { useRouter } from 'expo-router';
 import IconButton from '../components/ui/IconButton';
 import Button from '../components/ui/Button';
 import FormatBadge from '../components/FormatBadge';
+import EmptyState from '../components/ui/EmptyState';
 import { useLocation } from '../hooks/useLocation';
-import { SAMPLE_CINEMAS } from '../services/location';
+import { cinemaService } from '../services/cinema';
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import { usePlannerStore } from '../store/usePlannerStore';
 
@@ -41,20 +42,25 @@ try {
 export default function MapScreen() {
   const router = useRouter();
   const setDraftCinema = usePlannerStore((s) => s.setDraftCinema);
-  const { location, address, isLoading, error, getCurrentLocation, getLastKnownLocation } = useLocation();
+  const { location, getCurrentLocation, getLastKnownLocation } = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedAddress, setSelectedAddress] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [cinemas] = useState(SAMPLE_CINEMAS);
+  const [cinemas, setCinemas] = useState([]);
+  const [cinemaLoading, setCinemaLoading] = useState(true);
   const mapRef = useRef(null);
+  const providerAvailable = Boolean(cinemaService.isProviderAvailable);
 
   useEffect(() => {
     initLocation();
   }, []);
 
   const initLocation = async () => {
-    const coords = await getCurrentLocation();
+    let coords = await getCurrentLocation();
+    if (!coords) {
+      coords = await getLastKnownLocation();
+    }
     if (coords) {
       setSelectedLocation(coords);
       if (mapRef.current) {
@@ -65,9 +71,25 @@ export default function MapScreen() {
           longitudeDelta: 0.05,
         }, 1000);
       }
-    } else {
-      const last = await getLastKnownLocation();
-      if (last) setSelectedLocation(last);
+    }
+    loadCinemas(coords);
+  };
+
+  const loadCinemas = async (coords) => {
+    if (!providerAvailable) {
+      setCinemas([]);
+      setCinemaLoading(false);
+      return;
+    }
+    setCinemaLoading(true);
+    try {
+      const list = await cinemaService.getNearbyCinemas(coords);
+      setCinemas(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.warn('Failed to load cinemas:', e.message);
+      setCinemas([]);
+    } finally {
+      setCinemaLoading(false);
     }
   };
 
@@ -90,9 +112,9 @@ export default function MapScreen() {
       return;
     }
 
-    const results = SAMPLE_CINEMAS.filter((c) =>
-      c.name.toLowerCase().includes(text.toLowerCase()) ||
-      c.address.toLowerCase().includes(text.toLowerCase())
+    const q = text.toLowerCase();
+    const results = cinemas.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q)
     );
     setSearchResults(results);
   };
@@ -180,36 +202,63 @@ export default function MapScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.cinemaListContent}
       >
-        <Text style={styles.listHeading}>CERTIFIED PREMIUM THEATERS NEARBY</Text>
-        {cinemas.map((cinema) => (
-          <View key={cinema.id} style={styles.cinemaCard}>
-            <View style={styles.cinemaCardHeader}>
-              <View style={styles.cinemaTitleCol}>
-                <Text style={styles.cinemaName}>{cinema.name}</Text>
-                <Text style={styles.cinemaAddress}>{cinema.address}</Text>
-              </View>
-              <Text style={styles.distanceBadge}>{cinema.distance || '2.1 km'}</Text>
-            </View>
+        <Text style={styles.listHeading}>
+          {providerAvailable ? 'VERIFIED THEATRES NEARBY' : 'THEATRE LISTINGS'}
+        </Text>
 
-            <View style={styles.formatRow}>
-              <FormatBadge format={cinema.screenType || 'IMAX Laser'} size="small" />
-              {cinema.features && cinema.features[0] && (
-                <FormatBadge format={cinema.features[0]} size="small" />
-              )}
-            </View>
-
-            <View style={styles.cardActionRow}>
-              <Button
-                title="Plan Movie Night Here"
-                icon="Ticket"
-                variant="primary"
-                size="sm"
-                onPress={() => handleSelectCinemaForTrip(cinema)}
-                accessibilityLabel={`Plan movie night at ${cinema.name}`}
-              />
-            </View>
+        {cinemaLoading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator color={COLORS.primary} size="large" />
+            <Text style={styles.loadingText}>Loading verified theatres…</Text>
           </View>
-        ))}
+        ) : !cinemas.length ? (
+          <EmptyState
+            icon="MapPin"
+            title="Live theatres aren't available here yet"
+            description={
+              providerAvailable
+                ? 'No verified cinemas were returned for your area.'
+                : 'CineTrip needs a ticketing provider connected to show real cinemas, addresses and showtimes. Sample theatres are never shown as real.'
+            }
+            actionLabel={providerAvailable ? 'Search again' : undefined}
+            actionIcon="Search"
+            onAction={() => loadCinemas(selectedLocation)}
+          />
+        ) : (
+          cinemas.map((cinema) => (
+            <View key={cinema.id} style={styles.cinemaCard}>
+              <View style={styles.cinemaCardHeader}>
+                <View style={styles.cinemaTitleCol}>
+                  <Text style={styles.cinemaName}>{cinema.name}</Text>
+                  <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+                </View>
+                {cinema.distanceKm != null && (
+                  <Text style={styles.distanceBadge}>{cinema.distanceKm} km</Text>
+                )}
+              </View>
+
+              <View style={styles.formatRow}>
+                {cinema.screenType ? (
+                  <FormatBadge format={cinema.screenType} size="small" />
+                ) : null}
+                {cinema.features && cinema.features[0] ? (
+                  <FormatBadge format={cinema.features[0]} size="small" />
+                ) : null}
+              </View>
+
+              <View style={styles.cardActionRow}>
+                <Button
+                  title="Plan Movie Night Here"
+                  icon="Ticket"
+                  variant="primary"
+                  size="sm"
+                  onPress={() => handleSelectCinemaForTrip(cinema)}
+                  accessibilityLabel={`Plan movie night at ${cinema.name}`}
+                />
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -297,6 +346,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.textMuted,
     marginBottom: SPACING.md,
+  },
+  loadingBox: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl,
+  },
+  loadingText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
   },
   cinemaCard: {
     backgroundColor: COLORS.card,

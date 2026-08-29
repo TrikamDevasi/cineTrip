@@ -17,64 +17,60 @@ import MovieCard from '../../components/MovieCard';
 import TicketCard from '../../components/TicketCard';
 import SectionHeader from '../../components/SectionHeader';
 import FormatBadge from '../../components/FormatBadge';
+import DataSourceBadge from '../../components/DataSourceBadge';
+import EmptyState from '../../components/ui/EmptyState';
 import { MovieCardSkeleton, CinemaCardSkeleton } from '../../components/ui/Skeleton';
-import {
-  getTrendingMovies,
-  getNowPlayingMovies,
-  FALLBACK_MOVIES,
-} from '../../services/tmdb';
-import { getCurrentCityAndCinemas, SAMPLE_CINEMAS } from '../../services/location';
+import { useMovieCatalog } from '../../hooks/useMovieCatalog';
+import { cinemaService } from '../../services/cinema';
+import { getCurrentCity } from '../../services/location';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [trending, setTrending] = useState([]);
-  const [nowPlaying, setNowPlaying] = useState([]);
   const [cinemas, setCinemas] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [cinemaLoading, setCinemaLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const plans = usePlannerStore((s) => s.plans);
   const nextPlan = plans && plans.length > 0 ? plans[0] : null;
   const updateProfile = usePreferencesStore((s) => s.updateProfile);
+  const { snapshot: catalog, refresh: refreshCatalog } = useMovieCatalog();
+  const providerAvailable = Boolean(cinemaService.isProviderAvailable);
 
-  const loadData = async () => {
+  const nowPlaying = catalog.movies;
+  const loading = catalog.loading || cinemaLoading;
+
+  const loadCinemas = async () => {
+    if (!providerAvailable) {
+      setCinemas([]);
+      setCinemaLoading(false);
+      return;
+    }
+    setCinemaLoading(true);
     try {
-      const [trend, now, loc] = await Promise.all([
-        getTrendingMovies(),
-        getNowPlayingMovies(),
-        getCurrentCityAndCinemas(),
-      ]);
-
-      setTrending(trend && trend.length > 0 ? trend : FALLBACK_MOVIES);
-      setNowPlaying(now && now.length > 0 ? now : FALLBACK_MOVIES);
-
-      if (loc && loc.cinemas && loc.cinemas.length > 0) {
-        setCinemas(loc.cinemas);
-        if (loc.city) {
-          updateProfile({ city: loc.city });
-        }
-      } else {
-        setCinemas(SAMPLE_CINEMAS);
+      const loc = await getCurrentCity();
+      if (loc && loc.city) {
+        updateProfile({ city: loc.city });
       }
+      const list = await cinemaService.getNearbyCinemas(loc && loc.coordinates);
+      setCinemas(Array.isArray(list) ? list : []);
     } catch (e) {
-      setTrending(FALLBACK_MOVIES);
-      setNowPlaying(FALLBACK_MOVIES);
-      setCinemas(SAMPLE_CINEMAS);
+      console.warn('Failed to load cinemas:', e.message);
+      setCinemas([]);
     } finally {
-      setLoading(false);
+      setCinemaLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadCinemas();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
+    await Promise.all([refreshCatalog(), loadCinemas()]);
     setRefreshing(false);
   };
 
@@ -101,7 +97,7 @@ export default function HomeScreen() {
             <MovieCardSkeleton width="100%" />
           </View>
         ) : (
-          <HeroBanner movies={trending.slice(0, 4)} />
+          <HeroBanner movies={nowPlaying.slice(0, 4)} />
         )}
 
         {/* ACTIVE UPCOMING TICKET (Conditional) */}
@@ -118,11 +114,28 @@ export default function HomeScreen() {
         {/* GROUP 2: NOW IN THEATERS CAROUSEL */}
         <SectionHeader
           title="Now in Theaters"
-          subtitle="IMAX 70mm, Laser & Dolby Cinema screenings"
+          subtitle={
+            !catalog.hasData
+              ? 'No verified screenings right now'
+              : catalog.isCached
+              ? 'Cached from an earlier check — pull to refresh'
+              : 'Verified from live movie listings'
+          }
           icon="Film"
-          actionText="See All"
+          actionText={catalog.hasData ? 'See All' : undefined}
           onAction={() => router.push('/(tabs)/discover')}
         />
+
+        <View style={styles.sourceBadgeRow}>
+          <DataSourceBadge
+            source={catalog.dataSource || 'UNAVAILABLE'}
+            label={
+              catalog.dataSource
+                ? `${catalog.dataSource} — now playing`
+                : 'No movie catalog connected'
+            }
+          />
+        </View>
 
         {loading ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
@@ -130,6 +143,19 @@ export default function HomeScreen() {
             <MovieCardSkeleton />
             <MovieCardSkeleton />
           </ScrollView>
+        ) : nowPlaying.length === 0 ? (
+          <EmptyState
+            icon="Film"
+            title="No Verified Screenings"
+            description={
+              catalog.error
+                ? "We couldn't reach the movie catalog. Check your connection and try again."
+                : 'Nothing is verified as currently in theatres right now. Connect a movie catalog (TMDB) to see what is really playing.'
+            }
+            actionLabel="Retry"
+            actionIcon="RefreshCw"
+            onAction={() => refreshCatalog()}
+          />
         ) : (
           <FlatList
             horizontal
@@ -143,8 +169,12 @@ export default function HomeScreen() {
 
         {/* GROUP 3: PREMIUM SCREENS NEAR YOU */}
         <SectionHeader
-          title="Certified Auditoriums"
-          subtitle="Nearest IMAX Laser, Dolby Atmos & 4DX theaters"
+          title="Theatres Near You"
+          subtitle={
+            providerAvailable
+              ? 'Verified from your showtime provider'
+              : 'Live theatres require a ticketing provider'
+          }
           icon="MapPin"
           actionText="Map"
           onAction={() => router.push('/map')}
@@ -155,7 +185,7 @@ export default function HomeScreen() {
             <CinemaCardSkeleton />
             <CinemaCardSkeleton />
           </View>
-        ) : (
+        ) : providerAvailable && cinemas.length > 0 ? (
           <View style={styles.cinemaContainer}>
             {cinemas.slice(0, 3).map((cinema) => (
               <TouchableOpacity
@@ -171,22 +201,33 @@ export default function HomeScreen() {
                     <Text style={styles.cinemaName} numberOfLines={1}>
                       {cinema.name}
                     </Text>
-                    <Text style={styles.distanceBadge}>{cinema.distance || '2.1 km'}</Text>
+                    {cinema.distanceKm != null && (
+                      <Text style={styles.distanceBadge}>{cinema.distanceKm} km</Text>
+                    )}
                   </View>
                   <Text style={styles.cinemaAddress} numberOfLines={1}>
                     {cinema.address}
                   </Text>
                   <View style={styles.cinemaFormatsRow}>
-                    <FormatBadge format={cinema.screenType || 'IMAX Laser'} size="small" />
-                    {cinema.features && cinema.features[0] && (
+                    {cinema.screenType ? <FormatBadge format={cinema.screenType} size="small" /> : null}
+                    {cinema.features && cinema.features[0] ? (
                       <FormatBadge format={cinema.features[0]} size="small" />
-                    )}
+                    ) : null}
                   </View>
                 </View>
                 <ChevronRight size={18} color={COLORS.textMuted} strokeWidth={2} />
               </TouchableOpacity>
             ))}
           </View>
+        ) : (
+          <EmptyState
+            icon="MapPin"
+            title="Live theatres aren't available here yet"
+            description="CineTrip needs a ticketing provider for your area to list real cinemas and showtimes. Sample theatres are never shown as real."
+            actionLabel="Open Map"
+            actionIcon="MapPin"
+            onAction={() => router.push('/map')}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -234,6 +275,10 @@ const styles = StyleSheet.create({
   horizontalList: {
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.sm,
+  },
+  sourceBadgeRow: {
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
   },
   cinemaContainer: {
     paddingHorizontal: SPACING.lg,

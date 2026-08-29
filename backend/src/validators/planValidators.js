@@ -2,7 +2,7 @@ const { z } = require('zod');
 
 const createPlanSchema = z.object({
   movie: z.object({
-    id: z.number().optional(),
+    id: z.coerce.number('A verified movie id is required').int().positive(),
     title: z.string().min(1, 'Movie title is required'),
     poster_path: z.string().optional(),
     backdrop_path: z.string().optional(),
@@ -21,9 +21,22 @@ const createPlanSchema = z.object({
       distanceKm: z.number().optional(),
     })
     .optional(),
-  date: z.string().min(1, 'Date is required'),
-  time: z.string().min(1, 'Time is required'),
-  slotName: z.string().optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be a valid YYYY-MM-DD day'),
+  time: z.string().max(10).optional(),
+  slotName: z.string().max(60).optional(),
+  showtime: z
+    .object({
+      id: z.string().optional(),
+      time: z.string().optional(),
+      label: z.string().optional(),
+      cinemaId: z.string().optional(),
+    })
+    .optional(),
+  showtimeId: z.string().max(100).optional(),
+  bookingStatus: z.enum(['plan', 'pending', 'confirmed', 'cancelled']).optional(),
+  ticketingConnected: z.boolean().optional(),
   friends: z
     .array(
       z.object({
@@ -36,7 +49,7 @@ const createPlanSchema = z.object({
     )
     .optional(),
   notes: z.string().max(1000).optional(),
-  seats: z.string().max(200).optional(),
+  seats: z.union([z.string().max(200), z.array(z.string()).max(60)]).optional(),
   bookingRef: z.string().max(100).optional(),
   snacks: z.array(z.string()).optional(),
   status: z.enum(['upcoming', 'completed', 'cancelled']).optional(),

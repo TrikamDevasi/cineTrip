@@ -5,6 +5,7 @@ import { Sparkles, Star, Ticket, Info } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { getImageUri } from '../services/tmdb';
 import { usePlannerStore } from '../store/usePlannerStore';
+import { useMovieCatalog } from '../hooks/useMovieCatalog';
 import FormatBadge from './FormatBadge';
 import Button from './ui/Button';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
@@ -16,12 +17,15 @@ export default function HeroBanner({ movies = [] }) {
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
   const setDraftMovie = usePlannerStore((s) => s.setDraftMovie);
+  const { getAvailability } = useMovieCatalog();
 
   if (!movies || movies.length === 0) return null;
 
   const currentMovie = movies[activeIndex] || movies[0];
+  const canPlanNight = getAvailability(currentMovie).canBook;
 
   const handlePlanNight = () => {
+    if (!canPlanNight) return;
     setDraftMovie(currentMovie);
     router.push('/(tabs)/planner');
   };
@@ -93,22 +97,24 @@ export default function HeroBanner({ movies = [] }) {
               </TouchableOpacity>
 
               <View style={styles.formatRow}>
-                {(movie.formats || ['IMAX Laser', 'Dolby Cinema', '4DX']).slice(0, 3).map((fmt, i) => (
+                {(movie.formats || []).slice(0, 3).map((fmt, i) => (
                   <FormatBadge key={i} format={fmt} size="small" />
                 ))}
               </View>
 
               <View style={styles.ctaRow}>
-                <View style={styles.planBtnWrap}>
-                  <Button
-                    title="Plan Movie Night"
-                    icon="Ticket"
-                    variant="primary"
-                    size="md"
-                    onPress={handlePlanNight}
-                    accessibilityLabel={`Plan movie night for ${movie.title}`}
-                  />
-                </View>
+                {canPlanNight && (
+                  <View style={styles.planBtnWrap}>
+                    <Button
+                      title="Plan Movie Night"
+                      icon="Ticket"
+                      variant="primary"
+                      size="md"
+                      onPress={handlePlanNight}
+                      accessibilityLabel={`Plan movie night for ${movie.title}`}
+                    />
+                  </View>
+                )}
 
                 <Button
                   title="Details"

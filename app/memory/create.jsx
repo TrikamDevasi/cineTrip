@@ -37,6 +37,8 @@ import Rating from '../../components/ui/Rating';
 import Chip from '../../components/ui/Chip';
 import { mediaUploader } from '../../services/media/mediaUploader';
 import { FALLBACK_MOVIES, getImageUri } from '../../services/tmdb';
+import { useMovieCatalog } from '../../hooks/useMovieCatalog';
+import APP_CONFIG from '../../constants/config';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useContacts } from '../../hooks/useContacts';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
@@ -73,9 +75,9 @@ export default function CreateMemoryScreen() {
   const [videoUri, setVideoUri] = useState(null);
 
   // Form state
-  const [selectedMovie, setSelectedMovie] = useState(FALLBACK_MOVIES[0]);
-  const [cinemaName, setCinemaName] = useState('Certified IMAX Auditorium');
-  const [experienceType, setExperienceType] = useState('IMAX Laser 3D');
+  const [selectedMovie, setSelectedMovie] = useState(APP_CONFIG.DEMO_MODE ? FALLBACK_MOVIES[0] : null);
+  const [cinemaName, setCinemaName] = useState(params.cinemaName ? String(params.cinemaName) : '');
+  const [experienceType, setExperienceType] = useState(params.screenType ? String(params.screenType) : 'IMAX Laser 3D');
   const [rating, setRating] = useState(5);
   const [story, setStory] = useState('');
   const [favoriteMoment, setFavoriteMoment] = useState('');
@@ -85,10 +87,18 @@ export default function CreateMemoryScreen() {
 
   const addMemory = useMemoryStore((s) => s.addMemory);
   const { contacts } = useContacts();
+  const { snapshot: catalog } = useMovieCatalog();
+  const movieOptions = APP_CONFIG.DEMO_MODE ? FALLBACK_MOVIES : catalog.movies;
+
+  useEffect(() => {
+    if (!selectedMovie && catalog.movies && catalog.movies.length > 0) {
+      setSelectedMovie(catalog.movies[0]);
+    }
+  }, [catalog.movies]);
 
   useEffect(() => {
     if (params.movieTitle) {
-      const match = FALLBACK_MOVIES.find(
+      const match = movieOptions.find(
         (m) =>
           m.title.toLowerCase() === params.movieTitle.toLowerCase() ||
           String(m.id) === String(params.movieId)
@@ -97,7 +107,7 @@ export default function CreateMemoryScreen() {
         setSelectedMovie(match);
       } else {
         setSelectedMovie({
-          id: params.movieId ? Number(params.movieId) : Date.now(),
+          id: params.movieId || null,
           title: params.movieTitle,
           poster_path: params.posterPath || null,
         });
@@ -227,12 +237,14 @@ export default function CreateMemoryScreen() {
       }
 
       await addMemory({
-        movie: {
-          id: selectedMovie.id,
-          title: selectedMovie.title,
-          poster_path: selectedMovie.poster_path,
-        },
-        cinemaName: cinemaName.trim() || 'IMAX Laser Cinema',
+        movie: selectedMovie
+          ? { id: selectedMovie.id, title: selectedMovie.title, poster_path: selectedMovie.poster_path }
+          : {
+              id: null,
+              title: cinemaName.trim() ? `Screening at ${cinemaName.trim()}` : 'Untitled Screening',
+              poster_path: null,
+            },
+        cinemaName: cinemaName.trim() || (selectedMovie ? 'Cinema' : ''),
         experienceType,
         rating,
         story: story.trim(),
@@ -420,20 +432,26 @@ export default function CreateMemoryScreen() {
           {/* 2. CHOOSE MOVIE */}
           <View style={styles.formSection}>
             <Text style={styles.sectionHeading}>MOVIE WATCHED</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalChips}>
-              {FALLBACK_MOVIES.map((movie) => {
-                const isSelected = selectedMovie.id === movie.id;
-                return (
-                  <Chip
-                    key={movie.id}
-                    label={movie.title}
-                    selected={isSelected}
-                    onPress={() => setSelectedMovie(movie)}
-                    accessibilityLabel={`Select movie ${movie.title}`}
-                  />
-                );
-              })}
-            </ScrollView>
+            {movieOptions.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalChips}>
+                {movieOptions.map((movie) => {
+                  const isSelected = selectedMovie && selectedMovie.id === movie.id;
+                  return (
+                    <Chip
+                      key={movie.id}
+                      label={movie.title}
+                      selected={isSelected}
+                      onPress={() => setSelectedMovie(movie)}
+                      accessibilityLabel={`Select movie ${movie.title}`}
+                    />
+                  );
+                })}
+              </ScrollView>
+            ) : (
+              <Text style={styles.emptyMoviesText}>
+                No verified movies are available to attach right now. You can still log the memory below.
+              </Text>
+            )}
           </View>
 
           {/* 3. CINEMA & FORMAT */}
@@ -683,6 +701,12 @@ const styles = StyleSheet.create({
   },
   horizontalChips: {
     flexDirection: 'row',
+  },
+  emptyMoviesText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.sm,
+    lineHeight: 18,
   },
   textInput: {
     backgroundColor: COLORS.surface,

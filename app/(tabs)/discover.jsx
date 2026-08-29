@@ -12,25 +12,28 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, X, Film } from 'lucide-react-native';
+import { Search, X, Film, Sparkles, Calendar, TrendingUp } from 'lucide-react-native';
 import Header from '../../components/Header';
 import MovieCard from '../../components/MovieCard';
 import Chip from '../../components/ui/Chip';
 import EmptyState from '../../components/ui/EmptyState';
 import { MovieCardSkeleton } from '../../components/ui/Skeleton';
 import MoodSelector from '../../components/MoodSelector';
-import {
-  searchMovies,
-  getTrendingMovies,
-  FALLBACK_MOVIES,
-} from '../../services/tmdb';
+import { searchMovies, getTrendingMovies, getNowPlayingMovies, getUpcomingMovies } from '../../services/tmdb';
+import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import { useDebounce } from '../../hooks/useDebounce';
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FORMAT_FILTERS = ['All Formats', 'IMAX Laser', 'Dolby Cinema', '4DX', 'RealD 3D'];
+const CATEGORY_TABS = [
+  { id: 'in_theaters', label: 'Now in Theaters', icon: Film },
+  { id: 'trending', label: 'Trending', icon: TrendingUp },
+  { id: 'upcoming', label: 'Coming Soon', icon: Calendar },
+];
 
 export default function DiscoverScreen() {
+  const [activeCategory, setActiveCategory] = useState('in_theaters');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFormat, setSelectedFormat] = useState('All Formats');
   const [selectedGenre, setSelectedGenre] = useState(null);
@@ -43,28 +46,42 @@ export default function DiscoverScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const debouncedSearch = useDebounce(searchQuery, 400);
 
+  const { snapshot: catalog, refresh: refreshCatalog } = useMovieCatalog();
+
   useEffect(() => {
-    loadInitial();
-  }, []);
+    if (!debouncedSearch.trim()) {
+      loadCategory(activeCategory, 1);
+    }
+  }, [activeCategory]);
 
   useEffect(() => {
     if (debouncedSearch.trim()) {
       handleSearch(debouncedSearch);
     } else if (debouncedSearch === '') {
-      loadInitial();
+      loadCategory(activeCategory, 1);
     }
   }, [debouncedSearch]);
 
-  const loadInitial = async () => {
+  const loadCategory = async (category, page = 1) => {
     setLoading(true);
     try {
-      const results = await getTrendingMovies(1);
-      const movieList = results && results.length > 0 ? results : FALLBACK_MOVIES;
-      setMovies(movieList);
-      setCurrentPage(1);
-      setHasMore(movieList.length >= 20);
+      let results = [];
+      if (category === 'in_theaters') {
+        if (catalog.hasData && page === 1) {
+          results = catalog.movies;
+        } else {
+          results = await getNowPlayingMovies(page);
+        }
+      } else if (category === 'trending') {
+        results = await getTrendingMovies(page);
+      } else if (category === 'upcoming') {
+        results = await getUpcomingMovies(page);
+      }
+      setMovies(Array.isArray(results) ? results : []);
+      setCurrentPage(page);
+      setHasMore((Array.isArray(results) ? results : []).length >= 20);
     } catch {
-      setMovies(FALLBACK_MOVIES);
+      setMovies([]);
     } finally {
       setLoading(false);
     }
@@ -75,7 +92,14 @@ export default function DiscoverScreen() {
     setLoadingMore(true);
     try {
       const nextPage = currentPage + 1;
-      const results = await getTrendingMovies(nextPage);
+      let results = [];
+      if (activeCategory === 'in_theaters') {
+        results = await getNowPlayingMovies(nextPage);
+      } else if (activeCategory === 'trending') {
+        results = await getTrendingMovies(nextPage);
+      } else if (activeCategory === 'upcoming') {
+        results = await getUpcomingMovies(nextPage);
+      }
       if (results && results.length > 0) {
         setMovies((prev) => [...prev, ...results]);
         setCurrentPage(nextPage);
@@ -92,7 +116,7 @@ export default function DiscoverScreen() {
 
   const handleSearch = async (text) => {
     if (!text.trim()) {
-      loadInitial();
+      loadCategory(activeCategory, 1);
       return;
     }
     setLoading(true);
@@ -109,7 +133,10 @@ export default function DiscoverScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadInitial();
+    if (activeCategory === 'in_theaters') {
+      await refreshCatalog();
+    }
+    await loadCategory(activeCategory, 1);
     setRefreshing(false);
   };
 
@@ -117,7 +144,7 @@ export default function DiscoverScreen() {
   const filteredMovies = movies.filter((movie) => {
     let matchesFormat = true;
     if (selectedFormat !== 'All Formats') {
-      const f = (movie.formats || ['IMAX Laser', 'Dolby Cinema']).join(' ').toLowerCase();
+      const f = (movie.formats || []).join(' ').toLowerCase();
       matchesFormat = f.includes(selectedFormat.toLowerCase().replace('laser', '').trim());
     }
 
@@ -154,21 +181,49 @@ export default function DiscoverScreen() {
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              style={styles.clearBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Clear search text"
-            >
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>
               <X size={16} color={COLORS.textMuted} strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* FILTER CHIPS: FORMATS */}
+      {/* CATEGORY SELECTOR TABS */}
+      {!searchQuery.trim() && (
+        <View style={styles.categoryTabsContainer}>
+          {CATEGORY_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = activeCategory === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.categoryTab, isSelected && styles.categoryTabActive]}
+                onPress={() => setActiveCategory(tab.id)}
+                activeOpacity={0.8}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
+              >
+                <Icon
+                  size={15}
+                  color={isSelected ? '#07090E' : COLORS.textSecondary}
+                  strokeWidth={2.2}
+                />
+                <Text style={[styles.categoryTabText, isSelected && styles.categoryTabTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      {/* FORMAT FILTER CHIPS */}
       <View style={styles.filtersSection}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterChipsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
           {FORMAT_FILTERS.map((fmt) => (
             <Chip
               key={fmt}
@@ -185,66 +240,67 @@ export default function DiscoverScreen() {
       <View style={styles.moodSection}>
         <MoodSelector
           selectedMood={selectedMood}
-          onSelectMood={(m) => setSelectedMood(m === selectedMood ? null : m)}
+          onSelectMood={(moodId) => setSelectedMood(moodId)}
         />
       </View>
 
-      {/* MOVIES GRID */}
-      {loading ? (
-        <ScrollView contentContainerStyle={styles.skeletonGrid}>
-          <View style={styles.gridRow}>
-            <MovieCardSkeleton width={columnWidth} />
-            <MovieCardSkeleton width={columnWidth} />
-          </View>
-          <View style={styles.gridRow}>
-            <MovieCardSkeleton width={columnWidth} />
-            <MovieCardSkeleton width={columnWidth} />
-          </View>
-        </ScrollView>
-      ) : filteredMovies.length === 0 ? (
-        <EmptyState
-          icon="Film"
-          title="No Films Found"
-          description={searchQuery ? `No results for "${searchQuery}". Try different keywords or formats.` : "No films matching selected filters."}
-          actionLabel="Clear Filters"
-          onAction={() => {
-            setSearchQuery('');
-            setSelectedFormat('All Formats');
-            setSelectedGenre(null);
-            setSelectedMood(null);
-            loadInitial();
-          }}
-        />
-      ) : (
-        <FlatList
-          data={filteredMovies}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={styles.gridContainer}
-          showsVerticalScrollIndicator={false}
-          onEndReached={loadMoreMovies}
-          onEndReachedThreshold={0.4}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
+      {/* MOVIE GRID RESULTS */}
+      <FlatList
+        data={filteredMovies}
+        keyExtractor={(item, index) => `${item.id}-${index}`}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.gridContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+        onEndReached={loadMoreMovies}
+        onEndReachedThreshold={0.4}
+        ListEmptyComponent={
+          loading ? (
+            <View style={styles.skeletonGrid}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <View key={i} style={{ width: columnWidth, marginBottom: SPACING.md }}>
+                  <MovieCardSkeleton width={columnWidth} />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <EmptyState
+              icon="Film"
+              title={searchQuery ? 'No verified films found' : 'No titles available'}
+              description={
+                searchQuery
+                  ? `No verified catalog titles matched "${searchQuery}".`
+                  : activeCategory === 'in_theaters'
+                  ? 'No verified theatrical screenings currently found. Check your TMDB connection.'
+                  : 'No movie results found for the selected category and filters.'
+              }
+              actionLabel={searchQuery ? 'Clear Search' : undefined}
+              actionIcon="X"
+              onAction={searchQuery ? () => setSearchQuery('') : undefined}
             />
-          }
-          renderItem={({ item }) => (
-            <MovieCard movie={item} cardWidth={columnWidth} />
-          )}
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={styles.loadingMoreBox}>
-                <ActivityIndicator size="small" color={COLORS.primary} />
-              </View>
-            ) : null
-          }
-        />
-      )}
+          )
+        }
+        renderItem={({ item }) => (
+          <View style={{ width: columnWidth, marginBottom: SPACING.md }}>
+            <MovieCard movie={item} layout="vertical" cardWidth={columnWidth} />
+          </View>
+        )}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            </View>
+          ) : null
+        }
+      />
     </SafeAreaView>
   );
 }
@@ -256,8 +312,8 @@ const styles = StyleSheet.create({
   },
   searchBarWrapper: {
     paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xs,
-    marginBottom: SPACING.xs,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.xs,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -267,7 +323,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    minHeight: 44,
+    minHeight: 46,
+    ...SHADOWS.card,
   },
   searchIcon: {
     marginRight: SPACING.sm,
@@ -278,36 +335,61 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   clearBtn: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
+    padding: 6,
+  },
+  categoryTabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.lg,
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.xs,
+    gap: SPACING.xs,
+  },
+  categoryTab: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 7,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    gap: 6,
+  },
+  categoryTabActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryTabText: {
+    ...TYPOGRAPHY.captionBold,
+    color: COLORS.textSecondary,
+  },
+  categoryTabTextActive: {
+    color: '#07090E',
   },
   filtersSection: {
-    marginTop: SPACING.xs,
-  },
-  filterChipsRow: {
-    paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.xs,
+  },
+  filterScroll: {
+    paddingHorizontal: SPACING.lg,
   },
   moodSection: {
     marginBottom: SPACING.xs,
   },
-  gridContainer: {
+  gridContent: {
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xs,
     paddingBottom: SPACING.xxl * 2,
   },
   gridRow: {
     justifyContent: 'space-between',
-    marginBottom: SPACING.sm,
   },
   skeletonGrid: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  loadingMoreBox: {
-    paddingVertical: SPACING.lg,
+  footerLoader: {
+    paddingVertical: SPACING.md,
     alignItems: 'center',
   },
 });

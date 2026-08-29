@@ -12,6 +12,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -28,6 +29,8 @@ import {
   Armchair,
   Utensils,
   StickyNote,
+  Info,
+  RefreshCw,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
@@ -39,20 +42,15 @@ import Chip from '../../components/ui/Chip';
 import EmptyState from '../../components/ui/EmptyState';
 import InteractiveSeatMap from '../../components/ui/InteractiveSeatMap';
 import NetworkStatusBanner from '../../components/ui/NetworkStatusBanner';
-import { FALLBACK_MOVIES, getImageUri } from '../../services/tmdb';
+import DataSourceBadge from '../../components/DataSourceBadge';
+import { getImageUri } from '../../services/tmdb';
 import { cinemaService } from '../../services/cinema';
-import { SAMPLE_CINEMAS } from '../../services/location';
+import { getCurrentCity } from '../../services/location';
 import { getDeviceContacts, PRESET_SQUAD } from '../../services/contacts';
+import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
-
-const TIME_SLOTS = [
-  { time: '11:00 AM', label: 'Morning Matinee', badge: 'Save 20%' },
-  { time: '03:30 PM', label: 'Afternoon Show', badge: 'Popular' },
-  { time: '07:30 PM', label: 'Prime Evening', badge: 'Recommended' },
-  { time: '10:45 PM', label: 'Late Night Owl', badge: 'Atmospheric' },
-];
 
 const SNACK_OPTIONS = [
   'Giant Caramel Popcorn',
@@ -62,6 +60,23 @@ const SNACK_OPTIONS = [
   'Gourmet Hot Dog',
   'Dark Chocolate Bites',
 ];
+
+const buildDateOptions = () => {
+  const options = [];
+  for (let i = 0; i < 7; i += 1) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const iso = d.toISOString().split('T')[0];
+    options.push({
+      iso,
+      label: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+    });
+  }
+  return options;
+};
+
+const DATE_OPTIONS = buildDateOptions();
+const providerAvailable = Boolean(cinemaService.isProviderAvailable);
 
 export default function PlannerScreen() {
   const router = useRouter();
@@ -82,6 +97,7 @@ export default function PlannerScreen() {
     setDraftMovie,
     setDraftCinema,
     setDraftDateTime,
+    setDraftShowtime,
     setDraftNotes,
     toggleDraftFriend,
     addDraftFriend,
@@ -91,12 +107,64 @@ export default function PlannerScreen() {
     deletePlan,
   } = usePlannerStore();
 
+  const { snapshot: catalog, canBook, getAvailability, refresh: refreshCatalog } = useMovieCatalog();
+
+  const [cinemas, setCinemas] = useState([]);
+  const [showtimes, setShowtimes] = useState([]);
+  const [cinemaLoading, setCinemaLoading] = useState(false);
+  const [showtimesLoading, setShowtimesLoading] = useState(false);
+
   useEffect(() => {
     loadContacts();
     if (isAuthenticated) {
       fetchPlans();
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (providerAvailable) {
+      loadNearbyCinemas();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (providerAvailable && draft.movie && draft.cinema && draft.date) {
+      loadShowtimes();
+    } else {
+      setShowtimes([]);
+    }
+  }, [draft.movie, draft.cinema, draft.date]);
+
+  const loadNearbyCinemas = async () => {
+    setCinemaLoading(true);
+    try {
+      const loc = await getCurrentCity();
+      const list = await cinemaService.getNearbyCinemas(loc && loc.coordinates);
+      setCinemas(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.warn('Failed to load cinemas:', e.message);
+      setCinemas([]);
+    } finally {
+      setCinemaLoading(false);
+    }
+  };
+
+  const loadShowtimes = async () => {
+    setShowtimesLoading(true);
+    try {
+      const list = await cinemaService.getShowtimes(
+        draft.movie.id,
+        draft.cinema.id,
+        draft.date
+      );
+      setShowtimes(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.warn('Failed to load showtimes:', e.message);
+      setShowtimes([]);
+    } finally {
+      setShowtimesLoading(false);
+    }
+  };
 
   const loadContacts = async () => {
     const contacts = await getDeviceContacts();
@@ -112,8 +180,12 @@ export default function PlannerScreen() {
     setDraftCinema(cinema);
   };
 
-  const handleSelectTime = (slot) => {
-    setDraftDateTime(draft.date || 'Today', slot.time, slot.label);
+  const handleSelectShowtime = (slot) => {
+    setDraftShowtime(slot);
+  };
+
+  const handleSelectDate = (iso) => {
+    setDraftDateTime(iso, draft.time, draft.slotName);
   };
 
   const handleToggleSnack = (snack) => {
@@ -142,26 +214,63 @@ export default function PlannerScreen() {
       return;
     }
 
+    if (!canBook(draft.movie)) {
+      Alert.alert(
+        'Not Currently In Theatres',
+        'Only films verified as now playing can be planned for a movie night. Browse "Now in Theaters" to pick from what is actually screening.'
+      );
+      return;
+    }
+
+    let bookingStatus = 'plan';
+    let bookingRef = '';
+
+    if (providerAvailable) {
+      if (!draft.cinema) {
+        Alert.alert('Select a Theatre', 'Pick a theatre for your screening.');
+        return;
+      }
+      if (!draft.showtime) {
+        Alert.alert('Select a Showtime', `Pick a showtime for ${draft.movie.title} on ${draft.date}.`);
+        return;
+      }
+      const booking = await cinemaService.createBooking({
+        movieId: draft.movie.id,
+        cinemaId: draft.cinema.id,
+        showtimeId: draft.showtimeId,
+        seats: draft.seats || '',
+        date: draft.date,
+        time: draft.time,
+      });
+      if (!booking || !booking.success) {
+        Alert.alert('Booking Unavailable', 'The showtime provider could not confirm this booking right now.');
+        return;
+      }
+      bookingStatus = 'confirmed';
+      bookingRef = booking.bookingRef || '';
+    }
+
     setIsSaving(true);
     try {
       const newPlan = await addPlan({
         movie: draft.movie,
-        cinema: draft.cinema || SAMPLE_CINEMAS[0],
-        date: draft.date || 'Tonight',
-        time: draft.time || '07:30 PM',
-        slotName: draft.slotName || 'Prime Evening',
+        cinema: providerAvailable ? draft.cinema : null,
+        date: draft.date || DATE_OPTIONS[0].iso,
+        time: providerAvailable && draft.time ? draft.time : '',
+        slotName: providerAvailable ? draft.slotName || '' : '',
+        showtimeId: providerAvailable ? draft.showtimeId || '' : '',
         friends: draft.friends || [],
         notes: draft.notes || '',
-        seats: draft.seats || 'Row F (Center Prime)',
-        bookingRef: draft.bookingRef || `CT-${Math.floor(10000 + Math.random() * 90000)}`,
+        seats: draft.seats || '',
+        bookingRef,
+        bookingStatus,
         snacks: draft.snacks || [],
       });
 
       setIsSaving(false);
-      Alert.alert(
-        'Movie Night Locked In! 🎬',
-        `Your trip for "${draft.movie.title}" is confirmed.`,
-        [
+
+      if (bookingStatus === 'confirmed') {
+        Alert.alert('Movie Night Locked In! 🎬', `Your trip for "${draft.movie.title}" is confirmed.`, [
           {
             text: 'View Pass',
             onPress: () => router.push(`/ticket/${newPlan._id || newPlan.id}`),
@@ -170,8 +279,23 @@ export default function PlannerScreen() {
             text: 'View Schedule',
             onPress: () => setActiveTab('plans'),
           },
-        ]
-      );
+        ]);
+      } else {
+        Alert.alert(
+          'Movie Night Plan Saved 🎬',
+          'Saved as a personal plan. Live ticketing will be enabled once a showtime provider is connected — this is not a confirmed booking yet.',
+          [
+            {
+              text: 'View Plan',
+              onPress: () => router.push(`/ticket/${newPlan._id || newPlan.id}`),
+            },
+            {
+              text: 'View Schedule',
+              onPress: () => setActiveTab('plans'),
+            },
+          ]
+        );
+      }
     } catch (err) {
       setIsSaving(false);
       Alert.alert('Error', err.message || 'Failed to save trip plan.');
@@ -341,7 +465,7 @@ export default function PlannerScreen() {
                 >
                   <Film size={22} color={COLORS.primary} strokeWidth={2.2} />
                   <Text style={styles.emptyMoviePickerTitle}>Select Movie from Catalog</Text>
-                  <Text style={styles.emptyMoviePickerSub}>Browse Now Playing, IMAX & Trending films</Text>
+                  <Text style={styles.emptyMoviePickerSub}>Only films verified as playing now can be planned</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -358,71 +482,138 @@ export default function PlannerScreen() {
                 </View>
               </View>
 
-              {/* Cinema Selection */}
-              <Text style={styles.subStepLabel}>SELECT THEATER & AUDITORIUM</Text>
-              <View style={styles.cinemasList}>
-                {SAMPLE_CINEMAS.map((cinema) => {
-                  const isSelected = draft.cinema?.id === cinema.id || (!draft.cinema && cinema.id === '1');
+              {/* Date Selection */}
+              <Text style={styles.subStepLabel}>CHOOSE DATE</Text>
+              <View style={styles.dateChipsRow}>
+                {DATE_OPTIONS.map((d) => {
+                  const isSelected = draft.date === d.iso;
                   return (
                     <TouchableOpacity
-                      key={cinema.id}
-                      style={[styles.cinemaOption, isSelected && styles.cinemaOptionSelected]}
-                      onPress={() => handleSelectCinema(cinema)}
+                      key={d.iso}
+                      style={[styles.dateChip, isSelected && styles.dateChipSelected]}
+                      onPress={() => handleSelectDate(d.iso)}
                       activeOpacity={0.75}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: isSelected }}
-                      accessibilityLabel={`${cinema.name}, format ${cinema.screenType}`}
+                      accessibilityLabel={`Select date ${d.label}`}
                     >
-                      <View style={styles.cinemaLeft}>
-                        <View style={styles.cinemaTitleRow}>
-                          <Text style={[styles.cinemaName, isSelected && styles.cinemaNameSelected]}>
-                            {cinema.name}
-                          </Text>
-                          {isSelected && (
-                            <View style={styles.selectedCheckIcon}>
-                              <Check size={14} color={COLORS.primary} strokeWidth={2.5} />
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.cinemaAddress}>{cinema.address}</Text>
-                        <View style={styles.cinemaBadgeRow}>
-                          <FormatBadge format={cinema.screenType} size="small" />
-                          <Text style={styles.cinemaDistance}>{cinema.distance || '2.4 km away'}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Showtimes */}
-              <Text style={[styles.subStepLabel, { marginTop: SPACING.md }]}>AVAILABLE SHOWTIMES</Text>
-              <View style={styles.timeSlotsGrid}>
-                {TIME_SLOTS.map((slot) => {
-                  const isSelected = draft.time === slot.time || (!draft.time && slot.time === '07:30 PM');
-                  return (
-                    <TouchableOpacity
-                      key={slot.time}
-                      style={[styles.timeSlotCard, isSelected && styles.timeSlotCardSelected]}
-                      onPress={() => handleSelectTime(slot)}
-                      activeOpacity={0.75}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: isSelected }}
-                      accessibilityLabel={`${slot.time}, ${slot.label}`}
-                    >
-                      <View style={styles.timeSlotTop}>
-                        <Text style={[styles.timeSlotTime, isSelected && styles.timeSlotTimeSelected]}>
-                          {slot.time}
-                        </Text>
-                        {isSelected && <Check size={14} color={COLORS.primary} strokeWidth={2.5} />}
-                      </View>
-                      <Text style={[styles.timeSlotLabel, isSelected && styles.timeSlotLabelSelected]}>
-                        {slot.label}
+                      <Text style={[styles.dateChipText, isSelected && styles.dateChipTextSelected]}>
+                        {d.label}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
+
+              {providerAvailable ? (
+                <>
+                  {/* Cinema Selection (real provider data) */}
+                  <Text style={[styles.subStepLabel, styles.cinemasLabel]}>SELECT THEATER & AUDITORIUM</Text>
+                  {cinemaLoading ? (
+                    <ActivityIndicator size="small" color={COLORS.primary} />
+                  ) : cinemas.length === 0 ? (
+                    <Text style={styles.noDataText}>
+                      No verified theatres found for this location.
+                    </Text>
+                  ) : (
+                    <View style={styles.cinemasList}>
+                      {cinemas.map((cinema) => {
+                        const isSelected = draft.cinema?.id === cinema.id;
+                        return (
+                          <TouchableOpacity
+                            key={cinema.id}
+                            style={[styles.cinemaOption, isSelected && styles.cinemaOptionSelected]}
+                            onPress={() => handleSelectCinema(cinema)}
+                            activeOpacity={0.75}
+                            accessibilityRole="radio"
+                            accessibilityState={{ selected: isSelected }}
+                            accessibilityLabel={`${cinema.name}, format ${cinema.screenType}`}
+                          >
+                            <View style={styles.cinemaLeft}>
+                              <View style={styles.cinemaTitleRow}>
+                                <Text style={[styles.cinemaName, isSelected && styles.cinemaNameSelected]}>
+                                  {cinema.name}
+                                </Text>
+                                {isSelected && (
+                                  <View style={styles.selectedCheckIcon}>
+                                    <Check size={14} color={COLORS.primary} strokeWidth={2.5} />
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+                              <View style={styles.cinemaBadgeRow}>
+                                {cinema.screenType && <FormatBadge format={cinema.screenType} size="small" />}
+                                {cinema.distanceKm != null && (
+                                  <Text style={styles.cinemaDistance}>{cinema.distanceKm} km away</Text>
+                                )}
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {/* Showtimes (real provider data) */}
+                  {draft.movie && draft.cinema && (
+                    <>
+                      <Text style={[styles.subStepLabel, styles.cinemasLabel]}>
+                        AVAILABLE SHOWTIMES — {draft.date}
+                      </Text>
+                      {showtimesLoading ? (
+                        <ActivityIndicator size="small" color={COLORS.primary} />
+                      ) : showtimes.length === 0 ? (
+                        <Text style={styles.noDataText}>
+                          No verified showtimes for this movie, theatre and date. Try another date.
+                        </Text>
+                      ) : (
+                        <View style={styles.timeSlotsGrid}>
+                          {showtimes.map((slot) => {
+                            const isSelected = draft.time === slot.time;
+                            return (
+                              <TouchableOpacity
+                                key={slot.id || slot.time}
+                                style={[styles.timeSlotCard, isSelected && styles.timeSlotCardSelected]}
+                                onPress={() => handleSelectShowtime(slot)}
+                                activeOpacity={0.75}
+                                accessibilityRole="radio"
+                                accessibilityState={{ selected: isSelected }}
+                                accessibilityLabel={`${slot.time}, ${slot.label || 'Show'}`}
+                              >
+                                <View style={styles.timeSlotTop}>
+                                  <Text style={[styles.timeSlotTime, isSelected && styles.timeSlotTimeSelected]}>
+                                    {slot.time}
+                                  </Text>
+                                  {isSelected && <Check size={14} color={COLORS.primary} strokeWidth={2.5} />}
+                                </View>
+                                {slot.label ? (
+                                  <Text style={[styles.timeSlotLabel, isSelected && styles.timeSlotLabelSelected]}>
+                                    {slot.label}
+                                  </Text>
+                                ) : null}
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
+                    </>
+                  )}
+
+                  <View style={styles.providerBadgeRow}>
+                    <DataSourceBadge source={cinemaService.dataSource} label={cinemaService.sourceLabel} />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.unavailableCard}>
+                  <Info size={18} color={COLORS.textMuted} strokeWidth={2} style={{ marginBottom: 6 }} />
+                  <Text style={styles.unavailableTitle}>Live showtimes aren't available for this location yet</Text>
+                  <Text style={styles.unavailableText}>
+                    CineTrip needs a ticketing provider for your area to show real cinemas, showtimes
+                    and seats. Until then you can still plan your movie night — it will be saved as a
+                    personal plan, not a confirmed booking.
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* ═════════ STEP 3: SEATS, SNACKS & SQUAD ═════════ */}
@@ -437,15 +628,22 @@ export default function PlannerScreen() {
                 </View>
               </View>
 
-              {/* Real Interactive Seat Selection */}
+              {/* Seat Selection */}
               <Text style={styles.subStepLabel}>AUDITORIUM SEAT SELECTION</Text>
+              {!providerAvailable && (
+                <Text style={styles.demoNote}>
+                  DEMO SEAT LAYOUT — illustrative only. Live seats appear once a showtime provider is
+                  connected for this theatre.
+                </Text>
+              )}
               <InteractiveSeatMap
-                selectedSeats={draft.seats ? draft.seats.split(', ').filter(Boolean) : ['F4', 'F5']}
+                demo={!providerAvailable}
+                selectedSeats={draft.seats ? draft.seats.split(', ').filter(Boolean) : []}
                 onSeatsChange={(newSeats) => {
                   setDraftNotes({ seats: newSeats.join(', ') });
                 }}
                 maxSeats={6}
-                ticketPrice={350}
+                ticketPrice={providerAvailable ? (draft.showtime && draft.showtime.price) || 350 : 350}
               />
 
               {/* Snacks Concession Selector */}
@@ -524,13 +722,30 @@ export default function PlannerScreen() {
             {/* DOMINANT FINAL CTA */}
             <View style={styles.finalCtaWrapper}>
               <Button
-                title={isSaving ? 'Locking In Movie Night...' : 'Lock In Movie Night 🎬'}
+                title={
+                  isSaving
+                    ? providerAvailable
+                      ? 'Locking In Movie Night...'
+                      : 'Saving Movie Night Plan...'
+                    : providerAvailable
+                    ? 'Lock In Movie Night 🎬'
+                    : 'Save Movie Night Plan'
+                }
                 variant="primary"
                 size="lg"
                 loading={isSaving}
                 onPress={handleSavePlan}
-                accessibilityLabel="Lock in movie night and generate digital pass"
+                accessibilityLabel={
+                  providerAvailable
+                    ? 'Lock in movie night and generate digital pass'
+                    : 'Save movie night plan'
+                }
               />
+              {!providerAvailable && (
+                <Text style={styles.ctaNote}>
+                  Personal plan only — no live booking until a showtime provider is connected.
+                </Text>
+              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -554,41 +769,62 @@ export default function PlannerScreen() {
             />
           </View>
 
-          <FlatList
-            data={FALLBACK_MOVIES}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.modalList}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.modalMovieItem}
-                onPress={() => handleSelectMovie(item)}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel={`Select ${item.title}`}
-              >
-                <Image
-                  source={{ uri: getImageUri(item.poster_path, 'w185') }}
-                  style={styles.modalMoviePoster}
-                />
-                <View style={styles.modalMovieInfo}>
-                  <Text style={styles.modalMovieTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <View style={styles.modalMetaRow}>
-                    <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
-                    <Text style={styles.modalRating}>
-                      {item.vote_average ? item.vote_average.toFixed(1) : '8.0'}
+          {catalog.loading && catalog.movies.length === 0 ? (
+            <View style={styles.modalCenter}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+            </View>
+          ) : catalog.movies.length === 0 ? (
+            <View style={styles.modalList}>
+              <EmptyState
+                icon="Film"
+                title="No Verified Screenings"
+                description={
+                  catalog.error
+                    ? "We couldn't reach the movie catalog. Check your connection and try again."
+                    : "We couldn't verify what is currently in theatres right now. Add a TMDB API key or check back shortly."
+                }
+                actionLabel="Retry"
+                actionIcon="RefreshCw"
+                onAction={() => refreshCatalog()}
+              />
+            </View>
+          ) : (
+            <FlatList
+              data={catalog.movies}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.modalList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalMovieItem}
+                  onPress={() => handleSelectMovie(item)}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${item.title}`}
+                >
+                  <Image
+                    source={{ uri: getImageUri(item.poster_path, 'w185') }}
+                    style={styles.modalMoviePoster}
+                  />
+                  <View style={styles.modalMovieInfo}>
+                    <Text style={styles.modalMovieTitle} numberOfLines={1}>
+                      {item.title}
                     </Text>
+                    <View style={styles.modalMetaRow}>
+                      {item.vote_average ? (
+                        <>
+                          <Star size={12} color="#E5A93C" fill="#E5A93C" strokeWidth={1.5} />
+                          <Text style={styles.modalRating}>{item.vote_average.toFixed(1)}</Text>
+                        </>
+                      ) : null}
+                      <Text style={styles.modalStatusText}>
+                        {getAvailability(item).label.toUpperCase()}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.formatRow}>
-                    {(item.formats || ['IMAX Laser']).map((fmt, idx) => (
-                      <FormatBadge key={idx} format={fmt} size="small" />
-                    ))}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
+                </TouchableOpacity>
+              )}
+            />
+          )}
         </SafeAreaView>
       </Modal>
 
@@ -845,6 +1081,68 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginBottom: SPACING.sm,
   },
+  cinemasLabel: {
+    marginTop: SPACING.md,
+  },
+  dateChipsRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  dateChip: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  dateChipSelected: {
+    backgroundColor: COLORS.primarySubtle,
+    borderColor: COLORS.primary,
+  },
+  dateChipText: {
+    ...TYPOGRAPHY.captionBold,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+  },
+  dateChipTextSelected: {
+    color: COLORS.primary,
+  },
+  noDataText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  providerBadgeRow: {
+    marginTop: SPACING.md,
+  },
+  unavailableCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    marginTop: SPACING.sm,
+  },
+  unavailableTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  unavailableText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    lineHeight: 19,
+  },
+  demoNote: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xs,
+    padding: SPACING.sm,
+    marginBottom: SPACING.sm,
+    lineHeight: 18,
+  },
   cinemasList: {
     gap: SPACING.sm,
   },
@@ -1012,6 +1310,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     marginTop: SPACING.md,
   },
+  ctaNote: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
+  },
   modalSafeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -1066,6 +1370,18 @@ const styles = StyleSheet.create({
   modalRating: {
     ...TYPOGRAPHY.captionBold,
     color: '#E5A93C',
+  },
+  modalStatusText: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 9,
+    color: COLORS.primary,
+    letterSpacing: 0.5,
+    marginLeft: 'auto',
+  },
+  modalCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   customAddRow: {
     flexDirection: 'row',
