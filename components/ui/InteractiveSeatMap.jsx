@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Armchair, Check, Info } from 'lucide-react-native';
 import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
@@ -174,11 +174,18 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
     marginBottom: 6,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(229, 169, 60, 0.8)',
+      },
+      default: {
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 6,
+      },
+    }),
   },
   screenText: {
     ...TYPOGRAPHY.badge,
