@@ -16,24 +16,22 @@ export default function TabLayout() {
           backgroundColor: '#080C16',
           borderTopColor: 'rgba(255, 255, 255, 0.08)',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : Platform.OS === 'web' ? 76 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 28 : Platform.OS === 'web' ? 14 : 10,
-          paddingTop: 10,
-          elevation: 12,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.35,
-          shadowRadius: 8,
+          height: Platform.OS === 'ios' ? 84 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 6,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '700',
-          marginTop: 4,
-          letterSpacing: 0.3,
+          marginTop: 2,
+          marginBottom: 2,
+          lineHeight: 12,
+          letterSpacing: 0.2,
         },
         tabBarItemStyle: {
           justifyContent: 'center',
           alignItems: 'center',
+          paddingVertical: 2,
         },
       }}
     >
@@ -43,7 +41,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <House
-              size={24}
+              size={20}
               color={color}
               strokeWidth={focused ? 2.4 : 2}
             />
@@ -57,7 +55,7 @@ export default function TabLayout() {
           title: 'Discover',
           tabBarIcon: ({ color, focused }) => (
             <Compass
-              size={24}
+              size={20}
               color={color}
               strokeWidth={focused ? 2.4 : 2}
             />
@@ -71,7 +69,7 @@ export default function TabLayout() {
           title: 'Planner',
           tabBarIcon: ({ color, focused }) => (
             <Ticket
-              size={24}
+              size={20}
               color={color}
               strokeWidth={focused ? 2.4 : 2}
             />
@@ -85,7 +83,7 @@ export default function TabLayout() {
           title: 'Watchlist',
           tabBarIcon: ({ color, focused }) => (
             <Bookmark
-              size={24}
+              size={20}
               color={color}
               strokeWidth={focused ? 2.4 : 2}
             />
@@ -99,7 +97,7 @@ export default function TabLayout() {
           title: 'Journal',
           tabBarIcon: ({ color, focused }) => (
             <Camera
-              size={24}
+              size={20}
               color={color}
               strokeWidth={focused ? 2.4 : 2}
             />
@@ -113,7 +111,7 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
             <User
-              size={24}
+              size={20}
               color={color}
               strokeWidth={focused ? 2.4 : 2}
             />
