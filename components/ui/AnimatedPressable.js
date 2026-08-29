@@ -11,7 +11,7 @@ export default function AnimatedPressable({
   style,
   scaleValue = 0.97,
   disabled = false,
-  accessibilityRole = 'button',
+  accessibilityRole,
   accessibilityLabel,
   accessibilityState,
   ...props
