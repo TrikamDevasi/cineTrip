@@ -1,6 +1,7 @@
 import APP_CONFIG from '../../constants/config';
 import { noopCinemaProvider } from './noopCinemaProvider';
 import { mockCinemaProvider } from './mockCinemaProvider';
+import { overpassCinemaProvider } from './overpassCinemaProvider';
 
 /**
  * Provider resolution:
@@ -16,6 +17,9 @@ function resolveProvider() {
   const provider = APP_CONFIG.CINEMA_PROVIDER;
   if (APP_CONFIG.DEMO_MODE && (provider === 'none' || provider === 'mock' || provider === 'demo')) {
     return mockCinemaProvider;
+  }
+  if (provider === 'osm' || provider === 'overpass') {
+    return overpassCinemaProvider;
   }
   // Future real providers:
   // if (provider === 'vista') return vistaCinemaProvider;
