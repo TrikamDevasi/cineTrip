@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -61,15 +62,21 @@ export default function MapScreen() {
     if (!coords) {
       coords = await getLastKnownLocation();
     }
-    if (coords) {
-      setSelectedLocation(coords);
-      if (mapRef.current) {
+    // Default fallback to Mumbai center if no coordinates
+    if (!coords) {
+      coords = { latitude: 19.076, longitude: 72.8777 };
+    }
+    setSelectedLocation(coords);
+    if (mapRef.current && Platform.OS !== 'web') {
+      try {
         mapRef.current.animateToRegion({
           latitude: coords.latitude,
           longitude: coords.longitude,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         }, 1000);
+      } catch (err) {
+        console.warn('Map animation error:', err.message);
       }
     }
     loadCinemas(coords);
@@ -95,13 +102,20 @@ export default function MapScreen() {
 
   const handleGoToMyLocation = async () => {
     const coords = await getCurrentLocation();
-    if (coords && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      }, 800);
+    if (coords) {
+      setSelectedLocation(coords);
+      if (mapRef.current && Platform.OS !== 'web') {
+        try {
+          mapRef.current.animateToRegion({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          }, 800);
+        } catch (err) {
+          console.warn('Map center error:', err.message);
+        }
+      }
     }
   };
 
@@ -124,13 +138,17 @@ export default function MapScreen() {
     setSearchResults([]);
     setSelectedLocation({ latitude: result.latitude, longitude: result.longitude });
     setSelectedAddress(result.address);
-    if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: result.latitude,
-        longitude: result.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      }, 600);
+    if (mapRef.current && Platform.OS !== 'web') {
+      try {
+        mapRef.current.animateToRegion({
+          latitude: result.latitude,
+          longitude: result.longitude,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        }, 600);
+      } catch (err) {
+        console.warn('Map zoom error:', err.message);
+      }
     }
   };
 
@@ -138,6 +156,12 @@ export default function MapScreen() {
     setDraftCinema(cinema);
     router.push('/(tabs)/planner');
   };
+
+  // Construct iframe embed source URL for Web platform
+  const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+  const mapCenter = selectedLocation ? `${selectedLocation.latitude},${selectedLocation.longitude}` : '19.076,72.8777';
+  const queryParam = searchQuery ? encodeURIComponent(searchQuery) : 'cinema';
+  const embedUrl = `https://www.google.com/maps/embed/v1/search?key=${googleMapsApiKey}&q=${queryParam}&center=${mapCenter}&zoom=13`;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -192,6 +216,58 @@ export default function MapScreen() {
                 </View>
               </TouchableOpacity>
             ))}
+          </View>
+        )}
+      </View>
+
+      {/* Interactive Map Visual Section */}
+      <View style={styles.mapContainer}>
+        {Platform.OS === 'web' ? (
+          <iframe
+            src={embedUrl}
+            style={styles.webMapFrame}
+            allowFullScreen
+            loading="lazy"
+            title="Google Maps Locator"
+          />
+        ) : MapView ? (
+          <MapView
+            ref={mapRef}
+            style={styles.nativeMap}
+            initialRegion={{
+              latitude: selectedLocation?.latitude || 19.076,
+              longitude: selectedLocation?.longitude || 72.8777,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+          >
+            {selectedLocation && (
+              <Marker
+                coordinate={selectedLocation}
+                title="Your Location"
+                pinColor={COLORS.primary}
+              />
+            )}
+            {cinemas.map((c) => (
+              <Marker
+                key={c.id}
+                coordinate={{ latitude: c.latitude, longitude: c.longitude }}
+                title={c.name}
+                description={c.address}
+                pinColor={COLORS.accentCyan}
+              />
+            ))}
+          </MapView>
+        ) : (
+          // Elegant placeholder radar locator if Maps failed to initialize on Native
+          <View style={styles.radarFallback}>
+            <MapPin size={40} color={COLORS.primary} strokeWidth={1.5} style={styles.pulseRadar} />
+            <Text style={styles.radarText}>Radar searching for nearby Auditoriums...</Text>
+            {selectedLocation && (
+              <Text style={styles.coordsText}>
+                Coordinates: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+              </Text>
+            )}
           </View>
         )}
       </View>
@@ -333,12 +409,52 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginTop: 2,
   },
+  mapContainer: {
+    height: 260,
+    backgroundColor: '#0d0f14',
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    position: 'relative',
+  },
+  webMapFrame: {
+    width: '100%',
+    height: '100%',
+    border: 'none',
+  },
+  nativeMap: {
+    width: '100%',
+    height: '100%',
+  },
+  radarFallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.lg,
+  },
+  pulseRadar: {
+    marginBottom: SPACING.sm,
+    opacity: 0.85,
+  },
+  radarText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  coordsText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textMuted,
+    marginTop: 4,
+  },
   cinemaListScroll: {
     flex: 1,
   },
   cinemaListContent: {
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
     paddingBottom: SPACING.xxl * 2,
   },
   listHeading: {
