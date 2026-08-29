@@ -168,17 +168,13 @@ export default function MapScreen() {
     }
   };
 
-  // Construct standard maps preview URL for Web platform
-  const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   const activeLat = selectedLocation?.latitude || 19.076;
   const activeLon = selectedLocation?.longitude || 72.8777;
 
-  // OpenStreetMap embed coordinates bounding box
+  // Always use OpenStreetMap embed on web — zero-cost, no API key required.
+  // Google Maps Embed API was rejected (API not enabled in GCP Console).
   const bbox = `${activeLon - 0.01},${activeLat - 0.01},${activeLon + 0.01},${activeLat + 0.01}`;
-  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${activeLat},${activeLon}`;
-  const embedUrl = googleMapsApiKey 
-    ? `https://www.google.com/maps/embed/v1/search?key=${googleMapsApiKey}&q=cinema&center=${activeLat},${activeLon}&zoom=14`
-    : osmEmbedUrl;
+  const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${activeLat},${activeLon}`;
 
   // Show Location Permission Denied Overlay
   if (locationDenied && !bypassLocation) {
