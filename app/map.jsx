@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   ScrollView,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -20,6 +20,8 @@ import {
   ChevronRight,
   ArrowLeft,
   Ticket,
+  AlertTriangle,
+  Compass,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from '../components/ui/IconButton';
@@ -28,8 +30,10 @@ import FormatBadge from '../components/FormatBadge';
 import EmptyState from '../components/ui/EmptyState';
 import { useLocation } from '../hooks/useLocation';
 import { cinemaService } from '../services/cinema';
+import { getDistanceKm } from '../services/location';
 import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import { usePlannerStore } from '../store/usePlannerStore';
+import APP_CONFIG from '../constants/config';
 
 let MapView, Marker;
 try {
@@ -43,55 +47,67 @@ try {
 export default function MapScreen() {
   const router = useRouter();
   const setDraftCinema = usePlannerStore((s) => s.setDraftCinema);
-  const { location, getCurrentLocation, getLastKnownLocation } = useLocation();
+  const { location: deviceCoords, getCurrentLocation, getLastKnownLocation, permissionStatus } = useLocation();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [selectedAddress, setSelectedAddress] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
   const [cinemas, setCinemas] = useState([]);
   const [cinemaLoading, setCinemaLoading] = useState(true);
+  const [locationDenied, setLocationDenied] = useState(false);
+  const [bypassLocation, setBypassLocation] = useState(false);
+  const [highlightedCinema, setHighlightedCinema] = useState(null);
   const mapRef = useRef(null);
+
   const providerAvailable = Boolean(cinemaService.isProviderAvailable);
+  const isDemo = APP_CONFIG.DEMO_MODE;
 
   useEffect(() => {
     initLocation();
   }, []);
 
   const initLocation = async () => {
+    setCinemaLoading(true);
     let coords = await getCurrentLocation();
     if (!coords) {
       coords = await getLastKnownLocation();
     }
-    // Default fallback to Mumbai center if no coordinates
-    if (!coords) {
-      coords = { latitude: 19.076, longitude: 72.8777 };
-    }
-    setSelectedLocation(coords);
-    if (mapRef.current && Platform.OS !== 'web') {
-      try {
-        mapRef.current.animateToRegion({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }, 1000);
-      } catch (err) {
-        console.warn('Map animation error:', err.message);
-      }
-    }
-    loadCinemas(coords);
-  };
 
-  const loadCinemas = async (coords) => {
-    if (!providerAvailable) {
-      setCinemas([]);
+    if (!coords) {
+      setLocationDenied(true);
       setCinemaLoading(false);
       return;
     }
+
+    setLocationDenied(false);
+    setSelectedLocation(coords);
+    await fetchNearbyTheaters(coords);
+  };
+
+  const fetchNearbyTheaters = async (coords) => {
     setCinemaLoading(true);
     try {
       const list = await cinemaService.getNearbyCinemas(coords);
-      setCinemas(Array.isArray(list) ? list : []);
+      
+      // Calculate distances dynamically and sort from closest to furthest
+      const processed = (Array.isArray(list) ? list : [])
+        .map((cinema) => {
+          if (cinema.latitude && cinema.longitude && coords) {
+            const dist = getDistanceKm(coords.latitude, coords.longitude, cinema.latitude, cinema.longitude);
+            return {
+              ...cinema,
+              distanceKm: dist ? parseFloat(dist) : null,
+            };
+          }
+          return cinema;
+        })
+        .filter((cinema) => cinema.latitude != null && cinema.longitude != null)
+        .sort((a, b) => {
+          if (a.distanceKm === null) return 1;
+          if (b.distanceKm === null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+
+      setCinemas(processed);
     } catch (e) {
       console.warn('Failed to load cinemas:', e.message);
       setCinemas([]);
@@ -100,55 +116,34 @@ export default function MapScreen() {
     }
   };
 
-  const handleGoToMyLocation = async () => {
-    const coords = await getCurrentLocation();
-    if (coords) {
-      setSelectedLocation(coords);
+  const handleRetryLocation = async () => {
+    setLocationDenied(false);
+    initLocation();
+  };
+
+  const handleBypassLocation = () => {
+    setBypassLocation(true);
+    setSelectedLocation({ latitude: 19.076, longitude: 72.8777 }); // Default preview coordinates
+    fetchNearbyTheaters({ latitude: 19.076, longitude: 72.8777 });
+  };
+
+  const handleGoToMyLocation = () => {
+    if (deviceCoords) {
+      setSelectedLocation(deviceCoords);
       if (mapRef.current && Platform.OS !== 'web') {
         try {
           mapRef.current.animateToRegion({
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
+            latitude: deviceCoords.latitude,
+            longitude: deviceCoords.longitude,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.015,
           }, 800);
         } catch (err) {
-          console.warn('Map center error:', err.message);
+          console.warn('Map focus error:', err.message);
         }
       }
-    }
-  };
-
-  const handleSearch = async (text) => {
-    setSearchQuery(text);
-    if (!text.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    const q = text.toLowerCase();
-    const results = cinemas.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.address.toLowerCase().includes(q)
-    );
-    setSearchResults(results);
-  };
-
-  const handleSelectSearchResult = (result) => {
-    setSearchQuery(result.name);
-    setSearchResults([]);
-    setSelectedLocation({ latitude: result.latitude, longitude: result.longitude });
-    setSelectedAddress(result.address);
-    if (mapRef.current && Platform.OS !== 'web') {
-      try {
-        mapRef.current.animateToRegion({
-          latitude: result.latitude,
-          longitude: result.longitude,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        }, 600);
-      } catch (err) {
-        console.warn('Map zoom error:', err.message);
-      }
+    } else {
+      initLocation();
     }
   };
 
@@ -157,77 +152,82 @@ export default function MapScreen() {
     router.push('/(tabs)/planner');
   };
 
-  // Construct iframe embed source URL for Web platform
+  const handleFocusCinemaOnMap = (cinema) => {
+    setHighlightedCinema(cinema);
+    if (mapRef.current && Platform.OS !== 'web') {
+      try {
+        mapRef.current.animateToRegion({
+          latitude: cinema.latitude,
+          longitude: cinema.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }, 600);
+      } catch (err) {
+        console.warn('Map zoom to cinema error:', err.message);
+      }
+    }
+  };
+
+  // Construct standard maps preview URL for Web platform
   const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-  const lat = selectedLocation?.latitude || 19.076;
-  const lon = selectedLocation?.longitude || 72.8777;
-  const mapCenter = `${lat},${lon}`;
-  const queryParam = searchQuery ? encodeURIComponent(searchQuery) : 'cinema';
-  
-  // Calculate bounding box for OpenStreetMap fallback embed
-  const bbox = `${lon - 0.015},${lat - 0.015},${lon + 0.015},${lat + 0.015}`;
-  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
-  
-  const embedUrl = googleMapsApiKey ? `https://www.google.com/maps/embed/v1/search?key=${googleMapsApiKey}&q=${queryParam}&center=${mapCenter}&zoom=13` : osmEmbedUrl;
+  const activeLat = selectedLocation?.latitude || 19.076;
+  const activeLon = selectedLocation?.longitude || 72.8777;
+
+  // OpenStreetMap embed coordinates bounding box
+  const bbox = `${activeLon - 0.01},${activeLat - 0.01},${activeLon + 0.01},${activeLat + 0.01}`;
+  const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${activeLat},${activeLon}`;
+  const embedUrl = googleMapsApiKey 
+    ? `https://www.google.com/maps/embed/v1/search?key=${googleMapsApiKey}&q=cinema&center=${activeLat},${activeLon}&zoom=14`
+    : osmEmbedUrl;
+
+  // Show Location Permission Denied Overlay
+  if (locationDenied && !bypassLocation) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <IconButton icon="ArrowLeft" variant="surface" onPress={() => router.back()} />
+          <Text style={styles.headerTitle}>Auditorium Locator</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centerContainer}>
+          <View style={styles.errorIconCircle}>
+            <AlertTriangle size={32} color={COLORS.warning} />
+          </View>
+          <Text style={styles.errorHeading}>Location access is required</Text>
+          <Text style={styles.errorDescription}>
+            CineTrip uses your device GPS to locate nearby independent theaters, verify screening formats, and calculate accurate distances.
+          </Text>
+          <View style={styles.errorActionCol}>
+            <Button
+              title="Enable Location Services"
+              icon="LocateFixed"
+              variant="primary"
+              onPress={handleRetryLocation}
+              style={{ width: '100%', marginBottom: SPACING.sm }}
+            />
+            <Button
+              title="Browse Without Location"
+              icon="Compass"
+              variant="surface"
+              onPress={handleBypassLocation}
+              style={{ width: '100%' }}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      {/* Top Header */}
+      {/* Header Bar */}
       <View style={styles.header}>
-        <IconButton
-          icon="ArrowLeft"
-          variant="surface"
-          onPress={() => router.back()}
-          accessibilityLabel="Go back"
-        />
+        <IconButton icon="ArrowLeft" variant="surface" onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Auditorium Locator</Text>
-        <IconButton
-          icon="LocateFixed"
-          variant="surface"
-          onPress={handleGoToMyLocation}
-          accessibilityLabel="Center on current location"
-        />
+        <IconButton icon="LocateFixed" variant="surface" onPress={handleGoToMyLocation} />
       </View>
 
-      {/* Search Input Bar */}
-      <View style={styles.searchSection}>
-        <View style={styles.searchContainer}>
-          <Search size={18} color={COLORS.primary} strokeWidth={2.2} style={{ marginRight: SPACING.sm }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search IMAX & certified theaters..."
-            placeholderTextColor={COLORS.textMuted}
-            value={searchQuery}
-            onChangeText={handleSearch}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
-              <X size={16} color={COLORS.textMuted} strokeWidth={2} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Search Results Dropdown */}
-        {searchResults.length > 0 && (
-          <View style={styles.searchResultsDropdown}>
-            {searchResults.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.searchResultItem}
-                onPress={() => handleSelectSearchResult(item)}
-              >
-                <MapPin size={16} color={COLORS.primary} strokeWidth={2} />
-                <View style={{ flex: 1, marginLeft: SPACING.sm }}>
-                  <Text style={styles.searchResultName}>{item.name}</Text>
-                  <Text style={styles.searchResultAddress}>{item.address}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* Interactive Map Visual Section */}
+      {/* Map Split Layout */}
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
           <iframe
@@ -235,17 +235,17 @@ export default function MapScreen() {
             style={styles.webMapFrame}
             allowFullScreen
             loading="lazy"
-            title="Google Maps Locator"
+            title="Interactive Map Display"
           />
         ) : MapView ? (
           <MapView
             ref={mapRef}
             style={styles.nativeMap}
             initialRegion={{
-              latitude: selectedLocation?.latitude || 19.076,
-              longitude: selectedLocation?.longitude || 72.8777,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
+              latitude: activeLat,
+              longitude: activeLon,
+              latitudeDelta: 0.03,
+              longitudeDelta: 0.03,
             }}
           >
             {selectedLocation && (
@@ -261,86 +261,94 @@ export default function MapScreen() {
                 coordinate={{ latitude: c.latitude, longitude: c.longitude }}
                 title={c.name}
                 description={c.address}
-                pinColor={COLORS.accentCyan}
+                pinColor={highlightedCinema?.id === c.id ? COLORS.primary : COLORS.accentCyan}
+                onPress={() => setHighlightedCinema(c)}
               />
             ))}
           </MapView>
         ) : (
-          // Elegant placeholder radar locator if Maps failed to initialize on Native
           <View style={styles.radarFallback}>
-            <MapPin size={40} color={COLORS.primary} strokeWidth={1.5} style={styles.pulseRadar} />
+            <MapPin size={40} color={COLORS.primary} />
             <Text style={styles.radarText}>Radar searching for nearby Auditoriums...</Text>
-            {selectedLocation && (
-              <Text style={styles.coordsText}>
-                Coordinates: {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
-              </Text>
-            )}
           </View>
         )}
       </View>
 
-      {/* Cinema Auditoriums List */}
+      {/* Bottom Sheet Cinema List */}
       <ScrollView
-        style={styles.cinemaListScroll}
+        style={styles.sheetScroll}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.cinemaListContent}
+        contentContainerStyle={styles.sheetContent}
       >
-        <Text style={styles.listHeading}>
-          {providerAvailable ? 'VERIFIED THEATRES NEARBY' : 'THEATRE LISTINGS'}
-        </Text>
+        <View style={styles.sheetHeader}>
+          <Text style={styles.sheetHeading}>
+            {isDemo ? 'SAMPLE THEATRES (DEMO MODE)' : 'VERIFIED THEATRES NEARBY'}
+          </Text>
+          {isDemo && (
+            <View style={styles.demoBadge}>
+              <Text style={styles.demoBadgeText}>DEMO</Text>
+            </View>
+          )}
+        </View>
 
         {cinemaLoading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator color={COLORS.primary} size="large" />
-            <Text style={styles.loadingText}>Loading verified theatres…</Text>
+            <Text style={styles.loadingText}>Fetching theater metadata...</Text>
           </View>
-        ) : !cinemas.length ? (
+        ) : cinemas.length === 0 ? (
           <EmptyState
             icon="MapPin"
-            title="Live theatres aren't connected yet"
-            description={
-              providerAvailable
-                ? 'No verified cinemas were returned for your area.'
-                : 'CineTrip requires a cinema partner integration to display live auditoriums and showtimes in your area.'
-            }
-            actionLabel="Browse Movies"
-            actionIcon="Compass"
-            onAction={() => router.push('/(tabs)/discover')}
+            title="No verified cinemas found nearby"
+            description="We couldn't locate any active partner cinemas in this area. Switch to Demo Mode or search another location."
+            actionLabel="Try Again"
+            actionIcon="RefreshCw"
+            onAction={initLocation}
           />
         ) : (
-          cinemas.map((cinema) => (
-            <View key={cinema.id} style={styles.cinemaCard}>
-              <View style={styles.cinemaCardHeader}>
-                <View style={styles.cinemaTitleCol}>
-                  <Text style={styles.cinemaName}>{cinema.name}</Text>
-                  <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+          cinemas.map((cinema) => {
+            const isHighlighted = highlightedCinema?.id === cinema.id;
+            return (
+              <TouchableOpacity
+                key={cinema.id}
+                style={[
+                  styles.cinemaCard,
+                  isHighlighted && styles.highlightedCard,
+                ]}
+                activeOpacity={0.9}
+                onPress={() => handleFocusCinemaOnMap(cinema)}
+              >
+                <View style={styles.cardTop}>
+                  <View style={styles.titleCol}>
+                    <Text style={styles.cinemaName}>{cinema.name}</Text>
+                    <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+                  </View>
+                  {cinema.distanceKm != null && (
+                    <Text style={styles.distanceBadge}>{cinema.distanceKm.toFixed(1)} km</Text>
+                  )}
                 </View>
-                {cinema.distanceKm != null && (
-                  <Text style={styles.distanceBadge}>{cinema.distanceKm} km</Text>
-                )}
-              </View>
 
-              <View style={styles.formatRow}>
-                {cinema.screenType ? (
-                  <FormatBadge format={cinema.screenType} size="small" />
-                ) : null}
-                {cinema.features && cinema.features[0] ? (
-                  <FormatBadge format={cinema.features[0]} size="small" />
-                ) : null}
-              </View>
+                <View style={styles.formatRow}>
+                  {cinema.screenType ? (
+                    <FormatBadge format={cinema.screenType} size="small" />
+                  ) : null}
+                  {cinema.features && cinema.features[0] ? (
+                    <FormatBadge format={cinema.features[0]} size="small" />
+                  ) : null}
+                </View>
 
-              <View style={styles.cardActionRow}>
-                <Button
-                  title="Plan Movie Night Here"
-                  icon="Ticket"
-                  variant="primary"
-                  size="sm"
-                  onPress={() => handleSelectCinemaForTrip(cinema)}
-                  accessibilityLabel={`Plan movie night at ${cinema.name}`}
-                />
-              </View>
-            </View>
-          ))
+                <View style={styles.actionRow}>
+                  <Button
+                    title="Plan Movie Night Here"
+                    icon="Ticket"
+                    variant={isHighlighted ? 'primary' : 'surface'}
+                    size="sm"
+                    onPress={() => handleSelectCinemaForTrip(cinema)}
+                  />
+                </View>
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
@@ -365,68 +373,43 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h2,
     color: COLORS.text,
   },
-  searchSection: {
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.xs,
-    position: 'relative',
-    zIndex: 10,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    minHeight: 44,
-  },
-  searchInput: {
+  centerContainer: {
     flex: 1,
-    ...TYPOGRAPHY.body,
-    color: COLORS.text,
-  },
-  searchResultsDropdown: {
-    position: 'absolute',
-    top: 48,
-    left: SPACING.lg,
-    right: SPACING.lg,
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    padding: SPACING.xs,
-    ...SHADOWS.modal,
-    zIndex: 20,
-  },
-  searchResultItem: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: SPACING.xl,
   },
-  searchResultName: {
-    ...TYPOGRAPHY.bodyBold,
+  errorIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(217, 119, 6, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  errorHeading: {
+    ...TYPOGRAPHY.h2,
     color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
   },
-  searchResultAddress: {
-    ...TYPOGRAPHY.caption,
+  errorDescription: {
+    ...TYPOGRAPHY.body,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: SPACING.xl,
+  },
+  errorActionCol: {
+    width: '100%',
+    maxWidth: 320,
   },
   mapContainer: {
-    height: 260,
-    backgroundColor: '#0d0f14',
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.md,
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    position: 'relative',
+    height: 250,
+    backgroundColor: '#07090e',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
   },
   webMapFrame: {
     width: '100%',
@@ -441,38 +424,47 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: SPACING.lg,
-  },
-  pulseRadar: {
-    marginBottom: SPACING.sm,
-    opacity: 0.85,
   },
   radarText: {
-    ...TYPOGRAPHY.bodyBold,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  coordsText: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textMuted,
-    marginTop: 4,
+    marginTop: SPACING.sm,
   },
-  cinemaListScroll: {
+  sheetScroll: {
     flex: 1,
   },
-  cinemaListContent: {
+  sheetContent: {
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.xxl * 2,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xxl,
   },
-  listHeading: {
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  sheetHeading: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
     color: COLORS.textMuted,
-    marginBottom: SPACING.md,
+  },
+  demoBadge: {
+    backgroundColor: COLORS.primarySubtle,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: RADIUS.xs,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 169, 60, 0.3)',
+  },
+  demoBadgeText: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 9,
+    color: COLORS.primary,
   },
   loadingBox: {
     alignItems: 'center',
-    paddingVertical: SPACING.xxl,
+    paddingVertical: SPACING.xl,
   },
   loadingText: {
     ...TYPOGRAPHY.caption,
@@ -485,26 +477,30 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.cardBorder,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
     ...SHADOWS.card,
   },
-  cinemaCardHeader: {
+  highlightedCard: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.cardElevated,
+  },
+  cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  cinemaTitleCol: {
+  titleCol: {
     flex: 1,
     marginRight: SPACING.sm,
   },
   cinemaName: {
     ...TYPOGRAPHY.h3,
     color: COLORS.text,
-    marginBottom: 2,
   },
   cinemaAddress: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
+    marginTop: 2,
   },
   distanceBadge: {
     ...TYPOGRAPHY.captionBold,
@@ -512,10 +508,10 @@ const styles = StyleSheet.create({
   },
   formatRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: SPACING.xs,
     marginVertical: SPACING.sm,
   },
-  cardActionRow: {
+  actionRow: {
     marginTop: SPACING.xs,
     alignItems: 'flex-start',
   },
