@@ -109,7 +109,6 @@ export default function MovieCard({ movie, layout = 'vertical', width }) {
     <AnimatedPressable
       style={[styles.verticalCard, { width: cardWidth }]}
       onPress={handlePressCard}
-      accessibilityRole="button"
       accessibilityLabel={`${movie.title}, rated ${rating}`}
     >
 
