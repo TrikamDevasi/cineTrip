@@ -58,18 +58,19 @@ export default function HeroBanner({ movies = [] }) {
               resizeMode="cover"
             />
             <LinearGradient
-              colors={COLORS.overlayGradient}
+              colors={['rgba(7, 9, 14, 0.1)', 'transparent', 'rgba(7, 9, 14, 0.75)', '#07090E']}
+              locations={[0, 0.3, 0.72, 1]}
               style={styles.gradientOverlay}
             />
 
             <View style={styles.contentOverlay}>
               <View style={styles.topBadgeRow}>
                 <View style={styles.featuredBadge}>
-                  <Sparkles size={14} color={COLORS.secondary} strokeWidth={2} />
+                  <Sparkles size={13} color="#FFB800" strokeWidth={2.2} />
                   <Text style={styles.featuredText}>SPOTLIGHT</Text>
                 </View>
                 <View style={styles.ratingBadge}>
-                  <Star size={14} color={COLORS.secondary} fill={COLORS.secondary} strokeWidth={1.5} />
+                  <Star size={13} color="#FFB800" fill="#FFB800" strokeWidth={1.5} />
                   <Text style={styles.ratingText}>
                     {movie.vote_average ? movie.vote_average.toFixed(1) : '8.2'}
                   </Text>
@@ -140,21 +141,21 @@ export default function HeroBanner({ movies = [] }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: SPACING.md,
+    marginVertical: SPACING.sm,
   },
   scrollContainer: {
     paddingHorizontal: SPACING.lg,
   },
   heroCard: {
     width: HERO_WIDTH,
-    height: 380,
-    borderRadius: RADIUS.lg,
+    height: 400,
+    borderRadius: RADIUS.xl,
     overflow: 'hidden',
     position: 'relative',
     marginRight: SPACING.md,
-    backgroundColor: COLORS.card,
+    backgroundColor: '#0F1524',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     ...SHADOWS.card,
   },
   backdropImage: {
@@ -184,52 +185,60 @@ const styles = StyleSheet.create({
   featuredBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.14)',
-    paddingHorizontal: SPACING.sm,
+    backgroundColor: 'rgba(255, 184, 0, 0.18)',
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: RADIUS.xs,
+    borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: 'rgba(255, 184, 0, 0.3)',
-    gap: 4,
+    borderColor: 'rgba(255, 184, 0, 0.4)',
+    gap: 5,
   },
   featuredText: {
     ...TYPOGRAPHY.badge,
-    fontSize: 12,
-    color: COLORS.secondary,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: '#FFB800',
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(7, 9, 14, 0.85)',
-    paddingHorizontal: SPACING.sm,
+    backgroundColor: 'rgba(10, 14, 24, 0.88)',
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: RADIUS.xs,
+    borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
     gap: 4,
   },
   ratingText: {
     ...TYPOGRAPHY.badge,
     fontSize: 12,
+    fontWeight: '700',
     color: COLORS.text,
   },
   movieTitle: {
     ...TYPOGRAPHY.h1,
-    fontSize: 24,
-    color: COLORS.text,
+    fontSize: 25,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
     marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   movieTagline: {
     ...TYPOGRAPHY.body,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: '#CBD5E1',
     fontStyle: 'italic',
     marginBottom: SPACING.xs,
   },
   formatRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: SPACING.xs,
+    gap: 6,
     marginBottom: SPACING.md,
   },
   ctaRow: {
@@ -254,7 +263,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   activeDot: {
-    width: 16,
+    width: 20,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: COLORS.primary,
   },
 });

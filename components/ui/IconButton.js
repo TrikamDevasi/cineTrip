@@ -76,29 +76,33 @@ export default function IconButton({
 
 const styles = StyleSheet.create({
   base: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   surface: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#111827',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   primary: {
     backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
   ghost: {
     backgroundColor: 'transparent',
   },
   danger: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   disabled: {
-    opacity: 0.4,
+    opacity: 0.35,
   },
 });
