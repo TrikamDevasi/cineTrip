@@ -48,13 +48,9 @@ export default function HeroBanner({ movies = [] }) {
         contentContainerStyle={styles.scrollContainer}
       >
         {movies.map((movie) => (
-          <TouchableOpacity
+          <View
             key={movie.id}
-            activeOpacity={0.92}
             style={styles.heroCard}
-            onPress={() => router.push(`/movie/${movie.id}`)}
-            accessibilityRole="button"
-            accessibilityLabel={`Featured premiere: ${movie.title}`}
           >
             <Image
               source={{ uri: getImageUri(movie.backdrop_path || movie.poster_path, 'w780') }}
@@ -80,15 +76,20 @@ export default function HeroBanner({ movies = [] }) {
                 </View>
               </View>
 
-              <Text style={styles.movieTitle} numberOfLines={2}>
-                {movie.title}
-              </Text>
-
-              {movie.tagline ? (
-                <Text style={styles.movieTagline} numberOfLines={1}>
-                  "{movie.tagline}"
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => router.push(`/movie/${movie.id}`)}
+              >
+                <Text style={styles.movieTitle} numberOfLines={2}>
+                  {movie.title}
                 </Text>
-              ) : null}
+
+                {movie.tagline ? (
+                  <Text style={styles.movieTagline} numberOfLines={1}>
+                    "{movie.tagline}"
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
 
               <View style={styles.formatRow}>
                 {(movie.formats || ['IMAX Laser', 'Dolby Cinema', '4DX']).slice(0, 3).map((fmt, i) => (
@@ -118,7 +119,7 @@ export default function HeroBanner({ movies = [] }) {
                 />
               </View>
             </View>
-          </TouchableOpacity>
+          </View>
         ))}
       </ScrollView>
 

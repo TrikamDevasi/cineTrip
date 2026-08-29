@@ -49,7 +49,6 @@ export default function MovieCard({ movie, layout = 'vertical', width }) {
         style={styles.horizontalCard}
         activeOpacity={0.85}
         onPress={handlePressCard}
-        accessibilityRole="button"
         accessibilityLabel={`${movie.title}, rated ${rating}`}
       >
         <Image
