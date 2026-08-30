@@ -218,6 +218,15 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </Link>
           </View>
+
+          <View style={[styles.footerRow, { marginTop: SPACING.md }]}>
+            <TouchableOpacity onPress={() => router.push('/landing')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Film size={14} color={colors.primary} />
+              <Text style={[styles.footerLink, { color: colors.textSecondary, fontSize: 13 }]}>
+                Explore CineTrip Story & Features
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -43,6 +43,7 @@ function RootNavigator() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="landing" options={{ headerShown: false }} />
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
       <Stack.Screen
         name="movie/[id]"

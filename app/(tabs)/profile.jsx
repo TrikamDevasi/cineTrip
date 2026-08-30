@@ -359,6 +359,20 @@ export default function ProfileScreen() {
 
           {/* ACCOUNT & SIGN OUT */}
           <View style={styles.accountSection}>
+            <TouchableOpacity
+              style={[styles.settingRow, { backgroundColor: colors.card, borderRadius: RADIUS.md, padding: SPACING.md, borderWidth: 1, borderColor: colors.cardBorder, marginBottom: SPACING.lg }]}
+              onPress={() => router.push('/landing')}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Film size={20} color={colors.primary} />
+                <View>
+                  <Text style={[styles.settingLabel, { fontSize: 14 }]}>About CineTrip & Story</Text>
+                  <Text style={styles.settingSub}>Explore features, landing page & architecture</Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+
             {isAuthenticated ? (
               <Button
                 title="Sign Out of CineTrip"
