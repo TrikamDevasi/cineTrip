@@ -77,6 +77,14 @@ function RootNavigator() {
         }}
       />
       <Stack.Screen
+        name="cinema/[id]"
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
         name="contacts"
         options={{
           headerShown: false,

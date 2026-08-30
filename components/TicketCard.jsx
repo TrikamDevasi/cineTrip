@@ -9,7 +9,7 @@ import IconButton from './ui/IconButton';
 import { useTheme } from '../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
-export default function TicketCard({ plan, isFullPass = false }) {
+export default function TicketCard({ plan, isFullPass = false, onPress }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const router = useRouter();
@@ -21,7 +21,19 @@ export default function TicketCard({ plan, isFullPass = false }) {
   const friends = plan.friends || [];
   const isPlan = !plan.bookingRef || plan.bookingStatus === 'plan';
 
+  const handlePressCard = () => {
+    if (typeof onPress === 'function') {
+      onPress(plan);
+      return;
+    }
+    router.push(`/ticket/${plan._id || plan.id}`);
+  };
+
   const handleOpenTicket = () => {
+    if (typeof onPress === 'function') {
+      onPress(plan);
+      return;
+    }
     router.push(`/ticket/${plan._id || plan.id}`);
   };
 
@@ -37,8 +49,14 @@ export default function TicketCard({ plan, isFullPass = false }) {
     }
   };
 
+  const CardRoot = typeof onPress === 'function' ? TouchableOpacity : View;
+  const rootProps =
+    typeof onPress === 'function'
+      ? { activeOpacity: 0.92, onPress: handlePressCard, accessibilityRole: 'button', accessibilityLabel: `Open pass for ${movie.title}` }
+      : {};
+
   return (
-    <View style={[styles.ticketContainer, isFullPass && styles.fullPassContainer]}>
+    <CardRoot style={[styles.ticketContainer, isFullPass && styles.fullPassContainer]} {...rootProps}>
       {/* Top Header Section */}
       <View style={styles.topSection}>
         <View style={styles.headerRow}>
@@ -133,7 +151,7 @@ export default function TicketCard({ plan, isFullPass = false }) {
           </View>
         )}
       </View>
-    </View>
+    </CardRoot>
   );
 }
 

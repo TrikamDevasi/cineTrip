@@ -23,6 +23,8 @@ import {
   Ticket,
   AlertTriangle,
   Compass,
+  List,
+  Map,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from '../components/ui/IconButton';
@@ -59,6 +61,7 @@ export default function MapScreen() {
   const [locationDenied, setLocationDenied] = useState(false);
   const [bypassLocation, setBypassLocation] = useState(false);
   const [highlightedCinema, setHighlightedCinema] = useState(null);
+  const [viewMode, setViewMode] = useState('map'); // 'map' | 'list'
   const mapRef = useRef(null);
 
   const providerAvailable = Boolean(cinemaService.isProviderAvailable);
@@ -280,52 +283,82 @@ export default function MapScreen() {
         )}
       </View>
 
-      {/* Map Split Layout */}
-      <View style={styles.mapContainer}>
-        {Platform.OS === 'web' ? (
-          <iframe
-            src={embedUrl}
-            style={styles.webMapFrame}
-            allowFullScreen
-            loading="lazy"
-            title="Interactive Map Display"
-          />
-        ) : MapView ? (
-          <MapView
-            ref={mapRef}
-            style={styles.nativeMap}
-            initialRegion={{
-              latitude: activeLat,
-              longitude: activeLon,
-              latitudeDelta: 0.03,
-              longitudeDelta: 0.03,
-            }}
+      {/* Map / List Toggle */}
+      <View style={styles.viewToggleRow}>
+        <View style={styles.viewToggle}>
+          <TouchableOpacity
+            style={[styles.viewToggleBtn, viewMode === 'map' && styles.viewToggleBtnActive]}
+            onPress={() => setViewMode('map')}
+            activeOpacity={0.8}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: viewMode === 'map' }}
+            accessibilityLabel="Show map view"
           >
-            {selectedLocation && (
-              <Marker
-                coordinate={selectedLocation}
-                title="Your Location"
-                pinColor={colors.primary}
-              />
-            )}
-            {cinemas.map((c) => (
-              <Marker
-                key={c.id}
-                coordinate={{ latitude: c.latitude, longitude: c.longitude }}
-                title={c.name}
-                description={c.address}
-                pinColor={highlightedCinema?.id === c.id ? colors.primary : colors.accentCyan}
-                onPress={() => setHighlightedCinema(c)}
-              />
-            ))}
-          </MapView>
-        ) : (
-          <View style={styles.radarFallback}>
-            <MapPin size={40} color={colors.primary} />
-            <Text style={styles.radarText}>Radar searching for nearby Auditoriums...</Text>
-          </View>
-        )}
+            <Map size={15} color={viewMode === 'map' ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
+            <Text style={[styles.viewToggleText, viewMode === 'map' && styles.viewToggleTextActive]}>Map</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.viewToggleBtn, viewMode === 'list' && styles.viewToggleBtnActive]}
+            onPress={() => setViewMode('list')}
+            activeOpacity={0.8}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: viewMode === 'list' }}
+            accessibilityLabel="Show list view"
+          >
+            <List size={15} color={viewMode === 'list' ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
+            <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>List</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Map Split Layout */}
+      {viewMode === 'map' && (
+        <View style={styles.mapContainer}>
+          {Platform.OS === 'web' ? (
+            <iframe
+              src={embedUrl}
+              style={styles.webMapFrame}
+              allowFullScreen
+              loading="lazy"
+              title="Interactive Map Display"
+            />
+          ) : MapView ? (
+            <MapView
+              ref={mapRef}
+              style={styles.nativeMap}
+              initialRegion={{
+                latitude: activeLat,
+                longitude: activeLon,
+                latitudeDelta: 0.03,
+                longitudeDelta: 0.03,
+              }}
+            >
+              {selectedLocation && (
+                <Marker
+                  coordinate={selectedLocation}
+                  title="Your Location"
+                  pinColor={colors.primary}
+                />
+              )}
+              {cinemas.map((c) => (
+                <Marker
+                  key={c.id}
+                  coordinate={{ latitude: c.latitude, longitude: c.longitude }}
+                  title={c.name}
+                  description={c.address}
+                  pinColor={highlightedCinema?.id === c.id ? colors.primary : colors.accentCyan}
+                  onPress={() => setHighlightedCinema(c)}
+                />
+              ))}
+            </MapView>
+          ) : (
+            <View style={styles.radarFallback}>
+              <MapPin size={40} color={colors.primary} />
+              <Text style={styles.radarText}>Radar searching for nearby Auditoriums...</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Bottom Sheet Cinema List */}
       <ScrollView
@@ -483,6 +516,37 @@ const createStyles = (colors) => StyleSheet.create({
     ...TYPOGRAPHY.body,
     color: colors.text,
     paddingVertical: 0,
+  },
+  viewToggleRow: {
+    flexDirection: 'row',
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderRadius: RADIUS.full,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  viewToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+    borderRadius: RADIUS.full,
+  },
+  viewToggleBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  viewToggleText: {
+    ...TYPOGRAPHY.captionBold,
+    color: colors.textSecondary,
+  },
+  viewToggleTextActive: {
+    color: '#07090E',
   },
   webMapFrame: {
     width: '100%',

@@ -87,6 +87,16 @@ export default function WatchlistScreen() {
 
   const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
 
+  const stateCounts = {
+    all: watchlist.length,
+    now_playing: watchlist.filter((m) => m.status === 'Now Playing' || (m.release_date && new Date(m.release_date) <= new Date())).length,
+    coming_soon: watchlist.filter((m) => m.status === 'Upcoming' || (m.release_date && new Date(m.release_date) > new Date())).length,
+    imax: watchlist.filter((m) => {
+      const f = (m.formats || []).join(' ').toLowerCase();
+      return f.includes('imax') || (m.preferredFormat && m.preferredFormat.toLowerCase().includes('imax'));
+    }).length,
+  };
+
   const styles = createStyles(colors);
 
   return (
@@ -98,7 +108,7 @@ export default function WatchlistScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Cinephile Watchlist</Text>
           <Text style={styles.subtitle}>
-            {watchlist.length} films queued for the big screen
+            {watchlist.length} film{watchlist.length === 1 ? '' : 's'} queued for the big screen
           </Text>
         </View>
 
@@ -112,29 +122,49 @@ export default function WatchlistScreen() {
         />
       </View>
 
+      {/* State Summary Strip */}
+      {watchlist.length > 0 && (
+        <View style={styles.summaryStrip}>
+          <TouchableOpacity style={styles.summaryItem} onPress={() => setFilterType('now_playing')} accessibilityRole="button" accessibilityLabel="Filter to now playing">
+            <Text style={styles.summaryValue}>{stateCounts.now_playing}</Text>
+            <Text style={styles.summaryLabel}>In Theaters</Text>
+          </TouchableOpacity>
+          <View style={styles.summaryDivider} />
+          <TouchableOpacity style={styles.summaryItem} onPress={() => setFilterType('coming_soon')} accessibilityRole="button" accessibilityLabel="Filter to coming soon">
+            <Text style={styles.summaryValue}>{stateCounts.coming_soon}</Text>
+            <Text style={styles.summaryLabel}>Coming Soon</Text>
+          </TouchableOpacity>
+          <View style={styles.summaryDivider} />
+          <TouchableOpacity style={styles.summaryItem} onPress={() => setFilterType('imax')} accessibilityRole="button" accessibilityLabel="Filter to IMAX and premium">
+            <Text style={styles.summaryValue}>{stateCounts.imax}</Text>
+            <Text style={styles.summaryLabel}>Premium</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Filter Chips */}
       <View style={styles.filterSection}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           <Chip
-            label={`All (${watchlist.length})`}
+            label={`All (${stateCounts.all})`}
             selected={filterType === 'all'}
             onPress={() => setFilterType('all')}
             accessibilityLabel="Show all queued films"
           />
           <Chip
-            label="Now in Theaters"
+            label={`Now in Theaters (${stateCounts.now_playing})`}
             selected={filterType === 'now_playing'}
             onPress={() => setFilterType('now_playing')}
             accessibilityLabel="Show movies currently in theaters"
           />
           <Chip
-            label="Coming Soon"
+            label={`Coming Soon (${stateCounts.coming_soon})`}
             selected={filterType === 'coming_soon'}
             onPress={() => setFilterType('coming_soon')}
             accessibilityLabel="Show upcoming films"
           />
           <Chip
-            label="IMAX & Premium"
+            label={`IMAX & Premium (${stateCounts.imax})`}
             selected={filterType === 'imax'}
             onPress={() => setFilterType('imax')}
             accessibilityLabel="Show IMAX and premium screens only"
@@ -167,8 +197,14 @@ export default function WatchlistScreen() {
       ) : filteredList.length === 0 ? (
         <EmptyState
           icon="Bookmark"
-          title="Your Watchlist is Empty"
-          description="Save upcoming films from Discover or Home to plan trips later."
+          title={filterType === 'all' ? 'Your Watchlist is Empty' : 'Nothing matches this filter'}
+          description={
+            filterType === 'all'
+              ? isAuthenticated
+                ? 'Save upcoming films from Discover or Home to plan trips later.'
+                : 'Sign in to keep a watchlist of films you want to see on the big screen.'
+              : 'None of your saved films match this view. Try another filter or add more films from Discover.'
+          }
           actionLabel="Discover Movies"
           onAction={() => router.push('/(tabs)/discover')}
           actionIcon="Film"
@@ -222,6 +258,36 @@ const createStyles = (colors) => StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  summaryStrip: {
+    flexDirection: 'row',
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
+    backgroundColor: colors.card,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    paddingVertical: SPACING.sm,
+    ...SHADOWS.card,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryValue: {
+    ...TYPOGRAPHY.h2,
+    color: colors.primary,
+  },
+  summaryLabel: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  summaryDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: colors.cardBorder,
   },
   filterSection: {
     marginBottom: SPACING.xs,

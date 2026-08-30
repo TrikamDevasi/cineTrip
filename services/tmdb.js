@@ -264,3 +264,78 @@ export async function getMovieDetails(id) {
     return null;
   }
 }
+
+/**
+ * Fetch the full verified genre list from TMDB (/genre/movie/list).
+ * Returns [{ id, name }] or an empty array when unavailable.
+ */
+export async function getGenres() {
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/genre/movie/list?api_key=${API_KEY}`
+      : `${TMDB_BASE_URL}/genre/movie/list`;
+    const data = await fetchJson(url, getHeaders());
+    return Array.isArray(data.genres) ? data.genres : [];
+  } catch (e) {
+    console.warn('TMDB Genres failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Advanced server-side discovery using real TMDB /discover/movie filters.
+ * All filters are optional; only provided ones are applied. Returns an
+ * array of verified movies (or an empty array on failure).
+ */
+export async function discoverMovies({
+  withGenres,
+  year,
+  primaryReleaseDateGte,
+  primaryReleaseDateLte,
+  sortBy,
+  voteAverageGte,
+  withOriginalLanguage,
+} = {}) {
+  if (!isApiConfigured) return [];
+  try {
+    const params = new URLSearchParams();
+    if (withGenres) params.set('with_genres', withGenres);
+    if (year) params.set('year', String(year));
+    if (primaryReleaseDateGte) params.set('primary_release_date.gte', primaryReleaseDateGte);
+    if (primaryReleaseDateLte) params.set('primary_release_date.lte', primaryReleaseDateLte);
+    if (sortBy) params.set('sort_by', sortBy);
+    if (voteAverageGte) params.set('vote_average.gte', String(voteAverageGte));
+    if (withOriginalLanguage) params.set('with_original_language', withOriginalLanguage);
+
+    let url;
+    if (API_KEY) {
+      url = `${TMDB_BASE_URL}/discover/movie?api_key=${API_KEY}&${params.toString()}`;
+    } else {
+      url = `${TMDB_BASE_URL}/discover/movie?${params.toString()}`;
+    }
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB Discover failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Person search (actors/directors). Returns fan-credits style results.
+ */
+export async function searchPeople(query) {
+  if (!query || !query.trim()) return [];
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/search/person?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
+      : `${TMDB_BASE_URL}/search/person?query=${encodeURIComponent(query)}`;
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB Person search failed:', e.message);
+    return [];
+  }
+}

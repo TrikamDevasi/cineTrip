@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -138,6 +138,22 @@ export default function PlannerScreen() {
   } = usePlannerStore();
 
   const { snapshot: catalog, canBook, getAvailability, refresh: refreshCatalog } = useMovieCatalog();
+
+  const scrollRef = useRef(null);
+  const stepY = useRef({});
+
+  // Guided progress: each step reports whether its inputs are complete.
+  const step1Done = Boolean(draft.movie);
+  const step2Done = providerAvailable ? Boolean(draft.cinema && draft.date && draft.showtime) : Boolean(draft.movie);
+  const step3Done = step2Done; // seats / snacks / squad / notes are all optional
+  const stepsDone = [step1Done, step2Done, step3Done].filter(Boolean).length;
+
+  const jumpToStep = (index) => {
+    const y = stepY.current[index];
+    if (scrollRef.current && y != null) {
+      scrollRef.current.scrollTo({ y, animated: true });
+    }
+  };
 
   const [cinemas, setCinemas] = useState([]);
   const [showtimes, setShowtimes] = useState([]);
@@ -449,13 +465,50 @@ export default function PlannerScreen() {
           style={{ flex: 1 }}
         >
           <ScrollView
+            ref={scrollRef}
             style={styles.scroll}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
           >
+            {/* GUIDED PROGRESS HEADER */}
+            <View style={styles.progressWrap}>
+              <View style={styles.progressRow}>
+                {[
+                  { n: 1, label: 'Movie', done: step1Done },
+                  { n: 2, label: 'Cinema & Time', done: step2Done },
+                  { n: 3, label: 'Seats & Squad', done: step3Done },
+                ].map((s) => (
+                  <TouchableOpacity
+                    key={s.n}
+                    style={styles.progressStep}
+                    onPress={() => jumpToStep(s.n)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Go to step ${s.n}: ${s.label}${s.done ? ', complete' : ''}`}
+                  >
+                    <View style={[styles.progressDot, s.done && styles.progressDotDone]}>
+                      {s.done ? (
+                        <Check size={14} color="#07090E" strokeWidth={3} />
+                      ) : (
+                        <Text style={styles.progressDotText}>{s.n}</Text>
+                      )}
+                    </View>
+                    <Text style={[styles.progressLabel, s.done && styles.progressLabelDone]} numberOfLines={1}>
+                      {s.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.progressSummary}>
+                {stepsDone === 3
+                  ? 'All set — ready to lock in!'
+                  : `${stepsDone} of 3 steps complete`}
+              </Text>
+            </View>
+
             {/* ═════════ STEP 1: CHOOSE MOVIE ═════════ */}
-            <View style={styles.stepCard}>
+            <View style={styles.stepCard} onLayout={(e) => { stepY.current[1] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
                   <Text style={styles.stepBadgeText}>1</Text>
@@ -518,7 +571,7 @@ export default function PlannerScreen() {
             </View>
 
             {/* ═════════ STEP 2: CINEMA & SHOWTIME ═════════ */}
-            <View style={styles.stepCard}>
+            <View style={styles.stepCard} onLayout={(e) => { stepY.current[2] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
                   <Text style={styles.stepBadgeText}>2</Text>
@@ -664,7 +717,7 @@ export default function PlannerScreen() {
             </View>
 
             {/* ═════════ STEP 3: SEATS, SNACKS & SQUAD ═════════ */}
-            <View style={styles.stepCard}>
+            <View style={styles.stepCard} onLayout={(e) => { stepY.current[3] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
                   <Text style={styles.stepBadgeText}>3</Text>
@@ -999,6 +1052,61 @@ const createStyles = (colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: SPACING.xxl * 2,
+  },
+  progressWrap: {
+    backgroundColor: colors.card,
+    borderRadius: RADIUS.lg,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...SHADOWS.card,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  progressStep: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  progressDot: {
+    width: 28,
+    height: 28,
+    borderRadius: RADIUS.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.cardBorderActive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressDotDone: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  progressDotText: {
+    ...TYPOGRAPHY.bodyBold,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  progressLabel: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 10,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  progressLabelDone: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  progressSummary: {
+    ...TYPOGRAPHY.caption,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
   },
   plansHeader: {
     paddingHorizontal: SPACING.lg,

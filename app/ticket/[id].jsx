@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,30 +6,47 @@ import {
   StyleSheet,
   Share,
   Alert,
+  Modal,
+  TouchableOpacity,
+  Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { QrCode, Copy, Share2, ArrowLeft } from 'lucide-react-native';
+import { Copy, Share2, ArrowLeft, MapPin, ChevronUp, WifiOff, X } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import TicketCard from '../../components/TicketCard';
-import QRCodeView from '../../components/ui/QRCodeView';
+import QRCodeSvg from '../../components/ui/QRCodeSvg';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
+import EmptyState from '../../components/ui/EmptyState';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { isConfirmedPass, countdownTo, isMovieDay } from '../../services/personalization';
 
 export default function TicketModalScreen() {
   const { colors } = useTheme();
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const [qrZoomed, setQrZoomed] = useState(false);
+  const [now, setNow] = useState(new Date());
+
   const getPlanById = usePlannerStore((s) => s.getPlanById);
   const plan = getPlanById(id) || usePlannerStore((s) => s.plans[0]);
   const isPlan = !plan || !plan.bookingRef || plan.bookingStatus === 'plan';
+  const isOffline = Boolean(plan && plan._id && String(plan._id).startsWith('plan-local-'));
+
+  // Live countdown clock
+  useEffect(() => {
+    if (!plan) return;
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, [plan]);
 
   const styles = createStyles(colors);
 
-  if (!plan) {
+  if (!plan || !plan.movie) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
@@ -43,11 +60,24 @@ export default function TicketModalScreen() {
           <View style={{ width: 44 }} />
         </View>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>Ticket pass not found</Text>
+          <EmptyState
+            icon="QrCode"
+            title="Ticket pass not found"
+            description="We couldn't find this pass. It may have been deleted."
+            actionLabel="Go Back"
+            actionIcon="ArrowLeft"
+            onAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
   }
+
+  const movie = plan.movie || {};
+  const cinema = plan.cinema || {};
+  const qrValue = isConfirmedPass(plan)
+    ? ['CINETRIP', plan.bookingRef || plan.id, plan.id || ''].filter(Boolean).join('|')
+    : ['CINETRIP', plan.id || ''].filter(Boolean).join('|');
 
   const handleCopyRef = async () => {
     if (!plan.bookingRef) {
@@ -59,8 +89,6 @@ export default function TicketModalScreen() {
   };
 
   const handleSharePass = async () => {
-    const movie = plan.movie || {};
-    const cinema = plan.cinema || {};
     const message = isPlan
       ? `🎬 Movie Night Plan\n\nMovie: ${movie.title}\nDate: ${plan.date || 'TBD'}\n\nThis is a personal plan — live ticketing will be enabled once a showtime provider is connected.`
       : `🎬 Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || ''}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || ''}\n\n🎟 Pass: ${plan.bookingRef}\n\nSee you there!`;
@@ -68,6 +96,25 @@ export default function TicketModalScreen() {
       await Share.share({ message });
     } catch (e) {}
   };
+
+  const handleDirections = () => {
+    const { latitude, longitude } = cinema;
+    if (latitude == null || longitude == null) {
+      Alert.alert('Location unavailable', 'This cinema does not have verified coordinates to open directions.');
+      return;
+    }
+    const label = encodeURIComponent(cinema.name || 'Cinema');
+    let url;
+    if (Platform.OS === 'ios') {
+      url = `maps:0,0?q=${label}@${latitude},${longitude}`;
+    } else {
+      url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+    }
+    Linking.openURL(url).catch(() => {});
+  };
+
+  const countdown = countdownTo(plan, now);
+  const movieDay = isMovieDay(plan);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -89,13 +136,52 @@ export default function TicketModalScreen() {
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* MOVIE DAY / COUNTDOWN (valid screening only) */}
+        {countdown && countdown.state !== 'ended' && (
+          <View style={styles.countdownCard}>
+            <Text style={styles.countdownLabel}>{movieDay ? 'MOVIE DAY' : 'UPCOMING SCREENING'}</Text>
+            <Text style={styles.countdownValue}>{countdown.text}</Text>
+            {cinema.name ? <Text style={styles.countdownMeta}>{cinema.name}</Text> : null}
+          </View>
+        )}
+
+        {/* OFFLINE NOTE */}
+        {isOffline && (
+          <View style={styles.offlineNote}>
+            <WifiOff size={16} color={colors.warning} strokeWidth={2} />
+            <Text style={styles.offlineText}>
+              Offline — showing your saved pass. Everything here works without a connection.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.passContainer}>
           {/* Main Boarding Pass Card */}
           <TicketCard plan={plan} isFullPass />
 
           {/* Structured Verifiable Turnstile Entry Module */}
           <View style={styles.qrCard}>
-            <QRCodeView plan={plan} />
+            <TouchableOpacity
+              onPress={() => setQrZoomed(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={isPlan ? 'View plan QR placeholder' : 'Tap to enlarge QR code'}
+              accessibilityHint="Opens the QR code in full screen"
+            >
+              {isPlan ? (
+                <View style={styles.planQrPlaceholder}>
+                  <Text style={styles.planQrText}>QR</Text>
+                </View>
+              ) : (
+                <QRCodeSvg value={qrValue} size={180} color={colors.text} margin={4} />
+              )}
+            </TouchableOpacity>
+
+            {!isPlan && (
+              <Text style={styles.tapToEnlarge}>
+                <ChevronUp size={12} color={colors.textSecondary} strokeWidth={2} /> Tap to enlarge QR
+              </Text>
+            )}
 
             <View style={styles.bookingRefRow}>
               <Text style={styles.refLabel}>
@@ -126,14 +212,24 @@ export default function TicketModalScreen() {
 
         {/* Primary Bottom Actions */}
         <View style={styles.actionsWrapper}>
+          {cinema.latitude != null && cinema.longitude != null ? (
+            <Button
+              title="View Directions"
+              icon="MapPin"
+              variant="outline"
+              size="md"
+              onPress={handleDirections}
+              accessibilityLabel="Open directions to the cinema"
+              style={{ marginBottom: SPACING.sm }}
+            />
+          ) : null}
+
           <Button
             title="Log Screening Memory"
             icon="Camera"
             variant="primary"
             size="lg"
             onPress={() => {
-              const movie = plan.movie || {};
-              const cinema = plan.cinema || {};
               router.push(
                 `/memory/create?movieId=${movie.id || ''}&movieTitle=${encodeURIComponent(movie.title || '')}&cinema=${encodeURIComponent(cinema.name || '')}&format=${encodeURIComponent(cinema.screenType || '')}`
               );
@@ -152,15 +248,57 @@ export default function TicketModalScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* QR ENLARGE MODAL */}
+      <Modal
+        visible={qrZoomed}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQrZoomed(false)}
+      >
+        <View style={styles.qrModalBackdrop}>
+          <SafeAreaView style={styles.qrModalSafe}>
+            <View style={styles.qrModalHeader}>
+              <Text style={styles.qrModalTitle}>
+                {isPlan ? 'Movie Night Plan' : 'Verified Digital Pass'}
+              </Text>
+              <IconButton
+                icon="X"
+                variant="surface"
+                onPress={() => setQrZoomed(false)}
+                accessibilityLabel="Close enlarged QR"
+              />
+            </View>
+            <View style={styles.qrModalBody}>
+              <View style={styles.qrModalCard}>
+                <Text style={styles.qrModalMovie} numberOfLines={1}>{movie.title}</Text>
+                <View style={styles.qrWhite}>
+                  {isPlan ? (
+                    <View style={[styles.planQrPlaceholder, { width: 260, height: 260, borderRadius: RADIUS.md }]}>
+                      <Text style={[styles.planQrText, { fontSize: 48 }]}>QR</Text>
+                    </View>
+                  ) : (
+                    <QRCodeSvg value={qrValue} size={260} color="#000000" margin={8} />
+                  )}
+                </View>
+                {isPlan ? (
+                  <Text style={styles.qrModalPlanNote}>
+                    This is a plan, not a confirmed booking. A scannable pass will appear once live ticketing is connected.
+                  </Text>
+                ) : (
+                  <Text style={styles.qrModalRef}>{plan.bookingRef}</Text>
+                )}
+              </View>
+            </View>
+          </SafeAreaView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const createStyles = (colors) => StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -168,22 +306,42 @@ const createStyles = (colors) => StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: colors.cardBorder,
   },
-  headerTitle: {
-    ...TYPOGRAPHY.h2,
-    color: colors.text,
+  headerTitle: { ...TYPOGRAPHY.h2, color: colors.text },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: SPACING.xxl },
+
+  countdownCard: {
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+    padding: SPACING.lg,
+    backgroundColor: colors.cardElevated,
+    borderWidth: 1,
+    borderColor: colors.cardBorderActive,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+    ...SHADOWS.card,
   },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: SPACING.xxl,
-  },
-  passContainer: {
-    paddingHorizontal: SPACING.lg,
+  countdownLabel: { ...TYPOGRAPHY.badge, fontSize: 10, color: colors.primary, letterSpacing: 0.8 },
+  countdownValue: { ...TYPOGRAPHY.displayMedium, fontSize: 28, color: colors.primary, marginVertical: SPACING.xs },
+  countdownMeta: { ...TYPOGRAPHY.caption, color: colors.textSecondary },
+
+  offlineNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: colors.warningSubtle,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginHorizontal: SPACING.lg,
     marginTop: SPACING.md,
   },
+  offlineText: { ...TYPOGRAPHY.caption, color: colors.textSecondary, flex: 1 },
+
+  passContainer: { paddingHorizontal: SPACING.lg, marginTop: SPACING.md },
   qrCard: {
     backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
@@ -194,16 +352,20 @@ const createStyles = (colors) => StyleSheet.create({
     borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
-  bookingRefRow: {
+  tapToEnlarge: { ...TYPOGRAPHY.caption, color: colors.textSecondary, marginTop: 6, flexDirection: 'row', alignItems: 'center' },
+  planQrPlaceholder: {
+    width: 180,
+    height: 180,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.cardBorder,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.sm,
+    justifyContent: 'center',
   },
-  refLabel: {
-    ...TYPOGRAPHY.badge,
-    fontSize: 10,
-    color: colors.textMuted,
-  },
+  planQrText: { ...TYPOGRAPHY.ticketMono, fontSize: 28, color: colors.textMuted, letterSpacing: 2 },
+  bookingRefRow: { alignItems: 'center', marginTop: SPACING.sm, marginBottom: SPACING.sm },
+  refLabel: { ...TYPOGRAPHY.badge, fontSize: 10, color: colors.textMuted },
   refNote: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
@@ -213,27 +375,55 @@ const createStyles = (colors) => StyleSheet.create({
     lineHeight: 16,
     marginTop: 4,
   },
-  bookingRef: {
-    ...TYPOGRAPHY.displayMedium,
-    fontSize: 22,
-    color: colors.text,
-    letterSpacing: 2,
-    marginTop: 2,
-  },
-  qrActionRow: {
-    marginTop: SPACING.xs,
-  },
-  actionsWrapper: {
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
-  },
-  centerContainer: {
+  bookingRef: { ...TYPOGRAPHY.displayMedium, fontSize: 22, color: colors.text, letterSpacing: 2, marginTop: 2 },
+  qrActionRow: { marginTop: SPACING.xs },
+  actionsWrapper: { paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
+
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  qrModalBackdrop: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
-    alignItems: 'center',
+    padding: SPACING.lg,
   },
-  errorText: {
-    ...TYPOGRAPHY.body,
+  qrModalSafe: { width: '100%' },
+  qrModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  qrModalTitle: { ...TYPOGRAPHY.h2, color: colors.text },
+  qrModalBody: { alignItems: 'center', width: '100%' },
+  qrModalCard: {
+    backgroundColor: colors.card,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xl,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 360,
+    ...SHADOWS.modal,
+  },
+  qrModalMovie: { ...TYPOGRAPHY.h3, color: colors.text, marginBottom: SPACING.md },
+  qrWhite: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+  },
+  qrModalRef: {
+    ...TYPOGRAPHY.ticketMono,
+    color: colors.text,
+    fontSize: 16,
+    marginTop: SPACING.md,
+    letterSpacing: 2,
+  },
+  qrModalPlanNote: {
+    ...TYPOGRAPHY.caption,
     color: colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+    marginTop: SPACING.md,
+    lineHeight: 16,
   },
 });

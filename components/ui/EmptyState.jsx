@@ -9,6 +9,8 @@ export default function EmptyState({
   icon = 'Film',
   title = 'No Items Found',
   description,
+  reason,
+  nextStep,
   actionLabel,
   onAction,
   actionIcon,
@@ -23,6 +25,24 @@ export default function EmptyState({
       </View>
       <Text style={styles.title}>{title}</Text>
       {description ? <Text style={styles.description}>{description}</Text> : null}
+
+      {(reason || nextStep) && (
+        <View style={styles.breakdown}>
+          {reason ? (
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownTag}>WHY</Text>
+              <Text style={styles.breakdownText}>{reason}</Text>
+            </View>
+          ) : null}
+          {nextStep ? (
+            <View style={[styles.breakdownRow, styles.breakdownRowLast]}>
+              <Text style={styles.breakdownTag}>WHAT NEXT</Text>
+              <Text style={styles.breakdownText}>{nextStep}</Text>
+            </View>
+          ) : null}
+        </View>
+      )}
+
       {actionLabel && onAction ? (
         <Button
           title={actionLabel}
@@ -68,6 +88,37 @@ const createStyles = (colors) => StyleSheet.create({
     lineHeight: 20,
     maxWidth: 280,
     marginBottom: SPACING.lg,
+  },
+  breakdown: {
+    width: '100%',
+    maxWidth: 300,
+    backgroundColor: colors.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    marginBottom: SPACING.sm,
+  },
+  breakdownRowLast: {
+    marginBottom: 0,
+  },
+  breakdownTag: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 9,
+    color: colors.primary,
+    letterSpacing: 1,
+    width: 58,
+    paddingTop: 2,
+  },
+  breakdownText: {
+    ...TYPOGRAPHY.caption,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 18,
   },
   actionBtn: {
     minWidth: 180,
