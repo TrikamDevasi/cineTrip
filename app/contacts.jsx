@@ -28,6 +28,7 @@ import { useContacts } from '../hooks/useContacts';
 import { usePlannerStore } from '../store/usePlannerStore';
 import { useTheme } from '../hooks/useTheme';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { goBack } from '../lib/navigation';
 
 export default function ContactsScreen() {
   const { colors } = useTheme();
@@ -95,7 +96,7 @@ export default function ContactsScreen() {
           <IconButton
             icon="ArrowLeft"
             variant="surface"
-            onPress={() => router.back()}
+            onPress={() => goBack(router, '/(tabs)/planner')}
             accessibilityLabel="Go back"
           />
           <Text style={styles.headerTitle}>Contacts</Text>
@@ -119,10 +120,10 @@ export default function ContactsScreen() {
         <IconButton
           icon="ArrowLeft"
           variant="surface"
-          onPress={() => router.back()}
-          accessibilityLabel="Go back"
-        />
-        <Text style={styles.headerTitle}>Contacts & Movie Squad</Text>
+            onPress={() => goBack(router, '/(tabs)/planner')}
+            accessibilityLabel="Go back"
+          />
+          <Text style={styles.headerTitle}>Contacts & Movie Squad</Text>
         {selectedContacts.length > 0 ? (
           <Button
             title={`Add (${selectedContacts.length})`}

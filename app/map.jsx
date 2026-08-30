@@ -38,6 +38,7 @@ import { useTheme } from '../hooks/useTheme';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import { usePlannerStore } from '../store/usePlannerStore';
 import APP_CONFIG from '../constants/config';
+import { goBack } from '../lib/navigation';
 
 let MapView, Marker;
 try {
@@ -222,7 +223,7 @@ export default function MapScreen() {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <IconButton icon="ArrowLeft" variant="surface" onPress={() => router.back()} />
+          <IconButton icon="ArrowLeft" variant="surface" onPress={() => goBack(router, '/(tabs)')} />
           <Text style={styles.headerTitle}>Auditorium Locator</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -259,7 +260,7 @@ export default function MapScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* Header Bar */}
       <View style={styles.header}>
-        <IconButton icon="ArrowLeft" variant="surface" onPress={() => router.back()} />
+        <IconButton icon="ArrowLeft" variant="surface" onPress={() => goBack(router, '/(tabs)')} />
         <Text style={styles.headerTitle}>Auditorium Locator</Text>
         <IconButton icon="LocateFixed" variant="surface" onPress={handleGoToMyLocation} />
       </View>

@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Share2, Bookmark, BookmarkCheck, Star, Ticket, Play, Clock, Film, Sparkles } from 'lucide-react-native';
+import { goBack } from '../../lib/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import MovieCard from '../../components/MovieCard';
 import FormatBadge from '../../components/FormatBadge';
@@ -109,7 +110,7 @@ export default function MovieDetailScreen() {
           description="The catalog may be unavailable, or this title isn't in the verified set."
           actionLabel="Go Back"
           actionIcon="ArrowLeft"
-          onAction={() => router.back()}
+          onAction={() => goBack(router, '/(tabs)')}
         />
       </View>
     );
@@ -167,7 +168,7 @@ export default function MovieDetailScreen() {
             <IconButton
               icon="ArrowLeft"
               variant="surface"
-              onPress={() => router.back()}
+              onPress={() => goBack(router, '/(tabs)')}
               accessibilityLabel="Go back"
             />
 

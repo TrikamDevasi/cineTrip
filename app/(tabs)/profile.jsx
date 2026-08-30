@@ -114,8 +114,10 @@ export default function ProfileScreen() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
+            // Rely on the root <Stack.Protected> auth guard to switch from the
+            // (tabs) group to the (auth) group once auth state is cleared.
+            // Manually calling router.replace() here races the guard's unmount.
             await logout();
-            router.replace('/(auth)/login');
           },
         },
       ]

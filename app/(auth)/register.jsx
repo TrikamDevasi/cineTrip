@@ -19,6 +19,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { goBack } from '../../lib/navigation';
 
 export default function RegisterScreen() {
   const { colors } = useTheme();
@@ -112,7 +113,7 @@ export default function RegisterScreen() {
             <IconButton
               icon="ArrowLeft"
               variant="surface"
-              onPress={() => router.back()}
+              onPress={() => goBack(router, '/(auth)/login')}
               accessibilityLabel="Back to Login"
             />
           </View>

@@ -23,6 +23,7 @@ import {
 } from '../../services/contacts';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
+import { goBack } from '../../lib/navigation';
 
 export default function ContactFormScreen() {
   const { colors } = useTheme();
@@ -74,7 +75,7 @@ export default function ContactFormScreen() {
             email: email.trim(),
           });
           Alert.alert('Saved', 'Contact updated locally.', [
-            { text: 'OK', onPress: () => router.back() },
+            { text: 'OK', onPress: () => goBack(router, '/contacts') },
           ]);
         } else {
           const ok = await updateDeviceContact(existing, {
@@ -86,7 +87,7 @@ export default function ContactFormScreen() {
           if (ok) {
             await fetchContacts();
             Alert.alert('Saved', 'Contact updated on your device.', [
-              { text: 'OK', onPress: () => router.back() },
+              { text: 'OK', onPress: () => goBack(router, '/contacts') },
             ]);
           } else {
             Alert.alert('Update Failed', 'Could not update the contact. Please try again.');
@@ -103,7 +104,7 @@ export default function ContactFormScreen() {
           await fetchContacts();
           const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
           Alert.alert('Contact Added!', `${fullName} added to your device contacts.`, [
-            { text: 'OK', onPress: () => router.back() },
+            { text: 'OK', onPress: () => goBack(router, '/contacts') },
           ]);
         } else {
           Alert.alert('Add Failed', 'Could not create the contact. Check permissions and try again.');
@@ -124,7 +125,7 @@ export default function ContactFormScreen() {
         <IconButton
           icon="ArrowLeft"
           variant="surface"
-          onPress={() => router.back()}
+          onPress={() => goBack(router, '/contacts')}
           accessibilityLabel="Go back"
         />
         <Text style={styles.headerTitle}>{isEditing ? 'Edit Contact' : 'Add Contact'}</Text>

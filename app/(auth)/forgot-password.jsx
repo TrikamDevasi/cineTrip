@@ -17,6 +17,7 @@ import IconButton from '../../components/ui/IconButton';
 import api from '../../services/api';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { goBack } from '../../lib/navigation';
 
 export default function ForgotPasswordScreen() {
   const { colors } = useTheme();
@@ -84,7 +85,7 @@ export default function ForgotPasswordScreen() {
             <IconButton
               icon="ArrowLeft"
               variant="surface"
-              onPress={() => router.back()}
+              onPress={() => goBack(router, '/(auth)/login')}
               accessibilityLabel="Back to Login"
             />
           </View>

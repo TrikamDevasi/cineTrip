@@ -24,6 +24,7 @@ import { usePlannerStore } from '../../store/usePlannerStore';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 import { isConfirmedPass, countdownTo, isMovieDay } from '../../services/personalization';
+import { goBack } from '../../lib/navigation';
 
 export default function TicketModalScreen() {
   const { colors } = useTheme();
@@ -53,7 +54,7 @@ export default function TicketModalScreen() {
           <IconButton
             icon="ArrowLeft"
             variant="surface"
-            onPress={() => router.back()}
+            onPress={() => goBack(router, '/(tabs)/planner')}
             accessibilityLabel="Go back"
           />
           <Text style={styles.headerTitle}>Digital Cinema Pass</Text>
@@ -66,7 +67,7 @@ export default function TicketModalScreen() {
             description="We couldn't find this pass. It may have been deleted."
             actionLabel="Go Back"
             actionIcon="ArrowLeft"
-            onAction={() => router.back()}
+            onAction={() => goBack(router, '/(tabs)/planner')}
           />
         </View>
       </SafeAreaView>
@@ -123,7 +124,7 @@ export default function TicketModalScreen() {
         <IconButton
           icon="ArrowLeft"
           variant="surface"
-          onPress={() => router.back()}
+          onPress={() => goBack(router, '/(tabs)/planner')}
           accessibilityLabel="Go back"
         />
         <Text style={styles.headerTitle}>Digital Cinema Pass</Text>

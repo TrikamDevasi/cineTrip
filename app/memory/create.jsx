@@ -48,6 +48,7 @@ import { useMemoryStore } from '../../store/useMemoryStore';
 import { useContacts } from '../../hooks/useContacts';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { goBack } from '../../lib/navigation';
 
 const EXPERIENCE_TYPES = [
   'IMAX Laser 3D',
@@ -387,7 +388,7 @@ export default function CreateMemoryScreen() {
 
       setIsSaving(false);
       Alert.alert('Memory Logged! 🎬', 'Your theatrical experience has been saved to your Journal.', [
-        { text: 'View Journal', onPress: () => router.back() },
+        { text: 'View Journal', onPress: () => goBack(router, '/(tabs)/memories') },
       ]);
     } catch (err) {
       setIsSaving(false);
@@ -564,7 +565,7 @@ export default function CreateMemoryScreen() {
         <IconButton
           icon="ArrowLeft"
           variant="surface"
-          onPress={() => router.back()}
+          onPress={() => goBack(router, '/(tabs)/memories')}
           accessibilityLabel="Go back"
         />
         <Text style={styles.headerTitle}>Log Theatrical Memory</Text>

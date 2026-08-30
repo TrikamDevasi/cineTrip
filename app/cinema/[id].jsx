@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, Share2, Ticket, Check } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, Ticket, Check } from 'lucide-react-native';
+import { goBack } from '../../lib/navigation';
 import FormatBadge from '../../components/FormatBadge';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
@@ -72,7 +73,7 @@ export default function CinemaDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <IconButton icon="ArrowLeft" variant="surface" onPress={() => router.back()} accessibilityLabel="Go back" />
+          <IconButton icon="ArrowLeft" variant="surface" onPress={() => goBack(router, '/(tabs)')} accessibilityLabel="Go back" />
           <Text style={styles.headerTitle}>Cinema</Text>
           <View style={{ width: 44 }} />
         </View>
@@ -87,7 +88,7 @@ export default function CinemaDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <IconButton icon="ArrowLeft" variant="surface" onPress={() => router.back()} accessibilityLabel="Go back" />
+          <IconButton icon="ArrowLeft" variant="surface" onPress={() => goBack(router, '/(tabs)')} accessibilityLabel="Go back" />
           <Text style={styles.headerTitle}>Cinema</Text>
           <View style={{ width: 44 }} />
         </View>
@@ -133,7 +134,7 @@ export default function CinemaDetailScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <IconButton icon="ArrowLeft" variant="surface" onPress={() => router.back()} accessibilityLabel="Go back" />
+        <IconButton icon="ArrowLeft" variant="surface" onPress={() => goBack(router, '/(tabs)')} accessibilityLabel="Go back" />
         <Text style={styles.headerTitle}>Cinema</Text>
         <IconButton
           icon={isFavorite ? 'Check' : 'Star'}

@@ -24,6 +24,7 @@ import {
 } from '../../services/contacts';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { goBack } from '../../lib/navigation';
 
 export default function ContactDetailScreen() {
   const { colors } = useTheme();
@@ -51,7 +52,7 @@ export default function ContactDetailScreen() {
           <IconButton
             icon="ArrowLeft"
             variant="surface"
-            onPress={() => router.back()}
+            onPress={() => goBack(router, '/contacts')}
             accessibilityLabel="Go back"
           />
           <Text style={styles.headerTitle}>Contact</Text>
@@ -62,7 +63,7 @@ export default function ContactDetailScreen() {
           title="Contact Not Found"
           description="This contact no longer exists in your list."
           actionLabel="Go Back"
-          onAction={() => router.back()}
+          onAction={() => goBack(router, '/contacts')}
         />
       </SafeAreaView>
     );
@@ -108,7 +109,7 @@ export default function ContactDetailScreen() {
       if (isPreset) {
         removeContact(contact.id);
         Alert.alert('Contact Removed', `${contact.name} was removed from your squad.`, [
-          { text: 'OK', onPress: () => router.back() },
+          { text: 'OK', onPress: () => goBack(router, '/contacts') },
         ]);
         return;
       }
@@ -116,7 +117,7 @@ export default function ContactDetailScreen() {
       if (ok) {
         await fetchContacts();
         Alert.alert('Contact Deleted', `${contact.name} was removed from your device contacts.`, [
-          { text: 'OK', onPress: () => router.back() },
+          { text: 'OK', onPress: () => goBack(router, '/contacts') },
         ]);
       } else {
         Alert.alert('Delete Failed', 'Could not delete the contact. Please try again.');
@@ -143,7 +144,7 @@ export default function ContactDetailScreen() {
         <IconButton
           icon="ArrowLeft"
           variant="surface"
-          onPress={() => router.back()}
+          onPress={() => goBack(router, '/contacts')}
           accessibilityLabel="Go back"
         />
         <Text style={styles.headerTitle}>Contact</Text>
