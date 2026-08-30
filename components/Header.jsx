@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Film, MapPin, Search, User } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { MapPin, Search, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from './ui/IconButton';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { useTheme } from '../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
+
+const logoImg = require('../assets/images/logo.png');
 
 export default function Header({ showSearch = true, onSearchPress }) {
   const { colors } = useTheme();
@@ -17,14 +19,19 @@ export default function Header({ showSearch = true, onSearchPress }) {
   return (
     <View style={styles.header}>
       <View style={styles.left}>
-        <View style={styles.brandRow}>
+        <TouchableOpacity
+          style={styles.brandRow}
+          onPress={() => router.push('/landing')}
+          activeOpacity={0.8}
+          accessibilityLabel="CineTrip Home & Story"
+        >
           <View style={styles.brandIconWrapper}>
-            <Film size={16} color={colors.primary} strokeWidth={2.2} />
+            <Image source={logoImg} style={styles.brandLogoImg} resizeMode="contain" />
           </View>
           <Text style={styles.brandText}>
             Cine<Text style={styles.brandAccent}>Trip</Text>
           </Text>
-        </View>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.locationRow}
@@ -85,15 +92,20 @@ const createStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
   },
   brandIconWrapper: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: RADIUS.xs,
-    backgroundColor: colors.primarySubtle,
+    backgroundColor: '#07090E',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
     borderWidth: 1,
     borderColor: 'rgba(229, 169, 60, 0.3)',
+    overflow: 'hidden',
+  },
+  brandLogoImg: {
+    width: 28,
+    height: 28,
   },
   brandText: {
     ...TYPOGRAPHY.h1,

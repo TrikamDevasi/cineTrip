@@ -40,6 +40,8 @@ import { useTheme } from '../hooks/useTheme';
 import { RADIUS, SHADOWS, SPACING } from '../constants/theme';
 import { FALLBACK_MOVIES, MOODS, getImageUri } from '../services/tmdb';
 
+const logoImg = require('../assets/images/logo.png');
+
 const { width: WINDOW_WIDTH } = Dimensions.get('window');
 
 // Sample verifiable movie datasets for interactive landing demonstrations
@@ -237,9 +239,12 @@ export default function LandingScreen() {
             accessibilityLabel="CineTrip Home"
           >
             <View style={styles.brandBadge}>
-              <Film size={18} color={colors.primary} strokeWidth={2.4} />
+              <Image source={logoImg} style={styles.navLogoImg} resizeMode="contain" />
             </View>
-            <Text style={styles.brandTitle}>CineTrip</Text>
+            <View style={styles.navBrandTextCol}>
+              <Text style={styles.brandTitle}>CineTrip</Text>
+              <Text style={styles.brandSubtitle}>MOVIES. TOGETHER. MEMORIES.</Text>
+            </View>
             <View style={styles.versionPill}>
               <Text style={styles.versionText}>v1.0</Text>
             </View>
@@ -476,7 +481,7 @@ export default function LandingScreen() {
                   <View style={styles.passHeaderArea}>
                     <View style={styles.passBrandingRow}>
                       <View style={styles.passBrandBadge}>
-                        <Ticket size={13} color={colors.primary} strokeWidth={2.4} />
+                        <Image source={logoImg} style={styles.passLogoImg} resizeMode="contain" />
                         <Text style={styles.passBrandTitle}>CINETRIP DIGITAL PASS</Text>
                       </View>
                       <View style={styles.passVerifiedBadge}>
@@ -1434,10 +1439,11 @@ export default function LandingScreen() {
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.sectionCtaMarquee}>
           <View style={styles.marqueeContainer}>
-            <View style={styles.marqueeBadge}>
-              <Film size={18} color={colors.primary} />
-              <Text style={styles.marqueeBadgeText}>READY FOR SHOWTIME</Text>
+            <View style={styles.marqueeLogoBadge}>
+              <Image source={logoImg} style={styles.marqueeLogoImg} resizeMode="contain" />
             </View>
+
+            <Text style={styles.marqueeTagline}>— MOVIES. TOGETHER. MEMORIES. —</Text>
 
             <Text style={styles.marqueeHeadline}>
               YOUR NEXT MOVIE NIGHT{'\n'}
@@ -1477,10 +1483,12 @@ export default function LandingScreen() {
             <View style={styles.footerTop}>
               <View style={styles.footerBrand}>
                 <View style={styles.brandBadgeSmall}>
-                  <Film size={16} color={colors.primary} strokeWidth={2.2} />
+                  <Image source={logoImg} style={styles.footerLogoImg} resizeMode="contain" />
                 </View>
-                <Text style={styles.footerBrandText}>CineTrip</Text>
-                <Text style={styles.footerBrandSub}>Theatrical Trip Planner & Cinephile Journal</Text>
+                <View>
+                  <Text style={styles.footerBrandText}>CineTrip</Text>
+                  <Text style={styles.footerBrandSub}>MOVIES. TOGETHER. MEMORIES.</Text>
+                </View>
               </View>
 
               <View style={styles.footerLinksRow}>
@@ -1558,20 +1566,36 @@ const createStyles = (colors) =>
       gap: 10,
     },
     brandBadge: {
-      width: 34,
-      height: 34,
-      borderRadius: 8,
-      backgroundColor: 'rgba(229, 169, 60, 0.14)',
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      backgroundColor: '#07090E',
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(229, 169, 60, 0.3)',
+      borderColor: 'rgba(229, 169, 60, 0.35)',
+      overflow: 'hidden',
+    },
+    navLogoImg: {
+      width: 32,
+      height: 32,
+    },
+    navBrandTextCol: {
+      justifyContent: 'center',
     },
     brandTitle: {
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: '900',
       letterSpacing: -0.3,
       color: '#F8FAFC',
+      lineHeight: 20,
+    },
+    brandSubtitle: {
+      fontSize: 8,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+      color: colors.primary,
+      textTransform: 'uppercase',
     },
     versionPill: {
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
@@ -1902,7 +1926,11 @@ const createStyles = (colors) =>
     passBrandBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
+      gap: 8,
+    },
+    passLogoImg: {
+      width: 22,
+      height: 22,
     },
     passBrandTitle: {
       fontSize: 11,
@@ -3330,23 +3358,31 @@ const createStyles = (colors) =>
       width: '100%',
       alignItems: 'center',
     },
-    marqueeBadge: {
-      flexDirection: 'row',
+    marqueeLogoBadge: {
+      width: 88,
+      height: 88,
+      borderRadius: RADIUS.lg,
+      backgroundColor: '#0C0F17',
+      borderWidth: 1.5,
+      borderColor: 'rgba(229, 169, 60, 0.4)',
+      justifyContent: 'center',
       alignItems: 'center',
-      gap: 8,
-      backgroundColor: 'rgba(229, 169, 60, 0.12)',
-      borderWidth: 1,
-      borderColor: 'rgba(229, 169, 60, 0.3)',
-      paddingHorizontal: 14,
-      paddingVertical: 6,
-      borderRadius: 999,
-      marginBottom: 24,
+      marginBottom: 16,
+      overflow: 'hidden',
+      ...SHADOWS.focus,
     },
-    marqueeBadgeText: {
+    marqueeLogoImg: {
+      width: 78,
+      height: 78,
+    },
+    marqueeTagline: {
       fontSize: 11,
       fontWeight: '800',
-      letterSpacing: 1.2,
+      letterSpacing: 2,
       color: colors.primary,
+      textTransform: 'uppercase',
+      marginBottom: 18,
+      textAlign: 'center',
     },
     marqueeHeadline: {
       fontSize: WINDOW_WIDTH > 768 ? 48 : 32,
@@ -3422,12 +3458,19 @@ const createStyles = (colors) =>
       gap: 10,
     },
     brandBadgeSmall: {
-      width: 28,
-      height: 28,
-      borderRadius: 6,
-      backgroundColor: 'rgba(229, 169, 60, 0.14)',
+      width: 36,
+      height: 36,
+      borderRadius: 8,
+      backgroundColor: '#07090E',
       justifyContent: 'center',
       alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(229, 169, 60, 0.3)',
+      overflow: 'hidden',
+    },
+    footerLogoImg: {
+      width: 30,
+      height: 30,
     },
     footerBrandText: {
       fontSize: 18,
@@ -3435,9 +3478,12 @@ const createStyles = (colors) =>
       color: '#F8FAFC',
     },
     footerBrandSub: {
-      fontSize: 12,
-      color: '#64748B',
-      marginLeft: 6,
+      fontSize: 9,
+      fontWeight: '700',
+      letterSpacing: 1,
+      color: colors.primary,
+      textTransform: 'uppercase',
+      marginTop: 2,
     },
     footerLinksRow: {
       flexDirection: 'row',

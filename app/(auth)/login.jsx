@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
@@ -18,6 +19,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+
+const logoImg = require('../../assets/images/logo.png');
 
 export default function LoginScreen() {
   const { colors } = useTheme();
@@ -101,10 +104,10 @@ export default function LoginScreen() {
           {/* Logo / Header */}
           <View style={styles.heroSection}>
             <View style={styles.logoBadge}>
-              <Film size={28} color={colors.primary} strokeWidth={2.2} />
+              <Image source={logoImg} style={styles.logoBadgeImg} resizeMode="contain" />
             </View>
             <Text style={styles.appName}>CineTrip</Text>
-            <Text style={styles.tagline}>Your luxury theatrical companion</Text>
+            <Text style={styles.tagline}>MOVIES. TOGETHER. MEMORIES.</Text>
           </View>
 
           {/* Form Card */}
@@ -252,16 +255,21 @@ const createStyles = (colors) => StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   logoBadge: {
-    width: 60,
-    height: 60,
+    width: 72,
+    height: 72,
     borderRadius: RADIUS.md,
-    backgroundColor: colors.primarySubtle,
+    backgroundColor: '#07090E',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: 'rgba(229, 169, 60, 0.35)',
+    overflow: 'hidden',
     ...SHADOWS.focus,
+  },
+  logoBadgeImg: {
+    width: 64,
+    height: 64,
   },
   appName: {
     ...TYPOGRAPHY.displayLarge,
