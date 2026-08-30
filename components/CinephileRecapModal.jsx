@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import {
   X,
   Sparkles,
   Camera,
+  Calendar,
 } from 'lucide-react-native';
 import { useMemoryStore } from '../store/useMemoryStore';
 import { useTheme } from '../hooks/useTheme';
@@ -29,17 +30,35 @@ import IconButton from './ui/IconButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const YEAR_OPTIONS = ['all', '2026', '2025', '2024'];
+
 export default function CinephileRecapModal({ visible, onClose }) {
   const { colors } = useTheme();
   const memories = useMemoryStore((s) => s.memories);
+  const [selectedYear, setSelectedYear] = useState('all');
 
-  // Compute real stats from actual logged memories
+  // Compute real stats from actual logged memories filtered by year
   const stats = useMemo(() => {
     if (!memories || memories.length === 0) {
       return null;
     }
 
-    const totalMovies = memories.length;
+    let filtered = memories;
+    if (selectedYear !== 'all') {
+      filtered = memories.filter((m) => {
+        const d = m.date || m.createdAt;
+        return d && String(d).includes(selectedYear);
+      });
+    }
+
+    if (filtered.length === 0) {
+      return {
+        isEmptyForYear: true,
+        selectedYear,
+      };
+    }
+
+    const totalMovies = filtered.length;
 
     // Cinema visits
     const cinemaCounts = {};
@@ -47,12 +66,14 @@ export default function CinephileRecapModal({ visible, onClose }) {
     let totalStars = 0;
     const companionSet = new Set();
 
-    memories.forEach((m) => {
-      if (m.cinema) {
-        cinemaCounts[m.cinema] = (cinemaCounts[m.cinema] || 0) + 1;
+    filtered.forEach((m) => {
+      if (m.cinema || m.cinemaName) {
+        const cName = m.cinema || m.cinemaName;
+        cinemaCounts[cName] = (cinemaCounts[cName] || 0) + 1;
       }
-      if (m.format) {
-        formatCounts[m.format] = (formatCounts[m.format] || 0) + 1;
+      if (m.format || m.experienceType) {
+        const fmt = m.format || m.experienceType;
+        formatCounts[fmt] = (formatCounts[fmt] || 0) + 1;
       }
       if (m.rating) {
         totalStars += Number(m.rating);
@@ -92,12 +113,14 @@ export default function CinephileRecapModal({ visible, onClose }) {
       uniqueCompanions: companionSet.size,
       imaxCount: formatCounts['IMAX 70mm'] || formatCounts['IMAX Laser'] || formatCounts['IMAX'] || 0,
       dolbyCount: formatCounts['Dolby Cinema'] || formatCounts['Dolby Atmos'] || 0,
+      selectedYear,
     };
-  }, [memories]);
+  }, [memories, selectedYear]);
 
   const handleShareRecap = async () => {
-    if (!stats) return;
-    const msg = `🎬 My CineTrip Theatrical Recap\n\n🍿 ${stats.totalMovies} Movies Watched on the Big Screen\n🏛️ Top Cinema: ${stats.topCinema}\n⚡ Top Format: ${stats.topFormat}\n👥 Friends in Squad: ${stats.uniqueCompanions}\n⭐ Average Rating: ${stats.avgRating}/5.0\n\nTracked with CineTrip.`;
+    if (!stats || stats.isEmptyForYear) return;
+    const yearLabel = stats.selectedYear === 'all' ? 'All-Time' : stats.selectedYear;
+    const msg = `🎬 My CineTrip Theatrical Recap (${yearLabel})\n\n🍿 ${stats.totalMovies} Movies Watched on the Big Screen\n🏛️ Top Cinema: ${stats.topCinema}\n⚡ Top Format: ${stats.topFormat}\n👥 Friends in Squad: ${stats.uniqueCompanions}\n⭐ Average Rating: ${stats.avgRating}/5.0\n\nTracked with CineTrip.`;
     try {
       await Share.share({ message: msg });
     } catch (e) {}
@@ -128,13 +151,30 @@ export default function CinephileRecapModal({ visible, onClose }) {
             />
           </View>
 
+          {/* Year Segment Filter */}
+          <View style={styles.yearFilterRow}>
+            {YEAR_OPTIONS.map((y) => (
+              <TouchableOpacity
+                key={y}
+                style={[styles.yearPill, selectedYear === y && styles.yearPillActive]}
+                onPress={() => setSelectedYear(y)}
+              >
+                <Text style={[styles.yearPillText, selectedYear === y && styles.yearPillTextActive]}>
+                  {y === 'all' ? 'All-Time' : y}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-            {stats ? (
+            {stats && !stats.isEmptyForYear ? (
               <View style={styles.recapCard}>
                 {/* Visual Marquee Banner */}
                 <View style={styles.marqueeBanner}>
                   <Award size={32} color={colors.primary} />
-                  <Text style={styles.bannerHeadline}>AUTHENTIC THEATRICAL LOG</Text>
+                  <Text style={styles.bannerHeadline}>
+                    {selectedYear === 'all' ? 'AUTHENTIC THEATRICAL LOG' : `${selectedYear} CINEPHILE REPORT`}
+                  </Text>
                   <Text style={styles.bannerSub}>Lifetime screening history calculated from your verified memories.</Text>
                 </View>
 
@@ -184,7 +224,9 @@ export default function CinephileRecapModal({ visible, onClose }) {
             ) : (
               <View style={styles.emptyCard}>
                 <Camera size={44} color={colors.primary} />
-                <Text style={styles.emptyTitle}>No Screening Memories Yet</Text>
+                <Text style={styles.emptyTitle}>
+                  {selectedYear === 'all' ? 'No Screening Memories Yet' : `No Memories Logged for ${selectedYear}`}
+                </Text>
                 <Text style={styles.emptyDesc}>
                   Once you attend a movie and log your sound, screen, and companion ratings in the Memories tab,
                   your personal theatrical recap will generate automatically.
@@ -236,6 +278,35 @@ const createStyles = (colors) =>
       fontSize: 20,
       fontWeight: '900',
       color: '#F8FAFC',
+    },
+    yearFilterRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      gap: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    yearPill: {
+      backgroundColor: '#121722',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: RADIUS.xs,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    yearPillActive: {
+      backgroundColor: 'rgba(229, 169, 60, 0.15)',
+      borderColor: colors.primary,
+    },
+    yearPillText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#94A3B8',
+    },
+    yearPillTextActive: {
+      color: colors.primary,
+      fontWeight: '800',
     },
     scroll: {
       flex: 1,

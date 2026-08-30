@@ -3,7 +3,7 @@ import { Linking, Platform } from 'react-native';
 /**
  * Generates an RFC-compliant iCal date string (YYYYMMDDTHHmmssZ)
  */
-const formatICalDate = (dateStr, timeStr) => {
+const formatICalDate = (dateStr, timeStr, runtimeMinutes = 0) => {
   try {
     const d = new Date(dateStr || Date.now());
     if (timeStr) {
@@ -19,6 +19,11 @@ const formatICalDate = (dateStr, timeStr) => {
         d.setHours(hours, minutes, 0, 0);
       }
     }
+
+    if (runtimeMinutes > 0) {
+      d.setTime(d.getTime() + runtimeMinutes * 60 * 1000);
+    }
+
     return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   } catch (e) {
     return new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -33,18 +38,15 @@ export const openCalendarEvent = (plan) => {
 
   const title = encodeURIComponent(`🎬 Movie Night: ${plan.movie.title || 'Movie'}`);
   const details = encodeURIComponent(
-    `CineTrip Outing\nFilm: ${plan.movie.title}\nCinema: ${plan.cinema?.name || 'Cinema'}\nSeats: ${plan.seats || 'General'}\nFormat: ${plan.cinema?.screenType || 'Standard'}`
+    `CineTrip Outing\nFilm: ${plan.movie.title}\nCinema: ${plan.cinema?.name || 'Cinema'}\nSeats: ${plan.seats || 'General'}\nFormat: ${plan.cinema?.screenType || 'Standard'}\nPass Ref: ${plan.bookingRef || 'CT-PASS'}`
   );
   const location = encodeURIComponent(
     `${plan.cinema?.name || 'Cinema'}, ${plan.cinema?.address || ''}`
   );
 
-  const startUtc = formatICalDate(plan.date, plan.time);
-  // Default 2.5 hours runtime
-  const endUtc = formatICalDate(
-    new Date(new Date(plan.date || Date.now()).getTime() + 2.5 * 60 * 60 * 1000).toISOString(),
-    plan.time
-  );
+  const runtime = typeof plan.movie.runtime === 'number' ? plan.movie.runtime : 150;
+  const startUtc = formatICalDate(plan.date, plan.time, 0);
+  const endUtc = formatICalDate(plan.date, plan.time, runtime);
 
   const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startUtc}/${endUtc}&details=${details}&location=${location}`;
 

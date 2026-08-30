@@ -168,4 +168,94 @@ const deletePlan = async (req, res, next) => {
   }
 };
 
-module.exports = { getPlans, getPlanById, createPlan, updatePlan, deletePlan };
+// GET /api/plans/public/:id
+// Unauthenticated read-only preview for invited friends
+const getPublicPlanById = async (req, res, next) => {
+  try {
+    const plan = await Plan.findById(req.params.id).lean();
+    if (!plan) {
+      return res.status(404).json({ message: 'Movie night outing not found.' });
+    }
+
+    // Sanitize: strictly return public outing details, no user private info
+    const publicData = {
+      _id: plan._id,
+      movie: plan.movie,
+      cinema: plan.cinema,
+      date: plan.date,
+      time: plan.time,
+      slotName: plan.slotName,
+      seats: plan.seats,
+      snacks: plan.snacks,
+      friends: (plan.friends || []).map((f) => ({
+        name: f.name,
+        status: f.status || 'invited',
+        handle: f.handle || '',
+      })),
+      bookingStatus: plan.bookingStatus,
+      bookingRef: plan.bookingRef || `CT-PASS-${plan.movie?.id || ''}`,
+      createdAt: plan.createdAt,
+    };
+
+    res.json({ data: publicData });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/plans/public/:id/rsvp
+// Unauthenticated guest RSVP submission
+const rsvpPublicPlan = async (req, res, next) => {
+  try {
+    const { name, status = 'confirmed', handle = '' } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Name is required to RSVP.' });
+    }
+
+    const trimmedName = name.trim().slice(0, 50);
+    const validStatus = ['confirmed', 'maybe', 'declined'].includes(status) ? status : 'confirmed';
+
+    const plan = await Plan.findById(req.params.id);
+    if (!plan) {
+      return res.status(404).json({ message: 'Movie night outing not found.' });
+    }
+
+    const friendsList = plan.friends || [];
+    const existingIndex = friendsList.findIndex(
+      (f) => f.name && f.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (existingIndex >= 0) {
+      friendsList[existingIndex].status = validStatus;
+      if (handle) friendsList[existingIndex].handle = handle.trim().slice(0, 30);
+    } else {
+      friendsList.push({
+        name: trimmedName,
+        status: validStatus,
+        handle: handle ? handle.trim().slice(0, 30) : `@${trimmedName.toLowerCase().replace(/\s+/g, '')}`,
+      });
+    }
+
+    plan.friends = friendsList;
+    await plan.save();
+
+    res.json({
+      message: `RSVP recorded for ${trimmedName}.`,
+      data: {
+        friends: plan.friends,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getPlans,
+  getPlanById,
+  getPublicPlanById,
+  rsvpPublicPlan,
+  createPlan,
+  updatePlan,
+  deletePlan,
+};

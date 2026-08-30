@@ -3,6 +3,8 @@ const router = express.Router();
 const {
   getPlans,
   getPlanById,
+  getPublicPlanById,
+  rsvpPublicPlan,
   createPlan,
   updatePlan,
   deletePlan,
@@ -10,6 +12,11 @@ const {
 const { authenticateToken } = require('../middleware/auth');
 const { createPlanSchema, updatePlanSchema, validate } = require('../validators/planValidators');
 
+// Public routes for invited squad members (unauthenticated read & RSVP)
+router.get('/public/:id', getPublicPlanById);
+router.post('/public/:id/rsvp', rsvpPublicPlan);
+
+// Protected routes requiring authentication
 router.use(authenticateToken);
 
 router.get('/', getPlans);

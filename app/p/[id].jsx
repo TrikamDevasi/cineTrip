@@ -4,12 +4,14 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   Image,
   useWindowDimensions,
   Share,
   Linking,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -26,6 +28,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Sparkles,
+  UserPlus,
 } from 'lucide-react-native';
 import QRCodeSvg from '../../components/ui/QRCodeSvg';
 import FormatBadge from '../../components/FormatBadge';
@@ -37,6 +40,7 @@ import { RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 import { getImageUri, FALLBACK_MOVIES } from '../../services/tmdb';
 import { openCalendarEvent } from '../../services/calendar';
 import { showAlert } from '../../lib/alert';
+import api from '../../services/api';
 
 const logoImg = require('../../assets/images/logo.png');
 
@@ -51,11 +55,46 @@ export default function SharedPlanPreviewScreen() {
   const enterGuestMode = useAuthStore((s) => s.enterGuestMode);
 
   const getPlanById = usePlannerStore((s) => s.getPlanById);
-  const existingPlan = getPlanById(id);
+  const existingLocalPlan = getPlanById(id);
+
+  const [remotePlan, setRemotePlan] = useState(null);
+  const [loading, setLoading] = useState(Boolean(id && id !== 'share-demo-1' && !existingLocalPlan));
+  const [guestName, setGuestName] = useState('');
+  const [isRsvping, setIsRsvping] = useState(false);
+  const [rsvpState, setRsvpState] = useState(false);
+  const [friendsList, setFriendsList] = useState([]);
+
+  // Fetch public plan data from backend API if not already in local store
+  useEffect(() => {
+    let isMounted = true;
+    if (id && id !== 'share-demo-1' && !existingLocalPlan) {
+      setLoading(true);
+      api
+        .get(`/api/plans/public/${id}`)
+        .then((res) => {
+          if (isMounted && res.data) {
+            setRemotePlan(res.data);
+            setFriendsList(res.data.friends || []);
+          }
+        })
+        .catch(() => {
+          // Gracefully fallback to sample preview
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+    } else if (existingLocalPlan) {
+      setFriendsList(existingLocalPlan.friends || []);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [id, existingLocalPlan]);
 
   // Fallback to rich demo plan if opened directly via shared link
   const plan = useMemo(() => {
-    if (existingPlan) return existingPlan;
+    if (remotePlan) return remotePlan;
+    if (existingLocalPlan) return existingLocalPlan;
     const movie = FALLBACK_MOVIES[0] || {
       id: 693134,
       title: 'Dune: Part Two',
@@ -88,18 +127,48 @@ export default function SharedPlanPreviewScreen() {
       bookingRef: `CT-PASS-${movie.id}`,
       bookingStatus: 'plan',
     };
-  }, [existingPlan, id]);
+  }, [remotePlan, existingLocalPlan, id]);
 
-  const [rsvpState, setRsvpState] = useState(false);
+  useEffect(() => {
+    if (plan.friends && friendsList.length === 0) {
+      setFriendsList(plan.friends);
+    }
+  }, [plan]);
 
   const movie = plan.movie || {};
   const cinema = plan.cinema || {};
 
-  const handleToggleRsvp = () => {
-    const nextState = !rsvpState;
-    setRsvpState(nextState);
-    if (nextState) {
+  const handleToggleRsvp = async () => {
+    if (!guestName.trim()) {
+      showAlert('Name Required', 'Please enter your name or handle above to RSVP.');
+      return;
+    }
+
+    setIsRsvping(true);
+    try {
+      const trimmedName = guestName.trim();
+      if (id && id !== 'share-demo-1') {
+        const res = await api.post(`/api/plans/public/${id}/rsvp`, {
+          name: trimmedName,
+          status: 'confirmed',
+        });
+        if (res.data?.friends) {
+          setFriendsList(res.data.friends);
+        }
+      } else {
+        // Local state update for preview mode
+        const updated = [...friendsList, { name: trimmedName, status: 'confirmed', handle: `@${trimmedName.toLowerCase().replace(/\s+/g, '')}` }];
+        setFriendsList(updated);
+      }
+
+      setRsvpState(true);
       showAlert("You're In!", `You have RSVP'd to movie night for ${movie.title}.`);
+    } catch (e) {
+      // Fallback local RSVP
+      setRsvpState(true);
+      showAlert("You're In!", `RSVP recorded locally for ${movie.title}.`);
+    } finally {
+      setIsRsvping(false);
     }
   };
 
@@ -126,6 +195,17 @@ export default function SharedPlanPreviewScreen() {
   };
 
   const styles = createStyles(colors, isMobile, isDesktop);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading shared movie night...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -233,12 +313,16 @@ export default function SharedPlanPreviewScreen() {
               </View>
 
               <View style={styles.squadList}>
-                <Text style={styles.squadTitle}>ATTENDEES ({plan.friends?.length || 2}):</Text>
-                {(plan.friends || []).map((f, idx) => (
+                <Text style={styles.squadTitle}>ATTENDEES ({friendsList.length || 2}):</Text>
+                {friendsList.map((f, idx) => (
                   <View key={idx} style={styles.squadMemberItem}>
-                    <View style={styles.squadAvatar}><Text style={styles.squadAvatarText}>{f.name.charAt(0)}</Text></View>
+                    <View style={styles.squadAvatar}><Text style={styles.squadAvatarText}>{(f.name || 'F').charAt(0).toUpperCase()}</Text></View>
                     <Text style={styles.squadMemberName}>{f.name}</Text>
-                    <View style={styles.confirmedPill}><Text style={styles.confirmedPillText}>CONFIRMED</Text></View>
+                    <View style={[styles.confirmedPill, f.status === 'maybe' && { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                      <Text style={[styles.confirmedPillText, f.status === 'maybe' && { color: '#F59E0B' }]}>
+                        {f.status ? f.status.toUpperCase() : 'CONFIRMED'}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -275,15 +359,39 @@ export default function SharedPlanPreviewScreen() {
                 <Text style={styles.qrRefText}>{plan.bookingRef || 'CT-OUTING-PASS'}</Text>
               </View>
 
-              {/* RSVP Action */}
-              <TouchableOpacity
-                style={[styles.rsvpBtn, rsvpState && styles.rsvpBtnActive]}
-                onPress={handleToggleRsvp}
-                activeOpacity={0.85}
-              >
-                {rsvpState ? <Check size={16} color="#07090E" strokeWidth={3} /> : <Sparkles size={16} color="#07090E" />}
-                <Text style={styles.rsvpBtnText}>{rsvpState ? "I'M ATTENDING ✓" : "RSVP: I'M IN!"}</Text>
-              </TouchableOpacity>
+              {/* Guest RSVP Input */}
+              {!rsvpState ? (
+                <View style={styles.rsvpInputWrap}>
+                  <Text style={styles.rsvpInputLabel}>YOUR NAME / HANDLE TO RSVP:</Text>
+                  <TextInput
+                    style={styles.rsvpInput}
+                    value={guestName}
+                    onChangeText={setGuestName}
+                    placeholder="e.g. Priyansh, @priyansh_cine"
+                    placeholderTextColor="#64748B"
+                  />
+                  <TouchableOpacity
+                    style={[styles.rsvpBtn, (!guestName.trim() || isRsvping) && { opacity: 0.8 }]}
+                    onPress={handleToggleRsvp}
+                    disabled={isRsvping}
+                    activeOpacity={0.85}
+                  >
+                    {isRsvping ? (
+                      <ActivityIndicator size="small" color="#07090E" />
+                    ) : (
+                      <>
+                        <UserPlus size={16} color="#07090E" strokeWidth={2.5} />
+                        <Text style={styles.rsvpBtnText}>RSVP: I'M IN!</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.rsvpConfirmedBox}>
+                  <Check size={18} color="#10B981" strokeWidth={3} />
+                  <Text style={styles.rsvpConfirmedText}>You're attending as {guestName.trim()}!</Text>
+                </View>
+              )}
             </View>
 
             {/* Launch CineTrip Trigger */}
@@ -313,6 +421,16 @@ const createStyles = (colors, isMobile, isDesktop) =>
     safeArea: {
       flex: 1,
       backgroundColor: '#07090E',
+    },
+    loadingCenter: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 12,
+    },
+    loadingText: {
+      fontSize: 14,
+      color: '#94A3B8',
     },
     scroll: {
       flex: 1,
@@ -636,6 +754,26 @@ const createStyles = (colors, isMobile, isDesktop) =>
       color: '#94A3B8',
       marginTop: 8,
     },
+    rsvpInputWrap: {
+      width: '100%',
+      gap: 8,
+    },
+    rsvpInputLabel: {
+      fontSize: 9,
+      fontWeight: '800',
+      letterSpacing: 1,
+      color: colors.textMuted,
+    },
+    rsvpInput: {
+      backgroundColor: '#0C0F17',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderRadius: RADIUS.sm,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: '#F8FAFC',
+      fontSize: 13,
+    },
     rsvpBtn: {
       width: '100%',
       backgroundColor: colors.primary,
@@ -643,17 +781,33 @@ const createStyles = (colors, isMobile, isDesktop) =>
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      paddingVertical: 13,
+      paddingVertical: 12,
       borderRadius: RADIUS.sm,
-    },
-    rsvpBtnActive: {
-      backgroundColor: '#10B981',
+      marginTop: 4,
     },
     rsvpBtnText: {
       fontSize: 13,
       fontWeight: '900',
       color: '#07090E',
       letterSpacing: 0.5,
+    },
+    rsvpConfirmedBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+      width: '100%',
+      justifyContent: 'center',
+    },
+    rsvpConfirmedText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#10B981',
     },
 
     // Open App Banner
