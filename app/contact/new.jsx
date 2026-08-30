@@ -5,11 +5,11 @@ import {
   ScrollView,
   TextInput,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../../lib/alert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
@@ -55,7 +55,7 @@ export default function ContactFormScreen() {
 
   const handleSave = async () => {
     if (!firstName.trim()) {
-      Alert.alert('Missing Name', 'Please enter a first name.');
+      showAlert('Missing Name', 'Please enter a first name.');
       return;
     }
 
@@ -63,7 +63,7 @@ export default function ContactFormScreen() {
     try {
       if (isEditing) {
         if (!existing) {
-          Alert.alert('Contact Not Found', 'This contact no longer exists.');
+          showAlert('Contact Not Found', 'This contact no longer exists.');
           return;
         }
 
@@ -74,7 +74,7 @@ export default function ContactFormScreen() {
             phone: phone.trim(),
             email: email.trim(),
           });
-          Alert.alert('Saved', 'Contact updated locally.', [
+          showAlert('Saved', 'Contact updated locally.', [
             { text: 'OK', onPress: () => goBack(router, '/contacts') },
           ]);
         } else {
@@ -86,11 +86,11 @@ export default function ContactFormScreen() {
           });
           if (ok) {
             await fetchContacts();
-            Alert.alert('Saved', 'Contact updated on your device.', [
+            showAlert('Saved', 'Contact updated on your device.', [
               { text: 'OK', onPress: () => goBack(router, '/contacts') },
             ]);
           } else {
-            Alert.alert('Update Failed', 'Could not update the contact. Please try again.');
+            showAlert('Update Failed', 'Could not update the contact. Please try again.');
           }
         }
       } else {
@@ -103,15 +103,15 @@ export default function ContactFormScreen() {
         if (contactId) {
           await fetchContacts();
           const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-          Alert.alert('Contact Added!', `${fullName} added to your device contacts.`, [
+          showAlert('Contact Added!', `${fullName} added to your device contacts.`, [
             { text: 'OK', onPress: () => goBack(router, '/contacts') },
           ]);
         } else {
-          Alert.alert('Add Failed', 'Could not create the contact. Check permissions and try again.');
+          showAlert('Add Failed', 'Could not create the contact. Check permissions and try again.');
         }
       }
     } catch (err) {
-      Alert.alert('Error', err.message || 'Something went wrong.');
+      showAlert('Error', err.message || 'Something went wrong.');
     } finally {
       setIsSaving(false);
     }

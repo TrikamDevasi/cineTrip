@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Switch,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../../lib/alert';
 import {
   User,
   Pencil,
@@ -48,7 +48,7 @@ const FORMAT_OPTIONS = [
   'IMAX 70mm & Laser',
   'Dolby Cinema',
   '4DX Immersive',
-  'ScreenX 270°',
+  'ScreenX 270Â°',
   'PVR Director\'s Cut',
 ];
 
@@ -101,11 +101,11 @@ export default function ProfileScreen() {
   const handleSaveProfile = () => {
     updateProfile({ userName: editName.trim() || 'Cinephile', city: editCity.trim() || 'Mumbai' });
     setIsEditing(false);
-    Alert.alert('Profile Updated', 'Your cinephile preferences have been saved.');
+    showAlert('Profile Updated', 'Your cinephile preferences have been saved.');
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    showAlert(
       'Sign Out',
       'Are you sure you want to sign out of CineTrip?',
       [
@@ -178,7 +178,7 @@ export default function ProfileScreen() {
               <View style={styles.profileInfo}>
                 <Text style={styles.userName}>{userName || 'Cinephile Enthusiast'}</Text>
                 <Text style={styles.userHandle}>
-                  {userHandle ? `${userHandle} • ` : ''}{city || 'Mumbai Metro'}
+                  {userHandle ? `${userHandle} â€¢ ` : ''}{city || 'Mumbai Metro'}
                 </Text>
 
                 <View style={styles.editTriggerRow}>
@@ -269,7 +269,7 @@ export default function ProfileScreen() {
               <View style={styles.milestoneDivider} />
 
               <View style={styles.milestoneItem}>
-                <Text style={[styles.milestoneVal, { color: colors.primary }]}>{avgRating} ★</Text>
+                <Text style={[styles.milestoneVal, { color: colors.primary }]}>{avgRating} â˜…</Text>
                 <Text style={styles.milestoneLbl}>Avg Rating</Text>
               </View>
             </View>

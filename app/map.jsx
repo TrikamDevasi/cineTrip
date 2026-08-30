@@ -9,9 +9,9 @@ import {
   ScrollView,
   Platform,
   Dimensions,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../lib/alert';
 import {
   Search,
   X,
@@ -155,7 +155,7 @@ export default function MapScreen() {
 
     const result = await geocodeAddress(query);
     if (!result) {
-      Alert.alert('Location not found', `We couldn't find "${searchQuery}". Try a city, landmark, or full address.`);
+      showAlert('Location not found', `We couldn't find "${searchQuery}". Try a city, landmark, or full address.`);
       return;
     }
 
@@ -211,7 +211,7 @@ export default function MapScreen() {
   const activeLat = selectedLocation?.latitude || 19.076;
   const activeLon = selectedLocation?.longitude || 72.8777;
 
-  // Always use OpenStreetMap embed on web — zero-cost, no API key required.
+  // Always use OpenStreetMap embed on web â€” zero-cost, no API key required.
   // Google Maps Embed API was rejected (API not enabled in GCP Console).
   const bbox = `${activeLon - 0.01},${activeLat - 0.01},${activeLon + 0.01},${activeLat + 0.01}`;
   const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${activeLat},${activeLon}`;

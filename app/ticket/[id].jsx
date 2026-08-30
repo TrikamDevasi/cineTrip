@@ -5,13 +5,13 @@ import {
   ScrollView,
   StyleSheet,
   Share,
-  Alert,
   Modal,
   TouchableOpacity,
   Linking,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../../lib/alert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Copy, Share2, ArrowLeft, MapPin, ChevronUp, WifiOff, X } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -82,17 +82,17 @@ export default function TicketModalScreen() {
 
   const handleCopyRef = async () => {
     if (!plan.bookingRef) {
-      Alert.alert('No Booking Reference', 'A booking reference appears once live ticketing is connected.');
+      showAlert('No Booking Reference', 'A booking reference appears once live ticketing is connected.');
       return;
     }
     await Clipboard.setStringAsync(plan.bookingRef);
-    Alert.alert('Copied!', `Booking reference "${plan.bookingRef}" copied to clipboard.`);
+    showAlert('Copied!', `Booking reference "${plan.bookingRef}" copied to clipboard.`);
   };
 
   const handleSharePass = async () => {
     const message = isPlan
-      ? `🎬 Movie Night Plan\n\nMovie: ${movie.title}\nDate: ${plan.date || 'TBD'}\n\nThis is a personal plan — live ticketing will be enabled once a showtime provider is connected.`
-      : `🎬 Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || ''}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || ''}\n\n🎟 Pass: ${plan.bookingRef}\n\nSee you there!`;
+      ? `ðŸŽ¬ Movie Night Plan\n\nMovie: ${movie.title}\nDate: ${plan.date || 'TBD'}\n\nThis is a personal plan â€” live ticketing will be enabled once a showtime provider is connected.`
+      : `ðŸŽ¬ Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || ''}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || ''}\n\nðŸŽŸ Pass: ${plan.bookingRef}\n\nSee you there!`;
     try {
       await Share.share({ message });
     } catch (e) {}
@@ -101,7 +101,7 @@ export default function TicketModalScreen() {
   const handleDirections = () => {
     const { latitude, longitude } = cinema;
     if (latitude == null || longitude == null) {
-      Alert.alert('Location unavailable', 'This cinema does not have verified coordinates to open directions.');
+      showAlert('Location unavailable', 'This cinema does not have verified coordinates to open directions.');
       return;
     }
     const label = encodeURIComponent(cinema.name || 'Cinema');
@@ -151,7 +151,7 @@ export default function TicketModalScreen() {
           <View style={styles.offlineNote}>
             <WifiOff size={16} color={colors.warning} strokeWidth={2} />
             <Text style={styles.offlineText}>
-              Offline — showing your saved pass. Everything here works without a connection.
+              Offline â€” showing your saved pass. Everything here works without a connection.
             </Text>
           </View>
         )}
@@ -189,7 +189,7 @@ export default function TicketModalScreen() {
                 {isPlan ? 'BOOKING STATUS' : 'BOOKING REFERENCE'}
               </Text>
               <Text style={styles.bookingRef}>
-                {isPlan ? 'PLAN — NOT BOOKED YET' : plan.bookingRef}
+                {isPlan ? 'PLAN â€” NOT BOOKED YET' : plan.bookingRef}
               </Text>
               {isPlan ? (
                 <Text style={styles.refNote}>

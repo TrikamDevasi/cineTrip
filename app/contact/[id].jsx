@@ -5,10 +5,10 @@ import {
   ScrollView,
   Image,
   StyleSheet,
-  Alert,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../../lib/alert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Mail, Pencil, Phone, Trash2, UserPlus } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
@@ -74,11 +74,11 @@ export default function ContactDetailScreen() {
 
   const handleCall = () => {
     if (!contact.phone) {
-      Alert.alert('No Phone', `${contact.name} has no phone number saved.`);
+      showAlert('No Phone', `${contact.name} has no phone number saved.`);
       return;
     }
     Linking.openURL(`tel:${contact.phone}`).catch(() =>
-      Alert.alert('Error', 'Cannot trigger phone dialer.')
+      showAlert('Error', 'Cannot trigger phone dialer.')
     );
   };
 
@@ -89,8 +89,8 @@ export default function ContactDetailScreen() {
       initials,
       phone: contact.phone,
     });
-    Alert.alert(
-      'Added to Plan! 🎬',
+    showAlert(
+      'Added to Plan! ðŸŽ¬',
       `${contact.name} added to your movie night draft.`,
       [
         { text: 'Go to Planner', onPress: () => router.push('/(tabs)/planner') },
@@ -108,7 +108,7 @@ export default function ContactDetailScreen() {
     try {
       if (isPreset) {
         removeContact(contact.id);
-        Alert.alert('Contact Removed', `${contact.name} was removed from your squad.`, [
+        showAlert('Contact Removed', `${contact.name} was removed from your squad.`, [
           { text: 'OK', onPress: () => goBack(router, '/contacts') },
         ]);
         return;
@@ -116,11 +116,11 @@ export default function ContactDetailScreen() {
       const ok = await deleteDeviceContact(contact.id);
       if (ok) {
         await fetchContacts();
-        Alert.alert('Contact Deleted', `${contact.name} was removed from your device contacts.`, [
+        showAlert('Contact Deleted', `${contact.name} was removed from your device contacts.`, [
           { text: 'OK', onPress: () => goBack(router, '/contacts') },
         ]);
       } else {
-        Alert.alert('Delete Failed', 'Could not delete the contact. Please try again.');
+        showAlert('Delete Failed', 'Could not delete the contact. Please try again.');
       }
     } finally {
       setIsBusy(false);
@@ -128,7 +128,7 @@ export default function ContactDetailScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert(
+    showAlert(
       'Delete Contact',
       `Remove ${contact.name} from your contacts and squad?${isPreset ? '\nThis demo squad member will only be removed locally.' : ''}`,
       [

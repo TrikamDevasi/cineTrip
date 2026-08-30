@@ -6,11 +6,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../lib/alert';
 import {
   ArrowLeft,
   Search,
@@ -59,7 +59,7 @@ export default function ContactsScreen() {
 
   const handleLinkToPlanner = () => {
     if (selectedContacts.length === 0) {
-      Alert.alert('No Contacts Selected', 'Select at least one contact to add to your plan.');
+      showAlert('No Contacts Selected', 'Select at least one contact to add to your plan.');
       return;
     }
     selectedContacts.forEach((c) => {
@@ -70,8 +70,8 @@ export default function ContactsScreen() {
         phone: c.phone,
       });
     });
-    Alert.alert(
-      'Added to Plan! 🎬',
+    showAlert(
+      'Added to Plan! ðŸŽ¬',
       `${selectedContacts.length} companion(s) added to your movie night draft.`,
       [{ text: 'Go to Planner', onPress: () => router.push('/(tabs)/planner') }]
     );
@@ -79,11 +79,11 @@ export default function ContactsScreen() {
 
   const handleCallContact = (contact) => {
     if (!contact.phone) {
-      Alert.alert('No Phone', `${contact.name} has no phone number saved.`);
+      showAlert('No Phone', `${contact.name} has no phone number saved.`);
       return;
     }
     Linking.openURL(`tel:${contact.phone}`).catch(() =>
-      Alert.alert('Error', 'Cannot trigger phone dialer.')
+      showAlert('Error', 'Cannot trigger phone dialer.')
     );
   };
 

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  Alert,
   Modal,
   FlatList,
   KeyboardAvoidingView,
@@ -15,6 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../../lib/alert';
 import {
   Film,
   Calendar,
@@ -271,12 +271,12 @@ export default function PlannerScreen() {
 
   const handleSavePlan = async () => {
     if (!draft.movie) {
-      Alert.alert('Select a Movie', 'Please pick a movie to plan your trip in Step 1.');
+      showAlert('Select a Movie', 'Please pick a movie to plan your trip in Step 1.');
       return;
     }
 
     if (!canBook(draft.movie)) {
-      Alert.alert(
+      showAlert(
         'Not Currently In Theatres',
         'Only films verified as now playing can be planned for a movie night. Browse "Now in Theaters" to pick from what is actually screening.'
       );
@@ -288,11 +288,11 @@ export default function PlannerScreen() {
 
     if (providerAvailable) {
       if (!draft.cinema) {
-        Alert.alert('Select a Theatre', 'Pick a theatre for your screening.');
+        showAlert('Select a Theatre', 'Pick a theatre for your screening.');
         return;
       }
       if (!draft.showtime) {
-        Alert.alert('Select a Showtime', `Pick a showtime for ${draft.movie.title} on ${draft.date}.`);
+        showAlert('Select a Showtime', `Pick a showtime for ${draft.movie.title} on ${draft.date}.`);
         return;
       }
       const booking = await cinemaService.createBooking({
@@ -304,7 +304,7 @@ export default function PlannerScreen() {
         time: draft.time,
       });
       if (!booking || !booking.success) {
-        Alert.alert('Booking Unavailable', 'The showtime provider could not confirm this booking right now.');
+        showAlert('Booking Unavailable', 'The showtime provider could not confirm this booking right now.');
         return;
       }
       bookingStatus = 'confirmed';
@@ -331,7 +331,7 @@ export default function PlannerScreen() {
       setIsSaving(false);
 
       if (bookingStatus === 'confirmed') {
-        Alert.alert('Movie Night Locked In! 🎬', `Your trip for "${draft.movie.title}" is confirmed.`, [
+        showAlert('Movie Night Locked In! ðŸŽ¬', `Your trip for "${draft.movie.title}" is confirmed.`, [
           {
             text: 'View Pass',
             onPress: () => router.push(`/ticket/${newPlan._id || newPlan.id}`),
@@ -342,9 +342,9 @@ export default function PlannerScreen() {
           },
         ]);
       } else {
-        Alert.alert(
-          'Movie Night Plan Saved 🎬',
-          'Saved as a personal plan. Live ticketing will be enabled once a showtime provider is connected — this is not a confirmed booking yet.',
+        showAlert(
+          'Movie Night Plan Saved ðŸŽ¬',
+          'Saved as a personal plan. Live ticketing will be enabled once a showtime provider is connected â€” this is not a confirmed booking yet.',
           [
             {
               text: 'View Plan',
@@ -359,7 +359,7 @@ export default function PlannerScreen() {
       }
     } catch (err) {
       setIsSaving(false);
-      Alert.alert('Error', err.message || 'Failed to save trip plan.');
+      showAlert('Error', err.message || 'Failed to save trip plan.');
     }
   };
 
@@ -446,7 +446,7 @@ export default function PlannerScreen() {
                     variant="danger"
                     size="sm"
                     onPress={() => {
-                      Alert.alert('Cancel Trip', 'Are you sure you want to remove this trip plan?', [
+                      showAlert('Cancel Trip', 'Are you sure you want to remove this trip plan?', [
                         { text: 'Keep Plan' },
                         { text: 'Cancel Trip', style: 'destructive', onPress: () => deletePlan(p._id || p.id) },
                       ]);
@@ -502,12 +502,12 @@ export default function PlannerScreen() {
               </View>
               <Text style={styles.progressSummary}>
                 {stepsDone === 3
-                  ? 'All set — ready to lock in!'
+                  ? 'All set â€” ready to lock in!'
                   : `${stepsDone} of 3 steps complete`}
               </Text>
             </View>
 
-            {/* ═════════ STEP 1: CHOOSE MOVIE ═════════ */}
+            {/* â•â•â•â•â•â•â•â•â• STEP 1: CHOOSE MOVIE â•â•â•â•â•â•â•â•â• */}
             <View style={styles.stepCard} onLayout={(e) => { stepY.current[1] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
@@ -570,7 +570,7 @@ export default function PlannerScreen() {
               )}
             </View>
 
-            {/* ═════════ STEP 2: CINEMA & SHOWTIME ═════════ */}
+            {/* â•â•â•â•â•â•â•â•â• STEP 2: CINEMA & SHOWTIME â•â•â•â•â•â•â•â•â• */}
             <View style={styles.stepCard} onLayout={(e) => { stepY.current[2] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
@@ -658,7 +658,7 @@ export default function PlannerScreen() {
                   {draft.movie && draft.cinema && (
                     <>
                       <Text style={[styles.subStepLabel, styles.cinemasLabel]}>
-                        AVAILABLE SHOWTIMES — {draft.date}
+                        AVAILABLE SHOWTIMES â€” {draft.date}
                       </Text>
                       {showtimesLoading ? (
                         <ActivityIndicator size="small" color={colors.primary} />
@@ -709,14 +709,14 @@ export default function PlannerScreen() {
                   <Text style={styles.unavailableTitle}>Live showtimes aren't available for this location yet</Text>
                   <Text style={styles.unavailableText}>
                     CineTrip needs a ticketing provider for your area to show real cinemas, showtimes
-                    and seats. Until then you can still plan your movie night — it will be saved as a
+                    and seats. Until then you can still plan your movie night â€” it will be saved as a
                     personal plan, not a confirmed booking.
                   </Text>
                 </View>
               )}
             </View>
 
-            {/* ═════════ STEP 3: SEATS, SNACKS & SQUAD ═════════ */}
+            {/* â•â•â•â•â•â•â•â•â• STEP 3: SEATS, SNACKS & SQUAD â•â•â•â•â•â•â•â•â• */}
             <View style={styles.stepCard} onLayout={(e) => { stepY.current[3] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
@@ -732,7 +732,7 @@ export default function PlannerScreen() {
               <Text style={styles.subStepLabel}>AUDITORIUM SEAT SELECTION</Text>
               {(!providerAvailable || !cinemaService.capabilities?.seats) && (
                 <Text style={styles.demoNote}>
-                  PREVIEW SEAT LAYOUT — Seat inventory is illustrative only. Real-time seat availability
+                  PREVIEW SEAT LAYOUT â€” Seat inventory is illustrative only. Real-time seat availability
                   will appear once a verified ticketing provider is connected for this theatre.
                 </Text>
               )}
@@ -828,7 +828,7 @@ export default function PlannerScreen() {
                       ? 'Locking In Movie Night...'
                       : 'Saving Movie Night Plan...'
                     : providerAvailable
-                    ? 'Lock In Movie Night 🎬'
+                    ? 'Lock In Movie Night ðŸŽ¬'
                     : 'Save Movie Night Plan'
                 }
                 variant="primary"
@@ -843,7 +843,7 @@ export default function PlannerScreen() {
               />
               {!providerAvailable && (
                 <Text style={styles.ctaNote}>
-                  Personal plan only — no live booking until a showtime provider is connected.
+                  Personal plan only â€” no live booking until a showtime provider is connected.
                 </Text>
               )}
             </View>

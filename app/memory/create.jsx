@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   Image as RNImage,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { showAlert } from '../../lib/alert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   Camera,
@@ -245,16 +245,16 @@ export default function CreateMemoryScreen() {
     const allowedPhoto = ext ? PHOTO_EXTENSIONS.includes(ext) : true;
     const allowedVideo = ext ? VIDEO_EXTENSIONS.includes(ext) : true;
     if (isVideo && !allowedVideo) {
-      Alert.alert('Invalid Format', 'Please pick a supported video file (mp4 or mov).');
+      showAlert('Invalid Format', 'Please pick a supported video file (mp4 or mov).');
       return false;
     }
     if (!isVideo && !allowedPhoto) {
-      Alert.alert('Invalid Format', 'Please pick a supported photo (jpg, png or heic).');
+      showAlert('Invalid Format', 'Please pick a supported photo (jpg, png or heic).');
       return false;
     }
     const maxBytes = (isVideo ? MAX_VIDEO_SIZE_MB : MAX_PHOTO_SIZE_MB) * MB;
     if (asset.fileSize != null && asset.fileSize > maxBytes) {
-      Alert.alert(
+      showAlert(
         'File Too Large',
         isVideo
           ? `Videos must be smaller than ${MAX_VIDEO_SIZE_MB} MB.`
@@ -275,7 +275,7 @@ export default function CreateMemoryScreen() {
         closeCamera();
       }
     } catch {
-      Alert.alert('Camera Error', 'Failed to capture photo.');
+      showAlert('Camera Error', 'Failed to capture photo.');
     }
   };
 
@@ -295,7 +295,7 @@ export default function CreateMemoryScreen() {
         closeCamera();
       }
     } catch {
-      Alert.alert('Recording Error', 'Failed to record video.');
+      showAlert('Recording Error', 'Failed to record video.');
     } finally {
       setIsRecording(false);
       clearInterval(recordingTimerRef.current);
@@ -312,7 +312,7 @@ export default function CreateMemoryScreen() {
     if (!cameraPermission?.granted) {
       const { granted } = await requestCameraPermission();
       if (!granted) {
-        Alert.alert('Camera Required', 'Please allow camera access to capture theater memories.');
+        showAlert('Camera Required', 'Please allow camera access to capture theater memories.');
         return;
       }
     }
@@ -342,13 +342,13 @@ export default function CreateMemoryScreen() {
         }
       }
     } catch {
-      Alert.alert('Gallery Error', 'Failed to pick media.');
+      showAlert('Gallery Error', 'Failed to pick media.');
     }
   };
 
   const handleSaveMemory = async () => {
     if (!story.trim() && !favoriteMoment.trim() && !photoUri && !videoUri) {
-      Alert.alert('Incomplete Memory', 'Please add a photo, story, or highlight to save your memory.');
+      showAlert('Incomplete Memory', 'Please add a photo, story, or highlight to save your memory.');
       return;
     }
 
@@ -387,12 +387,12 @@ export default function CreateMemoryScreen() {
       });
 
       setIsSaving(false);
-      Alert.alert('Memory Logged! 🎬', 'Your theatrical experience has been saved to your Journal.', [
+      showAlert('Memory Logged! ðŸŽ¬', 'Your theatrical experience has been saved to your Journal.', [
         { text: 'View Journal', onPress: () => goBack(router, '/(tabs)/memories') },
       ]);
     } catch (err) {
       setIsSaving(false);
-      Alert.alert('Error', err.message || 'Failed to save memory.');
+      showAlert('Error', err.message || 'Failed to save memory.');
     }
   };
 
@@ -735,7 +735,7 @@ export default function CreateMemoryScreen() {
           {/* 7. DOMINANT SAVE BUTTON */}
           <View style={styles.saveBtnWrap}>
             <Button
-              title={isSaving ? "Saving Memory..." : "Save to Journal 🎬"}
+              title={isSaving ? "Saving Memory..." : "Save to Journal ðŸŽ¬"}
               variant="primary"
               size="lg"
               loading={isSaving}
