@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Dimensions,
+  useWindowDimensions,
+  Platform,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -32,25 +34,30 @@ import {
   Menu,
   X,
   Bookmark,
+  Calendar,
+  Copy,
+  Volume2,
 } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
 import QRCodeSvg from '../components/ui/QRCodeSvg';
 import FormatBadge from '../components/FormatBadge';
 import { useAuthStore } from '../store/useAuthStore';
+import { usePlannerStore } from '../store/usePlannerStore';
 import { useTheme } from '../hooks/useTheme';
 import { RADIUS, SHADOWS, SPACING } from '../constants/theme';
-import { FALLBACK_MOVIES, MOODS, getImageUri } from '../services/tmdb';
+import { FALLBACK_MOVIES, getImageUri } from '../services/tmdb';
+import { showAlert } from '../lib/alert';
 
 const logoImg = require('../assets/images/logo.png');
 
-const { width: WINDOW_WIDTH } = Dimensions.get('window');
-
-// Sample verifiable movie datasets for interactive landing demonstrations
+// Verifiable authentic theatrical titles for interactive demonstrations
 const HERO_MOVIES = [
   {
     id: 693134,
     title: 'Dune: Part Two',
     tagline: 'Long live the fighters.',
     year: '2024',
+    director: 'Denis Villeneuve',
     runtime: '166 min',
     vote_average: 8.2,
     backdrop_path: '/xOMo8BRK7PfcJv9JCnx7s520b2e.jpg',
@@ -72,6 +79,7 @@ const HERO_MOVIES = [
     title: 'Oppenheimer',
     tagline: 'The world forever changes.',
     year: '2023',
+    director: 'Christopher Nolan',
     runtime: '180 min',
     vote_average: 8.1,
     backdrop_path: '/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg',
@@ -92,6 +100,7 @@ const HERO_MOVIES = [
     title: 'Interstellar',
     tagline: 'Mankind was born on Earth. It was never meant to die here.',
     year: '2014',
+    director: 'Christopher Nolan',
     runtime: '169 min',
     vote_average: 8.4,
     backdrop_path: '/xJHokMbljvjADYdit5fK5VQsXEG.jpg',
@@ -106,6 +115,17 @@ const HERO_MOVIES = [
       { name: 'Alex Chen', status: 'confirmed', handle: '@alex_film' },
     ],
   },
+];
+
+// Interactive Mood Selector Options
+const DISCOVERY_MOODS = [
+  { id: 'all', label: '🎬 All Theatrical', genreIds: [] },
+  { id: 'big_screen', label: '⚡ Big Screen IMAX', genreIds: [878, 12] },
+  { id: 'fun', label: '😂 Fun Night', genreIds: [35, 16] },
+  { id: 'adrenaline', label: '😱 Adrenaline & Action', genreIds: [28, 53] },
+  { id: 'date', label: '❤️ Date Night', genreIds: [10749, 18] },
+  { id: 'thoughtful', label: '🧠 Thoughtful & Epic', genreIds: [18, 878] },
+  { id: 'easy', label: '🍿 Easy Popcorn Watch', genreIds: [28, 35] },
 ];
 
 const SAMPLE_CINEMAS_LIST = [
@@ -147,7 +167,7 @@ const MEMORIES_SHOWCASE = [
     format: 'IMAX 70mm Film',
     date: 'July 22, 2023',
     rating: 5,
-    story: 'The sound design during the Trinity test shook the entire auditorium row. Absolute pinnacle of physical theater projection.',
+    story: 'The acoustic pressure during the Trinity test shook the entire auditorium row. Absolute pinnacle of physical theater projection.',
     companions: ['Alex Chen', 'Sarah Miller'],
     photoUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80',
     snack: 'Caramel Popcorn & Cold Brew',
@@ -167,9 +187,17 @@ const MEMORIES_SHOWCASE = [
 ];
 
 export default function LandingScreen() {
+  const { width: windowWidth } = useWindowDimensions();
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1024;
+  const isDesktop = windowWidth >= 1024;
+
   const { colors } = useTheme();
   const router = useRouter();
   const enterGuestMode = useAuthStore((s) => s.enterGuestMode);
+  const setDraftMovie = usePlannerStore((s) => s.setDraftMovie);
+
+  const scrollRef = useRef(null);
 
   // Interactive showcase state
   const [selectedMovieIndex, setSelectedMovieIndex] = useState(0);
@@ -179,7 +207,11 @@ export default function LandingScreen() {
   const [selectedSnacks, setSelectedSnacks] = useState(['Giant Caramel Popcorn', 'Cherry ICEE']);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [activeTab, setActiveTab] = useState('during'); // 'before' | 'during' | 'after'
+
+  // Discover Filter State
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState('now_playing'); // 'now_playing' | 'trending' | 'upcoming'
+  const [selectedMoodId, setSelectedMoodId] = useState('all');
+  const [copiedRef, setCopiedRef] = useState(false);
 
   const activeHeroMovie = HERO_MOVIES[selectedMovieIndex];
 
@@ -203,6 +235,29 @@ export default function LandingScreen() {
     router.replace(destination);
   };
 
+  const handlePlanSpecificMovie = (movie) => {
+    setDraftMovie(movie);
+    enterGuestMode();
+    router.replace('/(tabs)/planner');
+  };
+
+  const handleCopyRefCode = async (refCode) => {
+    try {
+      await Clipboard.setStringAsync(refCode);
+      setCopiedRef(true);
+      showAlert('Pass Ref Copied', `Turnstile Reference ${refCode} copied to clipboard.`);
+      setTimeout(() => setCopiedRef(false), 2500);
+    } catch (e) {}
+  };
+
+  const handleShareOuting = async (movie) => {
+    try {
+      await Share.share({
+        message: `🎬 Movie Night with CineTrip\n\nFilm: ${movie.title}\nVenue: ${movie.cinemaName}\nShowtime: ${movie.showtime}\nSeats: ${movie.seats}\n\nPass Ref: CT-8941-IMAX-${movie.id}\nSee you at the big screen!`,
+      });
+    } catch (e) {}
+  };
+
   const handleToggleSeat = (seatId) => {
     if (selectedSeats.includes(seatId)) {
       setSelectedSeats(selectedSeats.filter((s) => s !== seatId));
@@ -221,12 +276,36 @@ export default function LandingScreen() {
     }
   };
 
-  const styles = createStyles(colors);
+  // Filtered movies based on category and mood
+  const filteredCatalogMovies = useMemo(() => {
+    let list = [...FALLBACK_MOVIES];
+
+    if (selectedCategoryTab === 'trending') {
+      list = [...list].sort((a, b) => b.vote_count - a.vote_count);
+    } else if (selectedCategoryTab === 'upcoming') {
+      list = list.filter((m) => m.status?.toLowerCase().includes('upcoming') || m.release_date >= '2024-05-01');
+      if (list.length === 0) list = FALLBACK_MOVIES.slice(0, 3);
+    }
+
+    if (selectedMoodId !== 'all') {
+      const moodConfig = DISCOVERY_MOODS.find((m) => m.id === selectedMoodId);
+      if (moodConfig && moodConfig.genreIds.length > 0) {
+        list = list.filter((m) =>
+          m.genres && m.genres.some((g) => moodConfig.genreIds.includes(g.id))
+        );
+        if (list.length === 0) list = FALLBACK_MOVIES.slice(0, 2);
+      }
+    }
+
+    return list;
+  }, [selectedCategoryTab, selectedMoodId]);
+
+  const styles = useMemo(() => createStyles(colors, isMobile, isTablet, isDesktop), [colors, isMobile, isTablet, isDesktop]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       {/* ─────────────────────────────────────────────────────────────
-          1. NAVIGATION BAR
+          1. EDITORIAL NAVBAR
       ────────────────────────────────────────────────────────────── */}
       <View style={[styles.navbar, scrolled && styles.navbarScrolled]}>
         <View style={styles.navContainer}>
@@ -251,77 +330,77 @@ export default function LandingScreen() {
           </TouchableOpacity>
 
           {/* Desktop Nav Links */}
-          <View style={styles.navLinks}>
-            <TouchableOpacity
-              onPress={() => handleLaunchApp('/(tabs)/discover')}
-              style={styles.navLinkItem}
-            >
-              <Text style={styles.navLinkText}>Discover</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleLaunchApp('/(tabs)/planner')}
-              style={styles.navLinkItem}
-            >
-              <Text style={styles.navLinkText}>Trip Planner</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleLaunchApp('/(tabs)/planner')}
-              style={styles.navLinkItem}
-            >
-              <Text style={styles.navLinkText}>Digital Pass</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleLaunchApp('/(tabs)/memories')}
-              style={styles.navLinkItem}
-            >
-              <Text style={styles.navLinkText}>Memories</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => handleLaunchApp('/map')}
-              style={styles.navLinkItem}
-            >
-              <Text style={styles.navLinkText}>Cinema Map</Text>
-            </TouchableOpacity>
-          </View>
+          {!isMobile && (
+            <View style={styles.navLinks}>
+              <TouchableOpacity
+                onPress={() => handleLaunchApp('/(tabs)/discover')}
+                style={styles.navLinkItem}
+              >
+                <Text style={styles.navLinkText}>Discover</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleLaunchApp('/(tabs)/planner')}
+                style={styles.navLinkItem}
+              >
+                <Text style={styles.navLinkText}>Trip Planner</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleLaunchApp('/map')}
+                style={styles.navLinkItem}
+              >
+                <Text style={styles.navLinkText}>Cinema Map</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleLaunchApp('/(tabs)/memories')}
+                style={styles.navLinkItem}
+              >
+                <Text style={styles.navLinkText}>Journal</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Desktop Right CTAs */}
-          <View style={styles.navActions}>
-            <TouchableOpacity
-              style={styles.navSignInBtn}
-              onPress={() => router.push('/(auth)/login')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.navSignInText}>Sign In</Text>
-            </TouchableOpacity>
+          {!isMobile && (
+            <View style={styles.navActions}>
+              <TouchableOpacity
+                style={styles.navSignInBtn}
+                onPress={() => router.push('/(auth)/login')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.navSignInText}>Sign In</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.navPrimaryBtn}
-              onPress={() => handleLaunchApp('/(tabs)')}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel="Open CineTrip Application"
-            >
-              <Text style={styles.navPrimaryBtnText}>Explore CineTrip</Text>
-              <ArrowRight size={15} color="#07090E" strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={styles.navPrimaryBtn}
+                onPress={() => handleLaunchApp('/(tabs)')}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Open CineTrip Application"
+              >
+                <Text style={styles.navPrimaryBtnText}>Explore Movies</Text>
+                <ArrowRight size={14} color="#07090E" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Mobile Hamburger Toggle */}
-          <TouchableOpacity
-            style={styles.hamburgerBtn}
-            onPress={() => setMobileMenuOpen(!mobileMenuOpen)}
-            accessibilityLabel="Toggle Navigation Menu"
-          >
-            {mobileMenuOpen ? (
-              <X size={22} color={colors.text} />
-            ) : (
-              <Menu size={22} color={colors.text} />
-            )}
-          </TouchableOpacity>
+          {isMobile && (
+            <TouchableOpacity
+              style={styles.hamburgerBtn}
+              onPress={() => setMobileMenuOpen(!mobileMenuOpen)}
+              accessibilityLabel="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? (
+                <X size={22} color={colors.text} />
+              ) : (
+                <Menu size={22} color={colors.text} />
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Mobile Dropdown Drawer */}
-        {mobileMenuOpen && (
+        {isMobile && mobileMenuOpen && (
           <View style={styles.mobileDrawer}>
             <TouchableOpacity
               style={styles.mobileDrawerItem}
@@ -364,6 +443,7 @@ export default function LandingScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -374,15 +454,15 @@ export default function LandingScreen() {
         scrollEventThrottle={16}
       >
         {/* ─────────────────────────────────────────────────────────────
-            2. HERO SECTION (EDITORIAL ASYMMETRIC MASTERPIECE)
+            2. HERO — CINEMATIC OPENING SCENE & 3D DIGITAL PASS
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.heroSection}>
           <View style={styles.heroLayout}>
-            {/* Left Column: Editorial Typography & Intent */}
+            {/* Left Column: Editorial Typography & Human Copy */}
             <View style={styles.heroLeft}>
               <View style={styles.heroEyebrowRow}>
                 <View style={styles.heroEyebrowDot} />
-                <Text style={styles.heroEyebrow}>THEATRICAL TRIP PLANNER & JOURNAL</Text>
+                <Text style={styles.heroEyebrow}>THEATRICAL OUTING COMPANION</Text>
               </View>
 
               <Text style={styles.heroMainTitle}>
@@ -392,21 +472,21 @@ export default function LandingScreen() {
               </Text>
 
               <Text style={styles.heroSubtitle}>
-                Discover in-theater films. Plan the auditorium trip. Coordinate seats with your squad.
-                Access offline digital passes that never vanish.
+                Discover certified in-theater releases. Plan the auditorium trip. Coordinate seats with your squad.
+                Carry your offline pass straight to the turnstile.
               </Text>
 
-              {/* Action Buttons */}
+              {/* Action CTAs */}
               <View style={styles.heroButtonRow}>
                 <TouchableOpacity
                   style={styles.heroPrimaryBtn}
-                  onPress={() => handleLaunchApp('/(tabs)')}
+                  onPress={() => handleLaunchApp('/(tabs)/discover')}
                   activeOpacity={0.85}
                   accessibilityRole="button"
-                  accessibilityLabel="Explore CineTrip Live Experience"
+                  accessibilityLabel="Explore Movies in CineTrip"
                 >
-                  <Text style={styles.heroPrimaryBtnText}>Explore CineTrip</Text>
-                  <ArrowRight size={17} color="#07090E" strokeWidth={2.5} />
+                  <Text style={styles.heroPrimaryBtnText}>EXPLORE MOVIES</Text>
+                  <ArrowRight size={16} color="#07090E" strokeWidth={2.5} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -414,33 +494,34 @@ export default function LandingScreen() {
                   onPress={() => handleLaunchApp('/(tabs)/planner')}
                   activeOpacity={0.85}
                   accessibilityRole="button"
+                  accessibilityLabel="See How CineTrip Works"
                 >
-                  <Ticket size={17} color={colors.primary} strokeWidth={2} />
-                  <Text style={styles.heroSecondaryBtnText}>See How It Works</Text>
+                  <Ticket size={16} color={colors.primary} strokeWidth={2} />
+                  <Text style={styles.heroSecondaryBtnText}>SEE HOW IT WORKS</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Real Architecture Trust Indicators */}
+              {/* Authentic Product Trust Indicators */}
               <View style={styles.heroTrustGrid}>
                 <View style={styles.heroTrustItem}>
-                  <Radio size={14} color={colors.primary} />
-                  <Text style={styles.heroTrustText}>Live TMDB Catalog</Text>
+                  <Radio size={13} color={colors.primary} />
+                  <Text style={styles.heroTrustText}>Live TMDB Releases</Text>
                 </View>
                 <View style={styles.heroTrustDot} />
                 <View style={styles.heroTrustItem}>
-                  <MapPin size={14} color={colors.primary} />
-                  <Text style={styles.heroTrustText}>OpenStreetMap Venues</Text>
+                  <MapPin size={13} color={colors.primary} />
+                  <Text style={styles.heroTrustText}>OpenStreetMap Radar</Text>
                 </View>
                 <View style={styles.heroTrustDot} />
                 <View style={styles.heroTrustItem}>
-                  <WifiOff size={14} color={colors.primary} />
+                  <WifiOff size={13} color={colors.primary} />
                   <Text style={styles.heroTrustText}>Zero-Signal Offline Pass</Text>
                 </View>
               </View>
 
-              {/* Interactive Movie Switcher Pill */}
+              {/* Interactive Pass Switcher */}
               <View style={styles.heroMovieSwitcher}>
-                <Text style={styles.switcherLabel}>SWITCH PASS DEMO:</Text>
+                <Text style={styles.switcherLabel}>SWITCH PASS PREVIEW (INTERACTIVE):</Text>
                 <View style={styles.switcherPills}>
                   {HERO_MOVIES.map((m, idx) => (
                     <TouchableOpacity
@@ -465,7 +546,7 @@ export default function LandingScreen() {
               </View>
             </View>
 
-            {/* Right Column: Authentic Digital Cinema Pass Visual Anchor */}
+            {/* Right Column: Physical 3D Digital Cinema Pass Centerpiece */}
             <View style={styles.heroRight}>
               <View style={styles.heroTicketOuter}>
                 {/* Live Floating Showtime Ticker */}
@@ -475,9 +556,20 @@ export default function LandingScreen() {
                   <Text style={styles.countdownTimer}>{formatCountdown(countdownSeconds)}</Text>
                 </View>
 
-                {/* Actual CineTrip Digital Pass Container */}
-                <View style={styles.passCard}>
-                  {/* Top Film Marquee Area */}
+                {/* 3D Angled Physical Pass Container */}
+                <View
+                  style={[
+                    styles.passCard,
+                    Platform.OS === 'web' && !isMobile && {
+                      transform: [
+                        { perspective: 1200 },
+                        { rotateY: '-5deg' },
+                        { rotateX: '3deg' },
+                      ],
+                    },
+                  ]}
+                >
+                  {/* Top Film Marquee Header Area */}
                   <View style={styles.passHeaderArea}>
                     <View style={styles.passBrandingRow}>
                       <View style={styles.passBrandBadge}>
@@ -507,7 +599,7 @@ export default function LandingScreen() {
                     </View>
                   </View>
 
-                  {/* Perforated Stub Line with Authentic Notches */}
+                  {/* Perforated Stub Divider Line with Notches */}
                   <View style={styles.perforationRow}>
                     <View style={styles.notchLeft} />
                     <View style={styles.dashedLine} />
@@ -534,26 +626,26 @@ export default function LandingScreen() {
 
                     {/* Squad Members on Pass */}
                     <View style={styles.passSquadStrip}>
-                      <Users size={13} color={colors.textSecondary} />
-                      <Text style={styles.passSquadText}>
+                      <Users size={12} color={colors.textSecondary} />
+                      <Text style={styles.passSquadText} numberOfLines={1}>
                         Squad: {activeHeroMovie.friends.map((f) => f.name).join(', ')}
                       </Text>
                     </View>
 
                     {/* Concessions Checklist */}
                     <View style={styles.passSnackStrip}>
-                      <Utensils size={13} color={colors.primary} />
-                      <Text style={styles.passSnackText}>
+                      <Utensils size={12} color={colors.primary} />
+                      <Text style={styles.passSnackText} numberOfLines={1}>
                         Concessions: {activeHeroMovie.snacks.join(' • ')}
                       </Text>
                     </View>
 
-                    {/* Scannable Vector QR Code Matrix */}
+                    {/* Vector QR Code & Pass Serial Actions */}
                     <View style={styles.passQrContainer}>
                       <View style={styles.qrWrapper}>
                         <QRCodeSvg
                           value={`CINETRIP|${activeHeroMovie.id}|SAMPLE-REF-${activeHeroMovie.year}`}
-                          size={116}
+                          size={isMobile ? 86 : 100}
                           color="#07090E"
                           backgroundColor="#FFFFFF"
                         />
@@ -562,10 +654,28 @@ export default function LandingScreen() {
                         <Text style={styles.qrSerialTitle}>PASS IDENTIFIER</Text>
                         <Text style={styles.qrSerialCode}>CT-8941-IMAX-{activeHeroMovie.id}</Text>
                         <Text style={styles.qrSubNote}>
-                          Galois-Field GF(2^8) Reed-Solomon vector code. Scannable at turnstile.
+                          Turnstile vector matrix. Instant 0ms offline display.
                         </Text>
-                        <View style={styles.demoWatermark}>
-                          <Text style={styles.demoWatermarkText}>SAMPLE DEMO PASS</Text>
+
+                        {/* Interactive Pass Actions */}
+                        <View style={styles.passActionMiniRow}>
+                          <TouchableOpacity
+                            style={styles.passMiniBtn}
+                            onPress={() => handleCopyRefCode(`CT-8941-IMAX-${activeHeroMovie.id}`)}
+                          >
+                            <Copy size={11} color={copiedRef ? '#10B981' : colors.primary} />
+                            <Text style={[styles.passMiniBtnText, copiedRef && { color: '#10B981' }]}>
+                              {copiedRef ? 'Copied' : 'Copy Ref'}
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.passMiniBtn}
+                            onPress={() => handleShareOuting(activeHeroMovie)}
+                          >
+                            <Share2 size={11} color={colors.primary} />
+                            <Text style={styles.passMiniBtnText}>Share</Text>
+                          </TouchableOpacity>
                         </View>
                       </View>
                     </View>
@@ -577,129 +687,158 @@ export default function LandingScreen() {
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            3. SECTION 1 — THE MULTI-APP FRAGMENTATION CRISIS
+            3. HOW IT WORKS — THE 5-STEP CINEMATIC TIMELINE
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.sectionDark}>
           <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionEyebrow}>THE PROBLEM</Text>
+            <Text style={styles.sectionEyebrow}>THE COMPLETE RITUAL</Text>
             <Text style={styles.sectionHeading}>
-              Going to the movies shouldn't feel like five different apps.
+              From film discovery to theater memory.
             </Text>
             <Text style={styles.sectionDesc}>
-              Modern movie-goers juggle fragmented apps just to organize a single theater outing.
-              CineTrip consolidates the entire journey into a single focused flow.
+              CineTrip connects every stage of going to the movies into one continuous journey.
             </Text>
           </View>
 
-          <View style={styles.problemVsSolutionGrid}>
-            {/* The Fragmented Old Way */}
-            <View style={styles.problemCard}>
-              <View style={styles.cardHeaderRow}>
-                <View style={styles.problemIconWrap}>
-                  <X size={18} color="#EF4444" strokeWidth={2.4} />
-                </View>
-                <Text style={styles.problemCardTitle}>THE MULTI-APP NIGHTMARE</Text>
+          <View style={styles.howItWorksGrid}>
+            <View style={styles.howStepCard}>
+              <View style={styles.howStepHeader}>
+                <Text style={styles.howStepNum}>01</Text>
+                <Compass size={18} color={colors.primary} />
               </View>
-              <View style={styles.fragmentedStepsList}>
-                <View style={styles.fragStepItem}>
-                  <Text style={styles.fragStepNum}>01</Text>
-                  <Text style={styles.fragStepText}>IMDb or Letterboxd to find what's out</Text>
-                </View>
-                <View style={styles.fragStepItem}>
-                  <Text style={styles.fragStepNum}>02</Text>
-                  <Text style={styles.fragStepText}>Chaotic 47-message WhatsApp group chat</Text>
-                </View>
-                <View style={styles.fragStepItem}>
-                  <Text style={styles.fragStepNum}>03</Text>
-                  <Text style={styles.fragStepText}>Ticketing portal with ads and convenience fees</Text>
-                </View>
-                <View style={styles.fragStepItem}>
-                  <Text style={styles.fragStepNum}>04</Text>
-                  <Text style={styles.fragStepText}>Screenshotting booking codes to share</Text>
-                </View>
-                <View style={styles.fragStepItem}>
-                  <Text style={styles.fragStepNum}>05</Text>
-                  <Text style={styles.fragStepText}>Zero signal in the basement — lost paper stubs</Text>
-                </View>
-              </View>
+              <Text style={styles.howStepTitle}>FIND</Text>
+              <Text style={styles.howStepDesc}>
+                Discover certified in-theater releases with verified IMAX, Dolby & 4DX format tags.
+              </Text>
             </View>
 
-            {/* The Unified CineTrip Journey */}
-            <View style={styles.solutionCard}>
-              <View style={styles.cardHeaderRow}>
-                <View style={styles.solutionIconWrap}>
-                  <Check size={18} color="#07090E" strokeWidth={3} />
-                </View>
-                <Text style={styles.solutionCardTitle}>THE CINETRIP JOURNEY</Text>
+            <View style={styles.howStepCard}>
+              <View style={styles.howStepHeader}>
+                <Text style={styles.howStepNum}>02</Text>
+                <Ticket size={18} color={colors.primary} />
               </View>
-              <View style={styles.unifiedFlowList}>
-                <View style={styles.uniFlowItem}>
-                  <View style={styles.uniFlowPill}>
-                    <Text style={styles.uniFlowPillText}>DISCOVER</Text>
-                  </View>
-                  <Text style={styles.uniFlowDesc}>Live TMDB theatrical feed & format badges</Text>
-                </View>
-                <View style={styles.uniFlowItem}>
-                  <View style={styles.uniFlowPill}>
-                    <Text style={styles.uniFlowPillText}>PLAN</Text>
-                  </View>
-                  <Text style={styles.uniFlowDesc}>3-step trip builder with seats & snacks</Text>
-                </View>
-                <View style={styles.uniFlowItem}>
-                  <View style={styles.uniFlowPill}>
-                    <Text style={styles.uniFlowPillText}>SQUAD</Text>
-                  </View>
-                  <Text style={styles.uniFlowDesc}>Direct phone contact integration & invites</Text>
-                </View>
-                <View style={styles.uniFlowItem}>
-                  <View style={styles.uniFlowPill}>
-                    <Text style={styles.uniFlowPillText}>PASS</Text>
-                  </View>
-                  <Text style={styles.uniFlowDesc}>Hardware-cached offline turnstile pass</Text>
-                </View>
-                <View style={styles.uniFlowItem}>
-                  <View style={styles.uniFlowPill}>
-                    <Text style={styles.uniFlowPillText}>REMEMBER</Text>
-                  </View>
-                  <Text style={styles.uniFlowDesc}>Acoustic rating, marquee photos & memory log</Text>
-                </View>
+              <Text style={styles.howStepTitle}>PLAN</Text>
+              <Text style={styles.howStepDesc}>
+                Pick cinema auditorium, prime showtimes, curved row seats, and concession snacks.
+              </Text>
+            </View>
+
+            <View style={styles.howStepCard}>
+              <View style={styles.howStepHeader}>
+                <Text style={styles.howStepNum}>03</Text>
+                <Users size={18} color={colors.primary} />
               </View>
+              <Text style={styles.howStepTitle}>INVITE</Text>
+              <Text style={styles.howStepDesc}>
+                Add friends directly from your phone address book without 47-message chat chaos.
+              </Text>
+            </View>
+
+            <View style={styles.howStepCard}>
+              <View style={styles.howStepHeader}>
+                <Text style={styles.howStepNum}>04</Text>
+                <WifiOff size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.howStepTitle}>GO (OFFLINE)</Text>
+              <Text style={styles.howStepDesc}>
+                Turnstile boarding pass cached in hardware storage with 0ms zero-signal load.
+              </Text>
+            </View>
+
+            <View style={styles.howStepCard}>
+              <View style={styles.howStepHeader}>
+                <Text style={styles.howStepNum}>05</Text>
+                <Camera size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.howStepTitle}>REMEMBER</Text>
+              <Text style={styles.howStepDesc}>
+                Snap marquee photos, rate sound & screen projection, and keep your lifetime cinema log.
+              </Text>
             </View>
           </View>
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            4. SECTION 2 — DISCOVER (LIVE TMDB & FORMAT INTELLIGENCE)
+            4. SECTION 1 — DISCOVER (INTERACTIVE LOBBY & MOOD DISCOVERY)
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.sectionLight}>
           <View style={styles.sectionHeaderWrap}>
             <Text style={styles.sectionEyebrow}>01 / DISCOVER</Text>
             <Text style={styles.sectionHeading}>
-              Find something worth leaving the house for.
+              FIND SOMETHING WORTH{'\n'}LEAVING THE HOUSE FOR.
             </Text>
             <Text style={styles.sectionDesc}>
-              Direct TMDB theatrical feed with certified format badges (IMAX Laser, Dolby Cinema, 4DX),
-              curated mood selectors, and high-resolution trailer integration.
+              Explore verified in-theater releases, certified formats (IMAX Laser, Dolby Cinema, 4DX),
+              and curated mood selections.
             </Text>
           </View>
 
-          {/* Curated Mood Selector Strip */}
+          {/* Feed Category Segment Tabs */}
+          <View style={styles.categoryTabRow}>
+            <TouchableOpacity
+              style={[styles.categoryTabPill, selectedCategoryTab === 'now_playing' && styles.categoryTabPillActive]}
+              onPress={() => setSelectedCategoryTab('now_playing')}
+            >
+              <Text style={[styles.categoryTabText, selectedCategoryTab === 'now_playing' && styles.categoryTabTextActive]}>
+                Now in Theaters
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.categoryTabPill, selectedCategoryTab === 'trending' && styles.categoryTabPillActive]}
+              onPress={() => setSelectedCategoryTab('trending')}
+            >
+              <Text style={[styles.categoryTabText, selectedCategoryTab === 'trending' && styles.categoryTabTextActive]}>
+                Trending This Week
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.categoryTabPill, selectedCategoryTab === 'upcoming' && styles.categoryTabPillActive]}
+              onPress={() => setSelectedCategoryTab('upcoming')}
+            >
+              <Text style={[styles.categoryTabText, selectedCategoryTab === 'upcoming' && styles.categoryTabTextActive]}>
+                Upcoming & Presales
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Interactive Cinema Lobby Mood Filter Bar */}
           <View style={styles.moodStrip}>
-            <Text style={styles.moodStripTitle}>DISCOVER BY MOOD:</Text>
+            <Text style={styles.moodStripTitle}>WHAT ARE YOU IN THE MOOD FOR?</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moodScroll}>
-              {MOODS.map((mood) => (
-                <View key={mood.id} style={styles.moodItemPill}>
-                  <Sparkles size={14} color={colors.primary} />
-                  <Text style={styles.moodItemText}>{mood.label}</Text>
-                </View>
-              ))}
+              {DISCOVERY_MOODS.map((mood) => {
+                const isActive = selectedMoodId === mood.id;
+                return (
+                  <TouchableOpacity
+                    key={mood.id}
+                    style={[styles.moodItemPill, isActive && styles.moodItemPillActive]}
+                    onPress={() => setSelectedMoodId(mood.id)}
+                  >
+                    <Text style={[styles.moodItemText, isActive && styles.moodItemTextActive]}>
+                      {mood.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
 
-          {/* Cinematic Movie Posters Horizontal Carousel */}
+          {/* Filtered Movie Cards Grid with Direct "Plan" Action */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.movieCardsScroll}>
-            {FALLBACK_MOVIES.map((movie) => (
-              <View key={movie.id} style={styles.movieCatalogCard}>
+            {filteredCatalogMovies.map((movie, idx) => (
+              <View
+                key={movie.id}
+                style={[
+                  styles.movieCatalogCard,
+                  Platform.OS === 'web' && !isMobile && {
+                    transform: [
+                      { perspective: 1000 },
+                      { rotateY: idx % 2 === 0 ? '-2deg' : '2deg' },
+                    ],
+                  },
+                ]}
+              >
                 <Image
                   source={{ uri: getImageUri(movie.poster_path, 'w500') }}
                   style={styles.moviePosterImage}
@@ -707,7 +846,7 @@ export default function LandingScreen() {
                 />
                 <View style={styles.movieCardBody}>
                   <View style={styles.movieRatingRow}>
-                    <Star size={13} color="#F59E0B" fill="#F59E0B" />
+                    <Star size={12} color="#F59E0B" fill="#F59E0B" />
                     <Text style={styles.movieRatingText}>{movie.vote_average.toFixed(1)}</Text>
                     <Text style={styles.movieYearText}>• {movie.release_date?.split('-')[0]}</Text>
                   </View>
@@ -720,6 +859,15 @@ export default function LandingScreen() {
                       <FormatBadge key={f} format={f} size="small" />
                     ))}
                   </View>
+
+                  {/* Direct "Plan This Movie" Trigger */}
+                  <TouchableOpacity
+                    style={styles.planMovieBtn}
+                    onPress={() => handlePlanSpecificMovie(movie)}
+                  >
+                    <Text style={styles.planMovieBtnText}>Plan Trip</Text>
+                    <ChevronRight size={13} color="#07090E" strokeWidth={2.5} />
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
@@ -730,24 +878,23 @@ export default function LandingScreen() {
               style={styles.textActionBtn}
               onPress={() => handleLaunchApp('/(tabs)/discover')}
             >
-              <Text style={styles.textActionBtnText}>Explore all now-playing movies in CineTrip</Text>
-              <ArrowRight size={16} color={colors.primary} />
+              <Text style={styles.textActionBtnText}>Explore full theater release feed in CineTrip</Text>
+              <ArrowRight size={15} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            5. SECTION 3 — PLAN (THE 3-STEP TRIP BUILDER)
+            5. SECTION 2 — PLAN (INTERACTIVE 3-STEP TRIP BUILDER)
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.sectionDark}>
           <View style={styles.sectionHeaderWrap}>
             <Text style={styles.sectionEyebrow}>02 / PLAN</Text>
             <Text style={styles.sectionHeading}>
-              From "What should we watch?" to "We're going."
+              FROM "WHAT SHOULD WE WATCH?"{'\n'}TO "WE'RE GOING."
             </Text>
             <Text style={styles.sectionDesc}>
-              A guided 3-step builder that lets you select the movie, pick certified screens & showtimes,
-              customize concession snacks, and select seat preferences.
+              A guided visual sequence that turns film curiosity into confirmed theater outings.
             </Text>
           </View>
 
@@ -757,7 +904,7 @@ export default function LandingScreen() {
               style={[styles.stepTab, activePlannerStep === 1 && styles.stepTabActive]}
               onPress={() => setActivePlannerStep(1)}
             >
-              <Text style={[styles.stepTabNum, activePlannerStep === 1 && styles.stepTabNumActive]}>STEP 1</Text>
+              <Text style={[styles.stepTabNum, activePlannerStep === 1 && styles.stepTabNumActive]}>01</Text>
               <Text style={[styles.stepTabTitle, activePlannerStep === 1 && styles.stepTabTitleActive]}>Pick Movie</Text>
             </TouchableOpacity>
 
@@ -765,7 +912,7 @@ export default function LandingScreen() {
               style={[styles.stepTab, activePlannerStep === 2 && styles.stepTabActive]}
               onPress={() => setActivePlannerStep(2)}
             >
-              <Text style={[styles.stepTabNum, activePlannerStep === 2 && styles.stepTabNumActive]}>STEP 2</Text>
+              <Text style={[styles.stepTabNum, activePlannerStep === 2 && styles.stepTabNumActive]}>02</Text>
               <Text style={[styles.stepTabTitle, activePlannerStep === 2 && styles.stepTabTitleActive]}>Venue & Snacks</Text>
             </TouchableOpacity>
 
@@ -773,7 +920,7 @@ export default function LandingScreen() {
               style={[styles.stepTab, activePlannerStep === 3 && styles.stepTabActive]}
               onPress={() => setActivePlannerStep(3)}
             >
-              <Text style={[styles.stepTabNum, activePlannerStep === 3 && styles.stepTabNumActive]}>STEP 3</Text>
+              <Text style={[styles.stepTabNum, activePlannerStep === 3 && styles.stepTabNumActive]}>03</Text>
               <Text style={[styles.stepTabTitle, activePlannerStep === 3 && styles.stepTabTitleActive]}>Seats & Squad</Text>
             </TouchableOpacity>
           </View>
@@ -781,7 +928,7 @@ export default function LandingScreen() {
           {/* Step 1: Movie Selection Preview */}
           {activePlannerStep === 1 && (
             <View style={styles.plannerStepCard}>
-              <Text style={styles.plannerCardEyebrow}>STEP 1 • SELECT THE TITLE</Text>
+              <Text style={styles.plannerCardEyebrow}>STEP 01 • SELECT THE TITLE</Text>
               <Text style={styles.plannerCardHeadline}>Choose from verified in-theater releases</Text>
               <View style={styles.movieSelectionGrid}>
                 {HERO_MOVIES.map((m, idx) => (
@@ -791,7 +938,10 @@ export default function LandingScreen() {
                       styles.movieSelectCard,
                       selectedMovieIndex === idx && styles.movieSelectCardSelected,
                     ]}
-                    onPress={() => setSelectedMovieIndex(idx)}
+                    onPress={() => {
+                      setSelectedMovieIndex(idx);
+                      setActivePlannerStep(2);
+                    }}
                   >
                     <Image
                       source={{ uri: getImageUri(m.poster_path, 'w500') }}
@@ -808,7 +958,7 @@ export default function LandingScreen() {
                     </View>
                     {selectedMovieIndex === idx && (
                       <View style={styles.selectCheck}>
-                        <Check size={14} color="#07090E" strokeWidth={3} />
+                        <Check size={13} color="#07090E" strokeWidth={3} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -820,7 +970,7 @@ export default function LandingScreen() {
           {/* Step 2: Venue, Showtimes & Concessions */}
           {activePlannerStep === 2 && (
             <View style={styles.plannerStepCard}>
-              <Text style={styles.plannerCardEyebrow}>STEP 2 • CINEMA, SHOWTIME & CONCESSIONS</Text>
+              <Text style={styles.plannerCardEyebrow}>STEP 02 • CINEMA, SHOWTIME & CONCESSIONS</Text>
               <Text style={styles.plannerCardHeadline}>Select the auditorium experience</Text>
 
               <View style={styles.plannerTwoCol}>
@@ -829,17 +979,17 @@ export default function LandingScreen() {
                   {SAMPLE_CINEMAS_LIST.slice(0, 3).map((c, i) => (
                     <View key={c.name} style={[styles.cinemaPickItem, i === 0 && styles.cinemaPickItemActive]}>
                       <View style={styles.cinemaPickLeft}>
-                        <Film size={16} color={i === 0 ? colors.primary : colors.textSecondary} />
-                        <View>
-                          <Text style={styles.cinemaPickName}>{c.name}</Text>
+                        <Film size={15} color={i === 0 ? colors.primary : colors.textSecondary} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.cinemaPickName} numberOfLines={1}>{c.name}</Text>
                           <Text style={styles.cinemaPickDist}>{c.distance} away • {c.brand}</Text>
                         </View>
                       </View>
-                      {i === 0 && <Check size={16} color={colors.primary} strokeWidth={2.5} />}
+                      {i === 0 && <Check size={15} color={colors.primary} strokeWidth={2.5} />}
                     </View>
                   ))}
 
-                  <Text style={[styles.subGroupTitle, { marginTop: 18 }]}>AVAILABLE SLOTS (TODAY):</Text>
+                  <Text style={[styles.subGroupTitle, { marginTop: 16 }]}>AVAILABLE SLOTS (TODAY):</Text>
                   <View style={styles.slotRow}>
                     <View style={styles.slotPill}><Text style={styles.slotPillText}>03:30 PM</Text></View>
                     <View style={[styles.slotPill, styles.slotPillActive]}><Text style={styles.slotPillTextActive}>07:30 PM (Prime)</Text></View>
@@ -877,7 +1027,7 @@ export default function LandingScreen() {
           {/* Step 3: Interactive Seat Map Selector & Squad Roster */}
           {activePlannerStep === 3 && (
             <View style={styles.plannerStepCard}>
-              <Text style={styles.plannerCardEyebrow}>STEP 3 • INTERACTIVE SEAT GRID & SQUAD</Text>
+              <Text style={styles.plannerCardEyebrow}>STEP 03 • SEAT GRID & SQUAD ROSTER</Text>
               <Text style={styles.plannerCardHeadline}>Reserve row preferences with your friends</Text>
 
               <View style={styles.seatSectionLayout}>
@@ -964,30 +1114,31 @@ export default function LandingScreen() {
                       </View>
                       <View style={styles.confirmedPill}><Text style={styles.confirmedPillText}>ACCEPTED</Text></View>
                     </View>
-
-                    <View style={styles.squadMemberRow}>
-                      <View style={styles.avatarInitials}><Text style={styles.avatarText}>DP</Text></View>
-                      <View style={styles.squadMemberInfo}>
-                        <Text style={styles.squadMemberName}>Dev Patel</Text>
-                        <Text style={styles.squadMemberStatus}>@dev_cine • Invited</Text>
-                      </View>
-                      <View style={styles.invitedPill}><Text style={styles.invitedPillText}>INVITED</Text></View>
-                    </View>
                   </View>
                 </View>
               </View>
             </View>
           )}
+
+          <View style={styles.sectionCtaCenter}>
+            <TouchableOpacity
+              style={styles.primaryInlineBtn}
+              onPress={() => handleLaunchApp('/(tabs)/planner')}
+            >
+              <Text style={styles.primaryInlineBtnText}>START REAL TRIP PLAN</Text>
+              <ArrowRight size={14} color="#07090E" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            6. SECTION 4 — SQUAD (CONTACT INTEGRATION)
+            6. SECTION 3 — SQUAD (THE CINEMA CONVERSATION RESOLVER)
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.sectionLight}>
           <View style={styles.sectionHeaderWrap}>
             <Text style={styles.sectionEyebrow}>03 / SQUAD</Text>
             <Text style={styles.sectionHeading}>
-              Don't plan the movie night in 47 messages.
+              DON'T PLAN THE MOVIE NIGHT{'\n'}IN 47 MESSAGES.
             </Text>
             <Text style={styles.sectionDesc}>
               Invite friends directly from your phone's address book with native contacts integration.
@@ -999,31 +1150,37 @@ export default function LandingScreen() {
             <View style={styles.squadLeftGraphic}>
               <View style={styles.chatBubbleDark}>
                 <Text style={styles.chatSender}>Alex Chen</Text>
-                <Text style={styles.chatMessage}>"Are we doing IMAX 70mm or Dolby for Dune tonight?"</Text>
+                <Text style={styles.chatMessage}>"What are we watching tonight?"</Text>
+              </View>
+              <View style={styles.chatBubbleDark}>
+                <Text style={styles.chatSender}>Sarah Miller</Text>
+                <Text style={styles.chatMessage}>"Anything after 7:00 PM works for me!"</Text>
               </View>
               <View style={styles.chatBubbleGold}>
-                <Text style={styles.chatSenderGold}>You (via CineTrip)</Text>
-                <Text style={styles.chatMessageGold}>"Plan is ready: 7:30 PM IMAX Laser, Row F, Seats 4-6. Here is the pass."</Text>
+                <Text style={styles.chatSenderGold}>CineTrip Smart Plan</Text>
+                <Text style={styles.chatMessageGold}>
+                  "Found: Dune: Part Two • 7:30 PM • PVR IMAX Laser (2.4 km) • Row F (Seats 4-5). Pass attached."
+                </Text>
               </View>
             </View>
 
             <View style={styles.squadRightDetails}>
               <Text style={styles.featureBoxTitle}>Native Phone Address Book Sync</Text>
               <Text style={styles.featureBoxDesc}>
-                CineTrip interfaces with your device's native address book via <Text style={styles.inlineCode}>expo-contacts</Text>.
-                No third-party messaging logins required.
+                CineTrip interfaces directly with your device's native address book via <Text style={styles.inlineCode}>expo-contacts</Text>.
+                No third-party social logins or complex invites required.
               </Text>
               <View style={styles.featureCheckList}>
                 <View style={styles.featureCheckItem}>
-                  <Check size={16} color={colors.primary} />
+                  <Check size={15} color={colors.primary} />
                   <Text style={styles.featureCheckText}>Pick friends directly from device contacts</Text>
                 </View>
                 <View style={styles.featureCheckItem}>
-                  <Check size={16} color={colors.primary} />
+                  <Check size={15} color={colors.primary} />
                   <Text style={styles.featureCheckText}>Keep track of group concession snack orders</Text>
                 </View>
                 <View style={styles.featureCheckItem}>
-                  <Check size={16} color={colors.primary} />
+                  <Check size={15} color={colors.primary} />
                   <Text style={styles.featureCheckText}>Share unified pass summaries via OS share sheet</Text>
                 </View>
               </View>
@@ -1031,132 +1188,53 @@ export default function LandingScreen() {
                 style={styles.primaryInlineBtn}
                 onPress={() => handleLaunchApp('/(tabs)/planner')}
               >
-                <Text style={styles.primaryInlineBtnText}>Try Squad Planner</Text>
-                <ArrowRight size={15} color="#07090E" />
+                <Text style={styles.primaryInlineBtnText}>TRY SQUAD PLANNER</Text>
+                <ArrowRight size={14} color="#07090E" />
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            7. SECTION 5 — DIGITAL PASS (BUILT FOR THE BASEMENT)
+            7. SECTION 4 — OFFLINE REALITY (THE AUDITORIUM VAULT)
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.sectionDark}>
           <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionEyebrow}>04 / DIGITAL PASS</Text>
+            <Text style={styles.sectionEyebrow}>04 / OFFLINE REALITY</Text>
             <Text style={styles.sectionHeading}>
-              Your movie night. In your pocket.
-            </Text>
-            <Text style={styles.sectionDesc}>
-              A high-contrast boarding pass with dynamic Reed-Solomon vector QR code, live showtime countdown,
-              turnstile entry data, and one-tap Apple/Google Maps directions.
-            </Text>
-          </View>
-
-          <View style={styles.passShowcaseGrid}>
-            <View style={styles.passShowcaseLeft}>
-              <View style={styles.featurePillar}>
-                <Clock size={20} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.pillarTitle}>Live Showtime Countdown Ticker</Text>
-                  <Text style={styles.pillarDesc}>
-                    An active second-by-second countdown clock keeping the entire group on schedule.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.featurePillar}>
-                <Radio size={20} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.pillarTitle}>Reed-Solomon Vector QR Code</Text>
-                  <Text style={styles.pillarDesc}>
-                    Self-contained Galois Field GF(2^8) error correction matrix that turnstiles can read effortlessly.
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.featurePillar}>
-                <Share2 size={20} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.pillarTitle}>Native OS Share Sheet</Text>
-                  <Text style={styles.pillarDesc}>
-                    Send formatted outing passes with cinema address and seat numbers in one tap.
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Visual Pass Preview */}
-            <View style={styles.passShowcaseRight}>
-              <View style={styles.miniPassCard}>
-                <View style={styles.miniPassTop}>
-                  <View style={styles.miniPassRow}>
-                    <Text style={styles.miniPassTag}>CINETRIP VERIFIED PASS</Text>
-                    <Text style={styles.miniPassStatus}>CONFIRMED</Text>
-                  </View>
-                  <Text style={styles.miniPassTitle}>Dune: Part Two</Text>
-                  <Text style={styles.miniPassCinema}>PVR INOX IMAX with Laser • Mumbai</Text>
-                </View>
-                <View style={styles.miniPerforation}>
-                  <View style={styles.miniNotchL} />
-                  <View style={styles.miniDashed} />
-                  <View style={styles.miniNotchR} />
-                </View>
-                <View style={styles.miniPassBottom}>
-                  <View style={styles.miniMetaRow}>
-                    <View><Text style={styles.miniLabel}>TIME</Text><Text style={styles.miniVal}>07:30 PM</Text></View>
-                    <View><Text style={styles.miniLabel}>SEATS</Text><Text style={styles.miniVal}>Row F • 4, 5</Text></View>
-                    <View><Text style={styles.miniLabel}>FORMAT</Text><Text style={styles.miniVal}>IMAX 70mm</Text></View>
-                  </View>
-                  <View style={styles.miniQrCenter}>
-                    <QRCodeSvg value="CINETRIP|693134|PASS-70MM" size={90} color="#07090E" backgroundColor="#FFFFFF" />
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* ─────────────────────────────────────────────────────────────
-            8. SECTION 6 — OFFLINE REALITY (THE AUDITORIUM VAULT)
-        ────────────────────────────────────────────────────────────── */}
-        <View style={styles.sectionLight}>
-          <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionEyebrow}>05 / OFFLINE ARCHITECTURE</Text>
-            <Text style={styles.sectionHeading}>
-              Because the cinema basement doesn't care about your Wi-Fi.
+              YOUR PASS STILL WORKS WHEN{'\n'}THE CINEMA BASEMENT DOESN'T.
             </Text>
             <Text style={styles.sectionDesc}>
               Deep underground multiplexes and concrete auditoriums have zero cellular signal.
-              CineTrip uses persistent hardware-backed storage so your passes open with 0ms delay.
+              CineTrip uses persistent hardware-backed storage so passes open with 0ms delay.
             </Text>
           </View>
 
+          {/* Visual Offline Progression */}
           <View style={styles.offlineDemoLayout}>
             <View style={styles.offlineSignalBox}>
               <View style={styles.signalHeader}>
                 <View style={styles.signalIcons}>
-                  <WifiOff size={22} color="#EF4444" />
+                  <WifiOff size={20} color="#EF4444" />
                   <Text style={styles.noServiceText}>NO SERVICE • AIRPLANE MODE</Text>
                 </View>
                 <View style={styles.latencyBadge}>
-                  <Text style={styles.latencyText}>0ms CACHE HIT</Text>
+                  <Text style={styles.latencyText}>0ms LOCAL HIT</Text>
                 </View>
               </View>
               <Text style={styles.offlineBoxHeading}>
-                Most ticketing apps fail the moment you walk into the basement.
+                Web-based ticketing portals spin indefinitely when cell towers disappear.
               </Text>
               <Text style={styles.offlineBoxDesc}>
-                Cloud-only web portals spin indefinitely when cell towers disappear.
                 CineTrip persists all upcoming plans, turnstile QR codes, and seat assignments
-                locally in encrypted storage (<Text style={styles.inlineCode}>@react-native-async-storage</Text> & <Text style={styles.inlineCode}>expo-secure-store</Text>).
+                locally in encrypted storage (<Text style={styles.inlineCode}>@react-native-async-storage</Text>).
               </Text>
             </View>
 
             <View style={styles.offlineProofBox}>
               <View style={styles.proofHeader}>
-                <ShieldCheck size={20} color={colors.primary} />
-                <Text style={styles.proofTitle}>LOCAL STORAGE ENGINE</Text>
+                <ShieldCheck size={18} color={colors.primary} />
+                <Text style={styles.proofTitle}>HARDWARE STORAGE VAULT</Text>
               </View>
               <View style={styles.proofMetrics}>
                 <View style={styles.proofMetricItem}>
@@ -1169,7 +1247,7 @@ export default function LandingScreen() {
                 </View>
                 <View style={styles.proofMetricItem}>
                   <Text style={styles.proofMetricNum}>AES-256</Text>
-                  <Text style={styles.proofMetricLabel}>Hardware keychain security</Text>
+                  <Text style={styles.proofMetricLabel}>Encrypted local state</Text>
                 </View>
               </View>
             </View>
@@ -1177,13 +1255,13 @@ export default function LandingScreen() {
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            9. SECTION 7 — CINEMA LOCATOR (OPENSTREETMAP VENUES)
+            8. SECTION 5 — VENUE RADAR (OPENSTREETMAP LOCATOR)
         ────────────────────────────────────────────────────────────── */}
-        <View style={styles.sectionDark}>
+        <View style={styles.sectionLight}>
           <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionEyebrow}>06 / VENUE RADAR</Text>
+            <Text style={styles.sectionEyebrow}>05 / VENUE RADAR</Text>
             <Text style={styles.sectionHeading}>
-              Find the screen, not just the movie.
+              FIND THE SCREEN,{'\n'}NOT JUST THE MOVIE.
             </Text>
             <Text style={styles.sectionDesc}>
               Live OpenStreetMap Overpass geospatial radar locating certified IMAX, Dolby, and 4DX venues
@@ -1222,20 +1300,20 @@ export default function LandingScreen() {
               style={styles.primaryInlineBtn}
               onPress={() => handleLaunchApp('/map')}
             >
-              <Text style={styles.primaryInlineBtnText}>Open Live Cinema Radar</Text>
-              <ArrowRight size={15} color="#07090E" />
+              <Text style={styles.primaryInlineBtnText}>OPEN LIVE CINEMA RADAR</Text>
+              <ArrowRight size={14} color="#07090E" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            10. SECTION 8 — MEMORIES (CINEPHILE JOURNAL)
+            9. SECTION 6 — MEMORIES (CINEPHILE JOURNAL)
         ────────────────────────────────────────────────────────────── */}
-        <View style={styles.sectionLight}>
+        <View style={styles.sectionDark}>
           <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionEyebrow}>07 / PRESERVE</Text>
+            <Text style={styles.sectionEyebrow}>06 / PRESERVE</Text>
             <Text style={styles.sectionHeading}>
-              Movies end. Memories don't.
+              MOVIES END.{'\n'}MEMORIES DON'T.
             </Text>
             <Text style={styles.sectionDesc}>
               Physical ticket stubs fade. CineTrip gives you a dedicated cinema journal: snap marquee photos,
@@ -1256,7 +1334,7 @@ export default function LandingScreen() {
                     <Text style={styles.memoryDate}>{mem.date}</Text>
                     <View style={styles.memoryStars}>
                       {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} size={13} color="#F59E0B" fill="#F59E0B" />
+                        <Star key={s} size={12} color="#F59E0B" fill="#F59E0B" />
                       ))}
                     </View>
                   </View>
@@ -1267,7 +1345,7 @@ export default function LandingScreen() {
 
                   <View style={styles.memoryCompanionsRow}>
                     <Users size={12} color={colors.textSecondary} />
-                    <Text style={styles.memoryCompanionsText}>
+                    <Text style={styles.memoryCompanionsText} numberOfLines={1}>
                       With {mem.companions.join(' and ')} • {mem.snack}
                     </Text>
                   </View>
@@ -1282,160 +1360,13 @@ export default function LandingScreen() {
               onPress={() => handleLaunchApp('/(tabs)/memories')}
             >
               <Text style={styles.textActionBtnText}>Explore the Cinephile Journal</Text>
-              <ArrowRight size={16} color={colors.primary} />
+              <ArrowRight size={15} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            11. SECTION 9 — THE THEATRICAL LIFECYCLE (BEFORE / DURING / AFTER)
-        ────────────────────────────────────────────────────────────── */}
-        <View style={styles.sectionDark}>
-          <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionEyebrow}>08 / THE COMPLETE RITUAL</Text>
-            <Text style={styles.sectionHeading}>
-              Designed for the entire theatrical lifecycle.
-            </Text>
-          </View>
-
-          {/* Phase Selector */}
-          <View style={styles.phaseTabsRow}>
-            <TouchableOpacity
-              style={[styles.phaseTab, activeTab === 'before' && styles.phaseTabActive]}
-              onPress={() => setActiveTab('before')}
-            >
-              <Text style={[styles.phaseTabLabel, activeTab === 'before' && styles.phaseTabLabelActive]}>
-                01 • BEFORE
-              </Text>
-              <Text style={styles.phaseTabSub}>Discovery & Planning</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.phaseTab, activeTab === 'during' && styles.phaseTabActive]}
-              onPress={() => setActiveTab('during')}
-            >
-              <Text style={[styles.phaseTabLabel, activeTab === 'during' && styles.phaseTabLabelActive]}>
-                02 • DURING
-              </Text>
-              <Text style={styles.phaseTabSub}>The Box Office & Hall</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.phaseTab, activeTab === 'after' && styles.phaseTabActive]}
-              onPress={() => setActiveTab('after')}
-            >
-              <Text style={[styles.phaseTabLabel, activeTab === 'after' && styles.phaseTabLabelActive]}>
-                03 • AFTER
-              </Text>
-              <Text style={styles.phaseTabSub}>The Cinephile Journal</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Phase Content */}
-          <View style={styles.phaseContentCard}>
-            {activeTab === 'before' && (
-              <View style={styles.phaseGrid}>
-                <View style={styles.phaseCard}>
-                  <Compass size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Smart TMDB Discovery</Text>
-                  <Text style={styles.phaseCardDesc}>Explore verifiable now-playing titles with verified format tags.</Text>
-                </View>
-                <View style={styles.phaseCard}>
-                  <Layers size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>3-Step Trip Builder</Text>
-                  <Text style={styles.phaseCardDesc}>Choose movie, select showtime, and pick concession snacks.</Text>
-                </View>
-                <View style={styles.phaseCard}>
-                  <Users size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Phone Contact Invites</Text>
-                  <Text style={styles.phaseCardDesc}>Select friends directly from your address book without chat chaos.</Text>
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'during' && (
-              <View style={styles.phaseGrid}>
-                <View style={styles.phaseCard}>
-                  <Ticket size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Offline Digital Pass</Text>
-                  <Text style={styles.phaseCardDesc}>Opens in 0ms inside signal-blocking concrete multiplex basements.</Text>
-                </View>
-                <View style={styles.phaseCard}>
-                  <Radio size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Galois Vector QR</Text>
-                  <Text style={styles.phaseCardDesc}>High-contrast Reed-Solomon scannable matrix for turnstiles.</Text>
-                </View>
-                <View style={styles.phaseCard}>
-                  <Clock size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Showtime Countdown</Text>
-                  <Text style={styles.phaseCardDesc}>Live ticking countdown to ensure the squad is seated before trailers.</Text>
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'after' && (
-              <View style={styles.phaseGrid}>
-                <View style={styles.phaseCard}>
-                  <Star size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Acoustic & Vibe Rating</Text>
-                  <Text style={styles.phaseCardDesc}>Rate sound dynamics, screen brightness, and seat comfort.</Text>
-                </View>
-                <View style={styles.phaseCard}>
-                  <Camera size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Lobby Photo & Video</Text>
-                  <Text style={styles.phaseCardDesc}>Snap marquee shots and video logs directly inside the app.</Text>
-                </View>
-                <View style={styles.phaseCard}>
-                  <Bookmark size={22} color={colors.primary} />
-                  <Text style={styles.phaseCardTitle}>Lifetime Archive</Text>
-                  <Text style={styles.phaseCardDesc}>Build a permanent digital vault of every screening you attend.</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* ─────────────────────────────────────────────────────────────
-            12. SECTION 10 — THE 6 CORE CAPABILITIES SUMMARY
-        ────────────────────────────────────────────────────────────── */}
-        <View style={styles.sectionLight}>
-          <View style={styles.sectionHeaderWrap}>
-            <Text style={styles.sectionEyebrow}>PRODUCT CAPABILITIES</Text>
-            <Text style={styles.sectionHeading}>
-              Six features. Zero bloat.
-            </Text>
-          </View>
-
-          <View style={styles.sixPillarsGrid}>
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}><Compass size={18} color={colors.primary} /><Text style={styles.pillarBoxTitle}>DISCOVER</Text></View>
-              <Text style={styles.pillarBoxDesc}>Live TMDB now-playing feed, certified format pills, trailers, and mood curation.</Text>
-            </View>
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}><Layers size={18} color={colors.primary} /><Text style={styles.pillarBoxTitle}>PLAN</Text></View>
-              <Text style={styles.pillarBoxDesc}>3-step movie night builder with concession snacks, seat map, and showtime slots.</Text>
-            </View>
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}><Users size={18} color={colors.primary} /><Text style={styles.pillarBoxTitle}>SQUAD</Text></View>
-              <Text style={styles.pillarBoxDesc}>Native phone address book integration to coordinate friends and headcount.</Text>
-            </View>
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}><MapPin size={18} color={colors.primary} /><Text style={styles.pillarBoxTitle}>CINEMA MAP</Text></View>
-              <Text style={styles.pillarBoxDesc}>OpenStreetMap geospatial radar to discover certified IMAX & Dolby venues nearby.</Text>
-            </View>
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}><Ticket size={18} color={colors.primary} /><Text style={styles.pillarBoxTitle}>DIGITAL PASS</Text></View>
-              <Text style={styles.pillarBoxDesc}>Offline-ready boarding pass with Reed-Solomon vector QR code and live timer.</Text>
-            </View>
-            <View style={styles.pillarBox}>
-              <View style={styles.pillarHeader}><Camera size={18} color={colors.primary} /><Text style={styles.pillarBoxTitle}>MEMORIES</Text></View>
-              <Text style={styles.pillarBoxDesc}>Acoustic rating, marquee photos, companion tagging, and personal screening stats.</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ─────────────────────────────────────────────────────────────
-            13. SECTION 11 — FINAL CALL TO ACTION (MARQUEE CLOSE)
+            10. FINAL BRAND MOMENT — CINEMATIC CLOSING
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.sectionCtaMarquee}>
           <View style={styles.marqueeContainer}>
@@ -1457,26 +1388,26 @@ export default function LandingScreen() {
             <View style={styles.marqueeButtonRow}>
               <TouchableOpacity
                 style={styles.marqueePrimaryBtn}
-                onPress={() => handleLaunchApp('/(tabs)')}
+                onPress={() => handleLaunchApp('/(tabs)/planner')}
                 activeOpacity={0.85}
               >
-                <Text style={styles.marqueePrimaryBtnText}>Explore CineTrip Live</Text>
-                <ArrowRight size={17} color="#07090E" strokeWidth={2.5} />
+                <Text style={styles.marqueePrimaryBtnText}>START PLANNING</Text>
+                <ArrowRight size={16} color="#07090E" strokeWidth={2.5} />
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.marqueeSecondaryBtn}
-                onPress={() => router.push('/(auth)/login')}
+                onPress={() => handleLaunchApp('/(tabs)/discover')}
                 activeOpacity={0.85}
               >
-                <Text style={styles.marqueeSecondaryBtnText}>Create Account / Sign In</Text>
+                <Text style={styles.marqueeSecondaryBtnText}>EXPLORE MOVIES</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
         {/* ─────────────────────────────────────────────────────────────
-            14. SECTION 12 — MINIMAL EDITORIAL FOOTER
+            11. MINIMAL EDITORIAL FOOTER
         ────────────────────────────────────────────────────────────── */}
         <View style={styles.footer}>
           <View style={styles.footerInner}>
@@ -1524,7 +1455,7 @@ export default function LandingScreen() {
   );
 }
 
-const createStyles = (colors) =>
+const createStyles = (colors, isMobile, isTablet, isDesktop) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -1540,17 +1471,17 @@ const createStyles = (colors) =>
 
     // ── NAVBAR STYLES ─────────────────────────────────────────────
     navbar: {
-      backgroundColor: 'rgba(7, 9, 14, 0.92)',
+      backgroundColor: 'rgba(7, 9, 14, 0.94)',
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(255, 255, 255, 0.07)',
       paddingVertical: 12,
-      paddingHorizontal: 24,
+      paddingHorizontal: isMobile ? 16 : 24,
       position: 'relative',
       zIndex: 50,
     },
     navbarScrolled: {
       backgroundColor: 'rgba(7, 9, 14, 0.98)',
-      borderBottomColor: 'rgba(229, 169, 60, 0.2)',
+      borderBottomColor: 'rgba(229, 169, 60, 0.25)',
     },
     navContainer: {
       maxWidth: 1240,
@@ -1566,8 +1497,8 @@ const createStyles = (colors) =>
       gap: 10,
     },
     brandBadge: {
-      width: 38,
-      height: 38,
+      width: 36,
+      height: 36,
       borderRadius: 10,
       backgroundColor: '#07090E',
       justifyContent: 'center',
@@ -1577,8 +1508,8 @@ const createStyles = (colors) =>
       overflow: 'hidden',
     },
     navLogoImg: {
-      width: 32,
-      height: 32,
+      width: 30,
+      height: 30,
     },
     navBrandTextCol: {
       justifyContent: 'center',
@@ -1615,7 +1546,6 @@ const createStyles = (colors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 28,
-      display: WINDOW_WIDTH > 768 ? 'flex' : 'none',
     },
     navLinkItem: {
       paddingVertical: 6,
@@ -1629,7 +1559,6 @@ const createStyles = (colors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 14,
-      display: WINDOW_WIDTH > 768 ? 'flex' : 'none',
     },
     navSignInBtn: {
       paddingHorizontal: 14,
@@ -1657,7 +1586,6 @@ const createStyles = (colors) =>
     },
     hamburgerBtn: {
       padding: 6,
-      display: WINDOW_WIDTH <= 768 ? 'flex' : 'none',
     },
     mobileDrawer: {
       marginTop: 12,
@@ -1665,7 +1593,6 @@ const createStyles = (colors) =>
       borderTopWidth: 1,
       borderTopColor: 'rgba(255, 255, 255, 0.08)',
       gap: 12,
-      display: WINDOW_WIDTH <= 768 ? 'flex' : 'none',
     },
     mobileDrawerItem: {
       flexDirection: 'row',
@@ -1701,8 +1628,8 @@ const createStyles = (colors) =>
 
     // ── HERO STYLES ───────────────────────────────────────────────
     heroSection: {
-      paddingVertical: WINDOW_WIDTH > 768 ? 72 : 40,
-      paddingHorizontal: 24,
+      paddingVertical: isMobile ? 32 : 64,
+      paddingHorizontal: isMobile ? 16 : 24,
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(255, 255, 255, 0.07)',
       position: 'relative',
@@ -1711,19 +1638,20 @@ const createStyles = (colors) =>
       maxWidth: 1240,
       width: '100%',
       alignSelf: 'center',
-      flexDirection: WINDOW_WIDTH > 900 ? 'row' : 'column',
-      alignItems: WINDOW_WIDTH > 900 ? 'center' : 'flex-start',
-      gap: WINDOW_WIDTH > 900 ? 56 : 40,
+      flexDirection: isDesktop ? 'row' : 'column',
+      alignItems: isDesktop ? 'center' : 'flex-start',
+      gap: isDesktop ? 48 : 32,
     },
     heroLeft: {
       flex: 1,
-      maxWidth: WINDOW_WIDTH > 900 ? 600 : '100%',
+      width: '100%',
+      maxWidth: isDesktop ? 580 : '100%',
     },
     heroEyebrowRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 16,
+      marginBottom: 14,
     },
     heroEyebrowDot: {
       width: 7,
@@ -1739,32 +1667,31 @@ const createStyles = (colors) =>
       textTransform: 'uppercase',
     },
     heroMainTitle: {
-      fontSize: WINDOW_WIDTH > 768 ? 52 : 38,
+      fontSize: isMobile ? 32 : isTablet ? 42 : 50,
       fontWeight: '900',
       letterSpacing: -1,
-      lineHeight: WINDOW_WIDTH > 768 ? 58 : 44,
+      lineHeight: isMobile ? 38 : isTablet ? 48 : 56,
       color: '#F8FAFC',
-      margin: 0,
-      marginBottom: 20,
+      marginBottom: 16,
     },
     heroSubtitle: {
-      fontSize: WINDOW_WIDTH > 768 ? 17 : 15,
+      fontSize: isMobile ? 14 : 16,
       fontWeight: '400',
-      lineHeight: 26,
+      lineHeight: 24,
       color: '#94A3B8',
-      margin: 0,
-      marginBottom: 32,
+      marginBottom: 24,
     },
     heroButtonRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 14,
-      marginBottom: 32,
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: 12,
+      marginBottom: 24,
+      width: isMobile ? '100%' : 'auto',
     },
     heroPrimaryBtn: {
       backgroundColor: colors.primary,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 8,
       paddingHorizontal: 24,
       paddingVertical: 14,
@@ -1772,10 +1699,10 @@ const createStyles = (colors) =>
       minHeight: 48,
     },
     heroPrimaryBtnText: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '800',
       color: '#07090E',
-      letterSpacing: 0.2,
+      letterSpacing: 0.5,
     },
     heroSecondaryBtn: {
       backgroundColor: '#121722',
@@ -1783,6 +1710,7 @@ const createStyles = (colors) =>
       borderColor: 'rgba(255, 255, 255, 0.12)',
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 8,
       paddingHorizontal: 20,
       paddingVertical: 14,
@@ -1790,19 +1718,20 @@ const createStyles = (colors) =>
       minHeight: 48,
     },
     heroSecondaryBtnText: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
       color: '#F8FAFC',
+      letterSpacing: 0.5,
     },
     heroTrustGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
-      gap: 12,
+      gap: 10,
       paddingTop: 16,
       borderTopWidth: 1,
       borderTopColor: 'rgba(255, 255, 255, 0.08)',
-      marginBottom: 24,
+      marginBottom: 20,
     },
     heroTrustItem: {
       flexDirection: 'row',
@@ -1826,9 +1755,10 @@ const createStyles = (colors) =>
       padding: 12,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.06)',
+      width: '100%',
     },
     switcherLabel: {
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '800',
       letterSpacing: 1,
       color: colors.textMuted,
@@ -1852,7 +1782,7 @@ const createStyles = (colors) =>
       borderColor: colors.primary,
     },
     switcherPillText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '600',
       color: '#94A3B8',
     },
@@ -1861,11 +1791,11 @@ const createStyles = (colors) =>
       fontWeight: '800',
     },
 
-    // Hero Right / Digital Pass Graphic
+    // ── 3D PHYSICAL DIGITAL PASS HERO CENTERPIECE ─────────────────
     heroRight: {
       flex: 1,
       width: '100%',
-      maxWidth: 520,
+      maxWidth: isDesktop ? 500 : '100%',
       alignItems: 'center',
     },
     heroTicketOuter: {
@@ -1911,17 +1841,18 @@ const createStyles = (colors) =>
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.1)',
       overflow: 'hidden',
+      width: '100%',
       ...SHADOWS.card,
     },
     passHeaderArea: {
-      padding: 24,
-      paddingTop: 28,
+      padding: isMobile ? 18 : 24,
+      paddingTop: isMobile ? 22 : 28,
     },
     passBrandingRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 14,
+      marginBottom: 12,
     },
     passBrandBadge: {
       flexDirection: 'row',
@@ -1929,8 +1860,8 @@ const createStyles = (colors) =>
       gap: 8,
     },
     passLogoImg: {
-      width: 22,
-      height: 22,
+      width: 20,
+      height: 20,
     },
     passBrandTitle: {
       fontSize: 11,
@@ -1954,16 +1885,16 @@ const createStyles = (colors) =>
       letterSpacing: 0.5,
     },
     passMovieTitle: {
-      fontSize: 26,
+      fontSize: isMobile ? 22 : 26,
       fontWeight: '900',
       color: '#F8FAFC',
-      marginBottom: 4,
+      marginBottom: 2,
     },
     passTagline: {
       fontSize: 12,
       fontStyle: 'italic',
       color: '#94A3B8',
-      marginBottom: 14,
+      marginBottom: 12,
     },
     passVenueRow: {
       flexDirection: 'row',
@@ -1972,14 +1903,14 @@ const createStyles = (colors) =>
       marginBottom: 2,
     },
     passVenueText: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
       color: '#F8FAFC',
     },
     passAddressText: {
-      fontSize: 12,
+      fontSize: 11,
       color: '#64748B',
-      marginBottom: 14,
+      marginBottom: 12,
     },
     passFormatRow: {
       flexDirection: 'row',
@@ -1987,18 +1918,18 @@ const createStyles = (colors) =>
       gap: 6,
     },
 
-    // Perforation notch divider
+    // Perforation Notch Divider Line
     perforationRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      height: 24,
+      height: 20,
       position: 'relative',
     },
     notchLeft: {
-      width: 18,
-      height: 24,
-      borderTopRightRadius: 12,
-      borderBottomRightRadius: 12,
+      width: 16,
+      height: 20,
+      borderTopRightRadius: 10,
+      borderBottomRightRadius: 10,
       backgroundColor: '#07090E',
       borderWidth: 1,
       borderLeftWidth: 0,
@@ -2006,10 +1937,10 @@ const createStyles = (colors) =>
       marginLeft: -1,
     },
     notchRight: {
-      width: 18,
-      height: 24,
-      borderTopLeftRadius: 12,
-      borderBottomLeftRadius: 12,
+      width: 16,
+      height: 20,
+      borderTopLeftRadius: 10,
+      borderBottomLeftRadius: 10,
       backgroundColor: '#07090E',
       borderWidth: 1,
       borderRightWidth: 0,
@@ -2022,20 +1953,23 @@ const createStyles = (colors) =>
       borderStyle: 'dashed',
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.15)',
-      marginHorizontal: 8,
+      marginHorizontal: 6,
     },
 
     passDetailsArea: {
-      padding: 24,
-      paddingTop: 16,
+      padding: isMobile ? 18 : 24,
+      paddingTop: 14,
       backgroundColor: '#0C0F17',
     },
     passMetaGrid: {
       flexDirection: 'row',
       justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: 12,
       marginBottom: 14,
     },
     passMetaCell: {
+      minWidth: 120,
       flex: 1,
     },
     passMetaLabel: {
@@ -2075,6 +2009,7 @@ const createStyles = (colors) =>
       fontSize: 11,
       fontWeight: '500',
       color: '#94A3B8',
+      flex: 1,
     },
     passSnackStrip: {
       flexDirection: 'row',
@@ -2084,17 +2019,18 @@ const createStyles = (colors) =>
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: RADIUS.xs,
-      marginBottom: 16,
+      marginBottom: 14,
     },
     passSnackText: {
       fontSize: 11,
       fontWeight: '500',
       color: colors.primary,
+      flex: 1,
     },
     passQrContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 16,
+      gap: 14,
       backgroundColor: '#121722',
       borderRadius: RADIUS.md,
       padding: 12,
@@ -2120,48 +2056,96 @@ const createStyles = (colors) =>
       fontSize: 11,
       fontWeight: '700',
       color: '#F8FAFC',
-      marginBottom: 4,
+      marginBottom: 2,
     },
     qrSubNote: {
       fontSize: 10,
       lineHeight: 14,
       color: '#64748B',
+      marginBottom: 8,
+    },
+    passActionMiniRow: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    passMiniBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: 'rgba(229, 169, 60, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: 'rgba(229, 169, 60, 0.3)',
+    },
+    passMiniBtnText: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+
+    // ── HOW IT WORKS 5-STEP GRID ──────────────────────────────────
+    howItWorksGrid: {
+      maxWidth: 1140,
+      width: '100%',
+      alignSelf: 'center',
+      flexDirection: isMobile ? 'column' : 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    howStepCard: {
+      flexBasis: isMobile ? '100%' : isTablet ? '48%' : '18%',
+      flexGrow: 1,
+      backgroundColor: '#121722',
+      borderRadius: RADIUS.lg,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    howStepHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    howStepNum: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.primary,
+    },
+    howStepTitle: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: '#F8FAFC',
       marginBottom: 6,
     },
-    demoWatermark: {
-      alignSelf: 'flex-start',
-      backgroundColor: 'rgba(229, 169, 60, 0.12)',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 4,
-    },
-    demoWatermarkText: {
-      fontSize: 8,
-      fontWeight: '800',
-      letterSpacing: 0.6,
-      color: colors.primary,
+    howStepDesc: {
+      fontSize: 11,
+      lineHeight: 16,
+      color: '#94A3B8',
     },
 
     // ── SECTION COMMON STYLES ─────────────────────────────────────
     sectionDark: {
-      paddingVertical: WINDOW_WIDTH > 768 ? 80 : 48,
-      paddingHorizontal: 24,
+      paddingVertical: isMobile ? 48 : 72,
+      paddingHorizontal: isMobile ? 16 : 24,
       backgroundColor: '#07090E',
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(255, 255, 255, 0.07)',
     },
     sectionLight: {
-      paddingVertical: WINDOW_WIDTH > 768 ? 80 : 48,
-      paddingHorizontal: 24,
+      paddingVertical: isMobile ? 48 : 72,
+      paddingHorizontal: isMobile ? 16 : 24,
       backgroundColor: '#0C0F17',
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(255, 255, 255, 0.07)',
     },
     sectionHeaderWrap: {
-      maxWidth: 820,
+      maxWidth: 840,
       width: '100%',
       alignSelf: 'center',
-      marginBottom: 40,
+      marginBottom: isMobile ? 24 : 36,
       alignItems: 'flex-start',
     },
     sectionEyebrow: {
@@ -2170,25 +2154,23 @@ const createStyles = (colors) =>
       letterSpacing: 1.5,
       color: colors.primary,
       textTransform: 'uppercase',
-      marginBottom: 10,
+      marginBottom: 8,
     },
     sectionHeading: {
-      fontSize: WINDOW_WIDTH > 768 ? 38 : 28,
+      fontSize: isMobile ? 26 : isTablet ? 32 : 36,
       fontWeight: '900',
       letterSpacing: -0.6,
-      lineHeight: WINDOW_WIDTH > 768 ? 44 : 34,
+      lineHeight: isMobile ? 32 : isTablet ? 38 : 42,
       color: '#F8FAFC',
-      margin: 0,
-      marginBottom: 14,
+      marginBottom: 12,
     },
     sectionDesc: {
-      fontSize: WINDOW_WIDTH > 768 ? 16 : 14,
+      fontSize: isMobile ? 14 : 16,
       lineHeight: 24,
       color: '#94A3B8',
-      margin: 0,
     },
     sectionCtaCenter: {
-      marginTop: 36,
+      marginTop: 28,
       alignItems: 'center',
     },
     textActionBtn: {
@@ -2211,12 +2193,13 @@ const createStyles = (colors) =>
       paddingVertical: 12,
       borderRadius: RADIUS.sm,
       alignSelf: 'flex-start',
-      marginTop: 20,
+      marginTop: 18,
     },
     primaryInlineBtnText: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '800',
       color: '#07090E',
+      letterSpacing: 0.5,
     },
     inlineCode: {
       fontSize: 12,
@@ -2227,127 +2210,51 @@ const createStyles = (colors) =>
       borderRadius: 4,
     },
 
-    // ── SECTION 1 (PROBLEM VS SOLUTION) ───────────────────────────
-    problemVsSolutionGrid: {
+    // ── SECTION 1 (DISCOVER FEED & MOOD STRIP) ─────────────────────
+    categoryTabRow: {
       maxWidth: 1140,
       width: '100%',
       alignSelf: 'center',
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 24,
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 16,
     },
-    problemCard: {
-      flex: 1,
-      backgroundColor: '#0F131D',
-      borderRadius: RADIUS.xl,
-      padding: 28,
-      borderWidth: 1,
-      borderColor: 'rgba(239, 68, 68, 0.2)',
-    },
-    solutionCard: {
-      flex: 1,
+    categoryTabPill: {
       backgroundColor: '#121722',
-      borderRadius: RADIUS.xl,
-      padding: 28,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: RADIUS.sm,
       borderWidth: 1,
-      borderColor: 'rgba(229, 169, 60, 0.35)',
+      borderColor: 'rgba(255, 255, 255, 0.08)',
     },
-    cardHeaderRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 24,
+    categoryTabPillActive: {
+      borderColor: colors.primary,
+      backgroundColor: 'rgba(229, 169, 60, 0.12)',
     },
-    problemIconWrap: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: 'rgba(239, 68, 68, 0.15)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    solutionIconWrap: {
-      width: 32,
-      height: 32,
-      borderRadius: 8,
-      backgroundColor: colors.primary,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    problemCardTitle: {
+    categoryTabText: {
       fontSize: 12,
-      fontWeight: '800',
-      letterSpacing: 1,
-      color: '#EF4444',
-    },
-    solutionCardTitle: {
-      fontSize: 12,
-      fontWeight: '800',
-      letterSpacing: 1,
-      color: colors.primary,
-    },
-    fragmentedStepsList: {
-      gap: 14,
-    },
-    fragStepItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-    },
-    fragStepNum: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: '#EF4444',
-      width: 20,
-    },
-    fragStepText: {
-      fontSize: 14,
+      fontWeight: '600',
       color: '#94A3B8',
     },
-    unifiedFlowList: {
-      gap: 12,
-    },
-    uniFlowItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-    },
-    uniFlowPill: {
-      backgroundColor: 'rgba(229, 169, 60, 0.14)',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 4,
-      width: 86,
-      alignItems: 'center',
-    },
-    uniFlowPillText: {
-      fontSize: 10,
-      fontWeight: '900',
+    categoryTabTextActive: {
       color: colors.primary,
-      letterSpacing: 0.8,
+      fontWeight: '800',
     },
-    uniFlowDesc: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: '#F8FAFC',
-      flex: 1,
-    },
-
-    // ── SECTION 2 (DISCOVER STRIP) ────────────────────────────────
     moodStrip: {
       maxWidth: 1140,
       width: '100%',
       alignSelf: 'center',
-      marginBottom: 28,
+      marginBottom: 20,
     },
     moodStripTitle: {
       fontSize: 10,
       fontWeight: '800',
       letterSpacing: 1.2,
       color: colors.textMuted,
-      marginBottom: 10,
+      marginBottom: 8,
     },
     moodScroll: {
-      gap: 10,
+      gap: 8,
       paddingVertical: 4,
     },
     moodItemPill: {
@@ -2357,23 +2264,31 @@ const createStyles = (colors) =>
       backgroundColor: '#121722',
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
-      paddingHorizontal: 14,
-      paddingVertical: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
       borderRadius: 999,
+    },
+    moodItemPillActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
     },
     moodItemText: {
       fontSize: 12,
       fontWeight: '700',
-      color: '#F8FAFC',
+      color: '#94A3B8',
+    },
+    moodItemTextActive: {
+      color: '#07090E',
+      fontWeight: '800',
     },
     movieCardsScroll: {
       maxWidth: 1140,
       alignSelf: 'center',
-      gap: 18,
+      gap: 16,
       paddingVertical: 8,
     },
     movieCatalogCard: {
-      width: 220,
+      width: isMobile ? 180 : 220,
       backgroundColor: '#121722',
       borderRadius: RADIUS.lg,
       borderWidth: 1,
@@ -2382,11 +2297,11 @@ const createStyles = (colors) =>
     },
     moviePosterImage: {
       width: '100%',
-      height: 310,
+      height: isMobile ? 240 : 290,
       backgroundColor: '#171E2D',
     },
     movieCardBody: {
-      padding: 14,
+      padding: 12,
     },
     movieRatingRow: {
       flexDirection: 'row',
@@ -2404,7 +2319,7 @@ const createStyles = (colors) =>
       color: colors.textMuted,
     },
     movieCardTitle: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '800',
       color: '#F8FAFC',
       marginBottom: 4,
@@ -2412,27 +2327,42 @@ const createStyles = (colors) =>
     movieRuntimeText: {
       fontSize: 11,
       color: colors.textMuted,
-      marginBottom: 10,
+      marginBottom: 8,
     },
     cardFormatRow: {
       flexDirection: 'row',
       gap: 4,
+      marginBottom: 10,
+    },
+    planMovieBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      backgroundColor: colors.primary,
+      paddingVertical: 7,
+      borderRadius: 4,
+    },
+    planMovieBtnText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: '#07090E',
     },
 
-    // ── SECTION 3 (PLANNER 3 STEPS) ───────────────────────────────
+    // ── SECTION 2 (PLANNER 3 STEPS) ───────────────────────────────
     plannerStepTabs: {
       maxWidth: 1140,
       width: '100%',
       alignSelf: 'center',
       flexDirection: 'row',
-      gap: 12,
-      marginBottom: 24,
+      gap: 8,
+      marginBottom: 16,
     },
     stepTab: {
       flex: 1,
       backgroundColor: '#121722',
       borderRadius: RADIUS.md,
-      padding: 16,
+      padding: isMobile ? 10 : 14,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
     },
@@ -2451,13 +2381,13 @@ const createStyles = (colors) =>
       color: colors.primary,
     },
     stepTabTitle: {
-      fontSize: 14,
+      fontSize: isMobile ? 11 : 13,
       fontWeight: '700',
       color: '#94A3B8',
     },
     stepTabTitleActive: {
       color: '#F8FAFC',
-      fontWeight: '900',
+      fontWeight: '800',
     },
     plannerStepCard: {
       maxWidth: 1140,
@@ -2465,34 +2395,34 @@ const createStyles = (colors) =>
       alignSelf: 'center',
       backgroundColor: '#0C0F17',
       borderRadius: RADIUS.xl,
-      padding: WINDOW_WIDTH > 768 ? 32 : 20,
+      padding: isMobile ? 16 : 24,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     plannerCardEyebrow: {
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '800',
       letterSpacing: 1.2,
       color: colors.primary,
       marginBottom: 4,
     },
     plannerCardHeadline: {
-      fontSize: 20,
+      fontSize: isMobile ? 16 : 18,
       fontWeight: '800',
       color: '#F8FAFC',
-      marginBottom: 24,
+      marginBottom: 16,
     },
     movieSelectionGrid: {
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 16,
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: 12,
     },
     movieSelectCard: {
       flex: 1,
       flexDirection: 'row',
       backgroundColor: '#121722',
       borderRadius: RADIUS.md,
-      padding: 12,
-      gap: 14,
+      padding: 10,
+      gap: 10,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
       position: 'relative',
@@ -2502,8 +2432,8 @@ const createStyles = (colors) =>
       backgroundColor: 'rgba(229, 169, 60, 0.08)',
     },
     selectPoster: {
-      width: 60,
-      height: 90,
+      width: 50,
+      height: 75,
       borderRadius: 6,
     },
     selectInfo: {
@@ -2511,7 +2441,7 @@ const createStyles = (colors) =>
       justifyContent: 'center',
     },
     selectTitle: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '800',
       color: '#F8FAFC',
       marginBottom: 2,
@@ -2519,7 +2449,7 @@ const createStyles = (colors) =>
     selectMeta: {
       fontSize: 11,
       color: colors.textMuted,
-      marginBottom: 6,
+      marginBottom: 4,
     },
     formatPills: {
       flexDirection: 'row',
@@ -2528,18 +2458,18 @@ const createStyles = (colors) =>
     },
     selectCheck: {
       position: 'absolute',
-      top: 10,
-      right: 10,
-      width: 22,
-      height: 22,
-      borderRadius: 11,
+      top: 8,
+      right: 8,
+      width: 18,
+      height: 18,
+      borderRadius: 9,
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
     },
     plannerTwoCol: {
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 28,
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: 20,
     },
     plannerColLeft: {
       flex: 1,
@@ -2548,11 +2478,11 @@ const createStyles = (colors) =>
       flex: 1,
     },
     subGroupTitle: {
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '800',
       letterSpacing: 1,
       color: colors.textMuted,
-      marginBottom: 10,
+      marginBottom: 8,
     },
     cinemaPickItem: {
       flexDirection: 'row',
@@ -2560,10 +2490,10 @@ const createStyles = (colors) =>
       alignItems: 'center',
       backgroundColor: '#121722',
       borderRadius: RADIUS.sm,
-      padding: 12,
+      padding: 10,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.06)',
-      marginBottom: 8,
+      marginBottom: 6,
     },
     cinemaPickItemActive: {
       borderColor: colors.primary,
@@ -2572,7 +2502,8 @@ const createStyles = (colors) =>
     cinemaPickLeft: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 10,
+      flex: 1,
     },
     cinemaPickName: {
       fontSize: 13,
@@ -2585,12 +2516,12 @@ const createStyles = (colors) =>
     },
     slotRow: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 6,
     },
     slotPill: {
       backgroundColor: '#121722',
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 7,
       borderRadius: RADIUS.xs,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -2600,12 +2531,12 @@ const createStyles = (colors) =>
       backgroundColor: colors.primary,
     },
     slotPillText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
       color: '#94A3B8',
     },
     slotPillTextActive: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '800',
       color: '#07090E',
     },
@@ -2615,17 +2546,17 @@ const createStyles = (colors) =>
       justifyContent: 'space-between',
       backgroundColor: '#121722',
       borderRadius: RADIUS.sm,
-      padding: 12,
+      padding: 10,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.06)',
-      marginBottom: 8,
+      marginBottom: 6,
     },
     snackItemActive: {
       borderColor: 'rgba(229, 169, 60, 0.4)',
       backgroundColor: 'rgba(229, 169, 60, 0.08)',
     },
     snackText: {
-      fontSize: 13,
+      fontSize: 12,
       color: '#94A3B8',
       flex: 1,
       marginLeft: 10,
@@ -2635,16 +2566,16 @@ const createStyles = (colors) =>
       fontWeight: '700',
     },
 
-    // Step 3 Layout
+    // Step 3 Seat Layout
     seatSectionLayout: {
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 28,
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: 20,
     },
     seatMapBox: {
       flex: 1,
       backgroundColor: '#121722',
       borderRadius: RADIUS.lg,
-      padding: 20,
+      padding: 16,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
       alignItems: 'center',
@@ -2652,32 +2583,32 @@ const createStyles = (colors) =>
     screenIndicator: {
       width: '100%',
       alignItems: 'center',
-      marginBottom: 20,
+      marginBottom: 14,
     },
     screenArc: {
       width: '70%',
-      height: 4,
+      height: 3,
       borderRadius: 2,
       backgroundColor: colors.primary,
       marginBottom: 4,
     },
     screenArcLabel: {
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '800',
       letterSpacing: 1.5,
       color: colors.textMuted,
     },
     seatGridMini: {
-      gap: 8,
-      marginBottom: 20,
+      gap: 6,
+      marginBottom: 14,
     },
     miniSeatRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 6,
     },
     miniRowLabel: {
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '700',
       color: colors.textMuted,
       width: 14,
@@ -2685,11 +2616,11 @@ const createStyles = (colors) =>
     },
     miniSeatsWrap: {
       flexDirection: 'row',
-      gap: 6,
+      gap: 5,
     },
     miniSeat: {
-      width: 24,
-      height: 24,
+      width: 20,
+      height: 20,
       borderRadius: 4,
       backgroundColor: '#171E2D',
       borderWidth: 1,
@@ -2706,7 +2637,7 @@ const createStyles = (colors) =>
       borderColor: 'transparent',
     },
     miniSeatText: {
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '700',
       color: '#94A3B8',
     },
@@ -2719,16 +2650,16 @@ const createStyles = (colors) =>
       justifyContent: 'space-between',
       width: '100%',
       backgroundColor: '#0C0F17',
-      padding: 10,
+      padding: 8,
       borderRadius: RADIUS.xs,
     },
     seatSummaryLabel: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '700',
       color: colors.primary,
     },
     seatSummaryPrice: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '900',
       color: '#F8FAFC',
     },
@@ -2736,31 +2667,31 @@ const createStyles = (colors) =>
       flex: 1,
       backgroundColor: '#121722',
       borderRadius: RADIUS.lg,
-      padding: 20,
+      padding: 16,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     squadListWrap: {
-      gap: 10,
+      gap: 8,
     },
     squadMemberRow: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: '#0C0F17',
-      padding: 10,
+      padding: 8,
       borderRadius: RADIUS.sm,
-      gap: 12,
+      gap: 10,
     },
     avatarInitials: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
       backgroundColor: 'rgba(229, 169, 60, 0.15)',
       justifyContent: 'center',
       alignItems: 'center',
     },
     avatarText: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
       color: colors.primary,
     },
@@ -2768,43 +2699,32 @@ const createStyles = (colors) =>
       flex: 1,
     },
     squadMemberName: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '700',
       color: '#F8FAFC',
     },
     squadMemberStatus: {
-      fontSize: 11,
+      fontSize: 10,
       color: colors.textMuted,
     },
     confirmedPill: {
       backgroundColor: 'rgba(16, 185, 129, 0.15)',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
       borderRadius: 4,
     },
     confirmedPillText: {
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '800',
       color: '#10B981',
     },
-    invitedPill: {
-      backgroundColor: 'rgba(245, 158, 11, 0.15)',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 4,
-    },
-    invitedPillText: {
-      fontSize: 9,
-      fontWeight: '800',
-      color: '#F59E0B',
-    },
 
-    // ── SECTION 4 (SQUAD CHAT VS CINETRIP) ────────────────────────
+    // ── SECTION 3 (SQUAD CHAT VS CINETRIP) ────────────────────────
     squadStoryCard: {
       maxWidth: 1140,
       width: '100%',
       alignSelf: 'center',
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
+      flexDirection: isMobile ? 'column' : 'row',
       backgroundColor: '#121722',
       borderRadius: RADIUS.xl,
       borderWidth: 1,
@@ -2814,215 +2734,91 @@ const createStyles = (colors) =>
     squadLeftGraphic: {
       flex: 1,
       backgroundColor: '#0C0F17',
-      padding: 32,
+      padding: isMobile ? 20 : 28,
       justifyContent: 'center',
-      gap: 16,
+      gap: 10,
     },
     chatBubbleDark: {
       backgroundColor: '#171E2D',
       borderRadius: RADIUS.md,
-      padding: 14,
-      maxWidth: '85%',
+      padding: 10,
+      maxWidth: '90%',
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.06)',
     },
     chatSender: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
       color: '#94A3B8',
       marginBottom: 2,
     },
     chatMessage: {
-      fontSize: 13,
+      fontSize: 12,
       color: '#F8FAFC',
     },
     chatBubbleGold: {
       backgroundColor: 'rgba(229, 169, 60, 0.12)',
       borderRadius: RADIUS.md,
-      padding: 14,
-      maxWidth: '90%',
+      padding: 12,
+      maxWidth: '98%',
       alignSelf: 'flex-end',
       borderWidth: 1,
-      borderColor: 'rgba(229, 169, 60, 0.3)',
+      borderColor: 'rgba(229, 169, 60, 0.35)',
     },
     chatSenderGold: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
       color: colors.primary,
       marginBottom: 2,
     },
     chatMessageGold: {
-      fontSize: 13,
+      fontSize: 12,
       color: '#F8FAFC',
+      lineHeight: 18,
     },
     squadRightDetails: {
       flex: 1,
-      padding: 36,
+      padding: isMobile ? 20 : 32,
       justifyContent: 'center',
     },
     featureBoxTitle: {
-      fontSize: 22,
+      fontSize: isMobile ? 18 : 20,
       fontWeight: '800',
       color: '#F8FAFC',
       marginBottom: 8,
-      margin: 0,
     },
     featureBoxDesc: {
-      fontSize: 14,
-      lineHeight: 22,
+      fontSize: 13,
+      lineHeight: 20,
       color: '#94A3B8',
-      marginBottom: 20,
-      margin: 0,
+      marginBottom: 16,
     },
     featureCheckList: {
-      gap: 10,
+      gap: 8,
     },
     featureCheckItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
     },
     featureCheckText: {
       fontSize: 13,
       color: '#F8FAFC',
     },
 
-    // ── SECTION 5 (DIGITAL PASS SHOWCASE) ─────────────────────────
-    passShowcaseGrid: {
-      maxWidth: 1140,
-      width: '100%',
-      alignSelf: 'center',
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 36,
-      alignItems: 'center',
-    },
-    passShowcaseLeft: {
-      flex: 1,
-      gap: 24,
-    },
-    featurePillar: {
-      flexDirection: 'row',
-      gap: 16,
-    },
-    pillarTitle: {
-      fontSize: 18,
-      fontWeight: '800',
-      color: '#F8FAFC',
-      marginBottom: 4,
-    },
-    pillarDesc: {
-      fontSize: 14,
-      lineHeight: 22,
-      color: '#94A3B8',
-    },
-    passShowcaseRight: {
-      flex: 1,
-      width: '100%',
-      maxWidth: 420,
-    },
-    miniPassCard: {
-      backgroundColor: '#121722',
-      borderRadius: RADIUS.lg,
-      borderWidth: 1,
-      borderColor: 'rgba(229, 169, 60, 0.3)',
-      overflow: 'hidden',
-    },
-    miniPassTop: {
-      padding: 20,
-    },
-    miniPassRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    miniPassTag: {
-      fontSize: 10,
-      fontWeight: '800',
-      color: colors.primary,
-    },
-    miniPassStatus: {
-      fontSize: 10,
-      fontWeight: '800',
-      color: '#10B981',
-    },
-    miniPassTitle: {
-      fontSize: 20,
-      fontWeight: '900',
-      color: '#F8FAFC',
-      marginBottom: 2,
-    },
-    miniPassCinema: {
-      fontSize: 12,
-      color: '#94A3B8',
-    },
-    miniPerforation: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      height: 18,
-    },
-    miniNotchL: {
-      width: 14,
-      height: 18,
-      borderTopRightRadius: 9,
-      borderBottomRightRadius: 9,
-      backgroundColor: '#07090E',
-    },
-    miniNotchR: {
-      width: 14,
-      height: 18,
-      borderTopLeftRadius: 9,
-      borderBottomLeftRadius: 9,
-      backgroundColor: '#07090E',
-    },
-    miniDashed: {
-      flex: 1,
-      height: 1,
-      borderStyle: 'dashed',
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.15)',
-      marginHorizontal: 6,
-    },
-    miniPassBottom: {
-      padding: 20,
-      backgroundColor: '#0C0F17',
-    },
-    miniMetaRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 16,
-    },
-    miniLabel: {
-      fontSize: 9,
-      color: colors.textMuted,
-      marginBottom: 2,
-    },
-    miniVal: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: '#F8FAFC',
-    },
-    miniQrCenter: {
-      alignItems: 'center',
-      padding: 8,
-      backgroundColor: '#FFFFFF',
-      borderRadius: RADIUS.sm,
-      width: 106,
-      alignSelf: 'center',
-    },
-
-    // ── SECTION 6 (OFFLINE ARCHITECTURE) ──────────────────────────
+    // ── SECTION 4 (OFFLINE ARCHITECTURE) ──────────────────────────
     offlineDemoLayout: {
       maxWidth: 1140,
       width: '100%',
       alignSelf: 'center',
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 24,
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: 18,
     },
     offlineSignalBox: {
       flex: 1.2,
       backgroundColor: '#121722',
       borderRadius: RADIUS.xl,
-      padding: 28,
+      padding: isMobile ? 18 : 24,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
     },
@@ -3030,45 +2826,45 @@ const createStyles = (colors) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: 12,
     },
     signalIcons: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
     },
     noServiceText: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
       color: '#EF4444',
     },
     latencyBadge: {
       backgroundColor: 'rgba(16, 185, 129, 0.15)',
       paddingHorizontal: 8,
-      paddingVertical: 4,
+      paddingVertical: 3,
       borderRadius: 4,
     },
     latencyText: {
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: '800',
       color: '#10B981',
     },
     offlineBoxHeading: {
-      fontSize: 20,
+      fontSize: isMobile ? 16 : 18,
       fontWeight: '800',
       color: '#F8FAFC',
-      marginBottom: 10,
+      marginBottom: 8,
     },
     offlineBoxDesc: {
-      fontSize: 14,
-      lineHeight: 22,
+      fontSize: 13,
+      lineHeight: 20,
       color: '#94A3B8',
     },
     offlineProofBox: {
       flex: 1,
       backgroundColor: '#0F131D',
       borderRadius: RADIUS.xl,
-      padding: 28,
+      padding: isMobile ? 18 : 24,
       borderWidth: 1,
       borderColor: 'rgba(229, 169, 60, 0.25)',
       justifyContent: 'space-between',
@@ -3077,43 +2873,43 @@ const createStyles = (colors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
-      marginBottom: 20,
+      marginBottom: 16,
     },
     proofTitle: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
       letterSpacing: 1,
       color: colors.primary,
     },
     proofMetrics: {
-      gap: 18,
+      gap: 14,
     },
     proofMetricItem: {},
     proofMetricNum: {
-      fontSize: 28,
+      fontSize: 24,
       fontWeight: '900',
       color: '#F8FAFC',
     },
     proofMetricLabel: {
-      fontSize: 12,
+      fontSize: 11,
       color: '#94A3B8',
     },
 
-    // ── SECTION 7 (CINEMA MAP) ────────────────────────────────────
+    // ── SECTION 5 (CINEMA MAP) ────────────────────────────────────
     cinemaCardsGrid: {
       maxWidth: 1140,
       width: '100%',
       alignSelf: 'center',
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 18,
+      gap: 14,
     },
     cinemaVenueCard: {
-      flexBasis: WINDOW_WIDTH > 768 ? '48%' : '100%',
+      flexBasis: isMobile ? '100%' : '48%',
       flexGrow: 1,
       backgroundColor: '#121722',
       borderRadius: RADIUS.lg,
-      padding: 20,
+      padding: 16,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.08)',
     },
@@ -3121,38 +2917,38 @@ const createStyles = (colors) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 12,
+      marginBottom: 8,
     },
     venueDistBadge: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
       backgroundColor: 'rgba(229, 169, 60, 0.12)',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
       borderRadius: 4,
     },
     venueDistText: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '700',
       color: colors.primary,
     },
     venueName: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '800',
       color: '#F8FAFC',
       marginBottom: 4,
     },
     venueAddress: {
-      fontSize: 12,
+      fontSize: 11,
       color: '#64748B',
-      marginBottom: 16,
+      marginBottom: 12,
     },
     venueBottom: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingTop: 12,
+      paddingTop: 10,
       borderTopWidth: 1,
       borderTopColor: 'rgba(255, 255, 255, 0.06)',
     },
@@ -3167,18 +2963,18 @@ const createStyles = (colors) =>
       gap: 4,
     },
     venueNavBtnText: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '700',
       color: colors.primary,
     },
 
-    // ── SECTION 8 (MEMORIES SHOWCASE) ─────────────────────────────
+    // ── SECTION 6 (MEMORIES SHOWCASE) ─────────────────────────────
     memoriesGrid: {
       maxWidth: 1140,
       width: '100%',
       alignSelf: 'center',
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 24,
+      flexDirection: isMobile ? 'column' : 'row',
+      gap: 18,
     },
     memoryCardWrap: {
       flex: 1,
@@ -3190,20 +2986,20 @@ const createStyles = (colors) =>
     },
     memoryImage: {
       width: '100%',
-      height: 220,
+      height: isMobile ? 180 : 200,
       backgroundColor: '#171E2D',
     },
     memoryBody: {
-      padding: 24,
+      padding: 18,
     },
     memoryTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 6,
     },
     memoryDate: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '700',
       color: colors.primary,
     },
@@ -3212,234 +3008,137 @@ const createStyles = (colors) =>
       gap: 2,
     },
     memoryMovieTitle: {
-      fontSize: 22,
+      fontSize: 18,
       fontWeight: '800',
       color: '#F8FAFC',
       marginBottom: 2,
     },
     memoryVenueTag: {
-      fontSize: 12,
+      fontSize: 11,
       color: '#64748B',
-      marginBottom: 14,
+      marginBottom: 10,
     },
     memoryStoryText: {
-      fontSize: 14,
+      fontSize: 13,
       fontStyle: 'italic',
-      lineHeight: 22,
+      lineHeight: 20,
       color: '#94A3B8',
-      marginBottom: 16,
+      marginBottom: 12,
     },
     memoryCompanionsRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      paddingTop: 12,
+      paddingTop: 10,
       borderTopWidth: 1,
       borderTopColor: 'rgba(255, 255, 255, 0.06)',
     },
     memoryCompanionsText: {
-      fontSize: 11,
+      fontSize: 10,
       color: '#64748B',
-    },
-
-    // ── SECTION 9 (BEFORE / DURING / AFTER) ────────────────────────
-    phaseTabsRow: {
-      maxWidth: 1140,
-      width: '100%',
-      alignSelf: 'center',
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 12,
-      marginBottom: 24,
-    },
-    phaseTab: {
       flex: 1,
-      backgroundColor: '#121722',
-      borderRadius: RADIUS.md,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-    },
-    phaseTabActive: {
-      borderColor: colors.primary,
-      backgroundColor: 'rgba(229, 169, 60, 0.08)',
-    },
-    phaseTabLabel: {
-      fontSize: 12,
-      fontWeight: '800',
-      letterSpacing: 1,
-      color: colors.textMuted,
-      marginBottom: 2,
-    },
-    phaseTabLabelActive: {
-      color: colors.primary,
-    },
-    phaseTabSub: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: '#F8FAFC',
-    },
-    phaseContentCard: {
-      maxWidth: 1140,
-      width: '100%',
-      alignSelf: 'center',
-    },
-    phaseGrid: {
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
-      gap: 20,
-    },
-    phaseCard: {
-      flex: 1,
-      backgroundColor: '#0C0F17',
-      borderRadius: RADIUS.lg,
-      padding: 24,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-    },
-    phaseCardTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: '#F8FAFC',
-      marginTop: 14,
-      marginBottom: 6,
-    },
-    phaseCardDesc: {
-      fontSize: 13,
-      lineHeight: 20,
-      color: '#94A3B8',
     },
 
-    // ── SECTION 10 (SIX PILLARS) ──────────────────────────────────
-    sixPillarsGrid: {
-      maxWidth: 1140,
-      width: '100%',
-      alignSelf: 'center',
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 16,
-    },
-    pillarBox: {
-      flexBasis: WINDOW_WIDTH > 900 ? '31%' : WINDOW_WIDTH > 600 ? '48%' : '100%',
-      flexGrow: 1,
-      backgroundColor: '#121722',
-      borderRadius: RADIUS.lg,
-      padding: 20,
-      borderWidth: 1,
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-    },
-    pillarHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 10,
-    },
-    pillarBoxTitle: {
-      fontSize: 12,
-      fontWeight: '800',
-      letterSpacing: 1,
-      color: '#F8FAFC',
-    },
-    pillarBoxDesc: {
-      fontSize: 13,
-      lineHeight: 20,
-      color: '#94A3B8',
-    },
-
-    // ── SECTION 11 (FINAL CTA MARQUEE) ────────────────────────────
+    // ── SECTION 7 (FINAL BRAND MOMENT) ───────────────────────────
     sectionCtaMarquee: {
-      paddingVertical: WINDOW_WIDTH > 768 ? 96 : 64,
-      paddingHorizontal: 24,
+      paddingVertical: isMobile ? 54 : 80,
+      paddingHorizontal: isMobile ? 16 : 24,
       backgroundColor: '#07090E',
       borderBottomWidth: 1,
       borderBottomColor: 'rgba(255, 255, 255, 0.07)',
       alignItems: 'center',
     },
     marqueeContainer: {
-      maxWidth: 780,
+      maxWidth: 760,
       width: '100%',
       alignItems: 'center',
     },
     marqueeLogoBadge: {
-      width: 88,
-      height: 88,
+      width: 76,
+      height: 76,
       borderRadius: RADIUS.lg,
       backgroundColor: '#0C0F17',
       borderWidth: 1.5,
       borderColor: 'rgba(229, 169, 60, 0.4)',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: 12,
       overflow: 'hidden',
       ...SHADOWS.focus,
     },
     marqueeLogoImg: {
-      width: 78,
-      height: 78,
+      width: 66,
+      height: 66,
     },
     marqueeTagline: {
-      fontSize: 11,
+      fontSize: 10,
       fontWeight: '800',
       letterSpacing: 2,
       color: colors.primary,
       textTransform: 'uppercase',
-      marginBottom: 18,
+      marginBottom: 12,
       textAlign: 'center',
     },
     marqueeHeadline: {
-      fontSize: WINDOW_WIDTH > 768 ? 48 : 32,
+      fontSize: isMobile ? 28 : isTablet ? 36 : 42,
       fontWeight: '900',
       letterSpacing: -0.8,
-      lineHeight: WINDOW_WIDTH > 768 ? 54 : 38,
+      lineHeight: isMobile ? 34 : isTablet ? 42 : 48,
       color: '#F8FAFC',
-      margin: 0,
-      marginBottom: 16,
+      marginBottom: 12,
       textAlign: 'center',
     },
     marqueeSub: {
-      fontSize: WINDOW_WIDTH > 768 ? 17 : 15,
+      fontSize: isMobile ? 14 : 16,
       color: '#94A3B8',
-      margin: 0,
-      marginBottom: 36,
+      marginBottom: 28,
       textAlign: 'center',
     },
     marqueeButtonRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: isMobile ? 'column' : 'row',
       justifyContent: 'center',
-      gap: 14,
+      gap: 12,
+      width: isMobile ? '100%' : 'auto',
     },
     marqueePrimaryBtn: {
       backgroundColor: colors.primary,
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 8,
-      paddingHorizontal: 28,
-      paddingVertical: 15,
+      paddingHorizontal: 24,
+      paddingVertical: 14,
       borderRadius: RADIUS.sm,
     },
     marqueePrimaryBtnText: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '800',
       color: '#07090E',
+      letterSpacing: 0.5,
     },
     marqueeSecondaryBtn: {
       backgroundColor: '#121722',
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.12)',
-      paddingHorizontal: 24,
-      paddingVertical: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 22,
+      paddingVertical: 14,
       borderRadius: RADIUS.sm,
     },
     marqueeSecondaryBtnText: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: '700',
       color: '#F8FAFC',
+      letterSpacing: 0.5,
     },
 
     // ── FOOTER ───────────────────────────────────────────────────
     footer: {
       backgroundColor: '#07090E',
-      paddingVertical: 48,
-      paddingHorizontal: 24,
+      paddingVertical: 36,
+      paddingHorizontal: isMobile ? 16 : 24,
     },
     footerInner: {
       maxWidth: 1240,
@@ -3447,10 +3146,10 @@ const createStyles = (colors) =>
       alignSelf: 'center',
     },
     footerTop: {
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
+      flexDirection: isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
-      alignItems: WINDOW_WIDTH > 768 ? 'center' : 'flex-start',
-      gap: 24,
+      alignItems: isMobile ? 'flex-start' : 'center',
+      gap: 18,
     },
     footerBrand: {
       flexDirection: 'row',
@@ -3458,8 +3157,8 @@ const createStyles = (colors) =>
       gap: 10,
     },
     brandBadgeSmall: {
-      width: 36,
-      height: 36,
+      width: 32,
+      height: 32,
       borderRadius: 8,
       backgroundColor: '#07090E',
       justifyContent: 'center',
@@ -3469,16 +3168,16 @@ const createStyles = (colors) =>
       overflow: 'hidden',
     },
     footerLogoImg: {
-      width: 30,
-      height: 30,
+      width: 26,
+      height: 26,
     },
     footerBrandText: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '900',
       color: '#F8FAFC',
     },
     footerBrandSub: {
-      fontSize: 9,
+      fontSize: 8,
       fontWeight: '700',
       letterSpacing: 1,
       color: colors.primary,
@@ -3488,7 +3187,7 @@ const createStyles = (colors) =>
     footerLinksRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 20,
+      gap: 16,
     },
     footerLink: {
       fontSize: 13,
@@ -3498,13 +3197,13 @@ const createStyles = (colors) =>
     footerDivider: {
       height: 1,
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      marginVertical: 24,
+      marginVertical: 18,
     },
     footerBottom: {
-      flexDirection: WINDOW_WIDTH > 768 ? 'row' : 'column',
+      flexDirection: isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
-      alignItems: WINDOW_WIDTH > 768 ? 'center' : 'flex-start',
-      gap: 12,
+      alignItems: isMobile ? 'flex-start' : 'center',
+      gap: 8,
     },
     footerLegal: {
       fontSize: 11,

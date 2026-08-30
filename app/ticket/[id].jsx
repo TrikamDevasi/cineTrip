@@ -91,8 +91,8 @@ export default function TicketModalScreen() {
 
   const handleSharePass = async () => {
     const message = isPlan
-      ? `ðŸŽ¬ Movie Night Plan\n\nMovie: ${movie.title}\nDate: ${plan.date || 'TBD'}\n\nThis is a personal plan â€” live ticketing will be enabled once a showtime provider is connected.`
-      : `ðŸŽ¬ Movie Night\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || ''}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || ''}\n\nðŸŽŸ Pass: ${plan.bookingRef}\n\nSee you there!`;
+      ? `🎬 Movie Night Plan\n\nMovie: ${movie.title}\nDate: ${plan.date || 'TBD'}\nCinema: ${cinema.name || 'TBD'}\n\nOrganized with CineTrip.`
+      : `🎬 Movie Night Pass\n\nMovie: ${movie.title}\nCinema: ${cinema.name || 'Cinema'}\nFormat: ${cinema.screenType || 'Standard'}\nDate: ${plan.date}\nTime: ${plan.time}\nSeats: ${plan.seats || 'General'}\n\n🎟️ Pass Ref: ${plan.bookingRef || 'CT-PASS'}\n\nSee you there!`;
     try {
       await Share.share({ message });
     } catch (e) {}

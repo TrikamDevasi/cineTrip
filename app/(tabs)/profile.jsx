@@ -9,6 +9,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '../../lib/alert';
@@ -27,6 +28,8 @@ import {
   Sun,
   Shield,
   Check,
+  Film,
+  ChevronRight,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
