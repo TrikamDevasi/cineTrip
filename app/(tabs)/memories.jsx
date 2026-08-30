@@ -18,9 +18,11 @@ import ErrorState from '../../components/ui/ErrorState';
 import { MemoryCardSkeleton } from '../../components/ui/Skeleton';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function MemoriesScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const {
     memories,
@@ -52,6 +54,8 @@ export default function MemoriesScreen() {
     ? (memories.reduce((sum, m) => sum + (m.rating || 5), 0) / memories.length).toFixed(1)
     : '5.0';
 
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -64,8 +68,8 @@ export default function MemoriesScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-            colors={[COLORS.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
@@ -161,10 +165,10 @@ export default function MemoriesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   scroll: {
     flex: 1,
@@ -185,22 +189,22 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   subtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   statsBanner: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     justifyContent: 'space-around',
     alignItems: 'center',
     ...SHADOWS.card,
@@ -210,18 +214,18 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.primary,
+    color: colors.primary,
     fontWeight: '900',
   },
   statLabel: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 28,
-    backgroundColor: COLORS.cardBorder,
+    backgroundColor: colors.cardBorder,
   },
   skeletonFeed: {
     marginTop: SPACING.md,

@@ -3,9 +3,12 @@ import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from './ui/Icon';
 import { MOODS } from '../services/tmdb';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
 
 export default function MoodSelector({ selectedMood, onSelectMood }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <ScrollView
       horizontal
@@ -36,10 +39,10 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
               </LinearGradient>
             ) : (
               <LinearGradient
-                colors={[COLORS.surface, COLORS.card]}
+                colors={[colors.surface, colors.card]}
                 style={styles.unselectedPill}
               >
-                <Icon name={mood.icon} size={14} color={COLORS.textSecondary} style={styles.icon} />
+                <Icon name={mood.icon} size={14} color={colors.textSecondary} style={styles.icon} />
                 <Text style={styles.unselectedLabel}>{mood.label}</Text>
               </LinearGradient>
             )}
@@ -50,7 +53,7 @@ export default function MoodSelector({ selectedMood, onSelectMood }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   scrollContent: {
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.xs,
@@ -63,7 +66,7 @@ const styles = StyleSheet.create({
   },
   pillSelected: {
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
   },
   gradientPill: {
     flexDirection: 'row',
@@ -80,7 +83,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 38,
   },
   icon: {
@@ -92,7 +95,7 @@ const styles = StyleSheet.create({
   },
   unselectedLabel: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
 });

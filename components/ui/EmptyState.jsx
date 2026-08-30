@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Icon from './Icon';
 import Button from './Button';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING, ICON_SIZES } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SPACING, ICON_SIZES } from '../../constants/theme';
 
 export default function EmptyState({
   icon = 'Film',
@@ -13,10 +14,12 @@ export default function EmptyState({
   actionIcon,
   style,
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={[styles.container, style]}>
       <View style={styles.iconCircle}>
-        <Icon name={icon} size={ICON_SIZES.lg} color={COLORS.primary} strokeWidth={1.8} />
+        <Icon name={icon} size={ICON_SIZES.lg} color={colors.primary} strokeWidth={1.8} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {description ? <Text style={styles.description}>{description}</Text> : null}
@@ -34,7 +37,7 @@ export default function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -45,7 +48,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
@@ -54,13 +57,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 4,
   },
   description: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,

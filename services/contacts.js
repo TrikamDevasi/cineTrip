@@ -8,7 +8,11 @@ export const PRESET_SQUAD = [
   { id: 'squad-5', name: 'Marcus Brody', initials: 'MB', handle: '@marcus_b', status: 'invited' },
 ];
 
-function getInitials(name) {
+export function isPresetId(id) {
+  return String(id).startsWith('squad-');
+}
+
+export function getInitials(name) {
   if (!name) return 'CT';
   const parts = name.trim().split(' ');
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -69,5 +73,53 @@ export async function createDeviceContact({ firstName, lastName, phone, email })
   } catch (err) {
     console.warn('Create contact error:', err.message);
     return null;
+  }
+}
+
+/**
+ * Delete a contact from the device address book.
+ * Preset demo contacts ('squad-*') are not real device contacts and return false,
+ * so callers can remove them from local state instead.
+ */
+export async function deleteDeviceContact(contactId) {
+  if (isPresetId(contactId)) return false;
+  try {
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status !== 'granted') return false;
+    await Contacts.deleteContactAsync(contactId);
+    return true;
+  } catch (err) {
+    console.warn('Delete contact error:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Update an existing contact on the device address book.
+ * Preset demo contacts ('squad-*') return false so callers can update local state instead.
+ */
+export async function updateDeviceContact(contact, { firstName, lastName, phone, email }) {
+  if (!contact || isPresetId(contact.id)) return false;
+  try {
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status !== 'granted') return false;
+
+    const updatedContact = {
+      [Contacts.Fields.ID]: contact.id,
+      [Contacts.Fields.FirstName]: firstName || '',
+      [Contacts.Fields.LastName]: lastName || '',
+      [Contacts.Fields.PhoneNumbers]: phone
+        ? [{ label: 'mobile', number: phone }]
+        : [],
+      [Contacts.Fields.Emails]: email
+        ? [{ label: 'work', email }]
+        : [],
+    };
+
+    await Contacts.updateContactAsync(updatedContact);
+    return true;
+  } catch (err) {
+    console.warn('Update contact error:', err.message);
+    return false;
   }
 }

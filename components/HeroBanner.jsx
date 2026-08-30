@@ -8,12 +8,15 @@ import { usePlannerStore } from '../store/usePlannerStore';
 import { useMovieCatalog } from '../hooks/useMovieCatalog';
 import FormatBadge from './FormatBadge';
 import Button from './ui/Button';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_WIDTH = Math.min(SCREEN_WIDTH - SPACING.lg * 2, 460);
 
 export default function HeroBanner({ movies = [] }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
   const setDraftMovie = usePlannerStore((s) => s.setDraftMovie);
@@ -145,7 +148,7 @@ export default function HeroBanner({ movies = [] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     marginVertical: SPACING.xs,
   },
@@ -159,9 +162,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     marginRight: SPACING.md,
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   backdropImage: {
@@ -212,24 +215,24 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     gap: 4,
   },
   ratingText: {
     ...TYPOGRAPHY.badge,
     fontSize: 11,
-    color: COLORS.text,
+    color: colors.text,
   },
   movieTitle: {
     ...TYPOGRAPHY.displayMedium,
-    color: COLORS.text,
+    color: colors.text,
     letterSpacing: -0.4,
     marginBottom: 4,
   },
   movieTagline: {
     ...TYPOGRAPHY.body,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontStyle: 'italic',
     marginBottom: SPACING.xs,
   },
@@ -264,6 +267,6 @@ const styles = StyleSheet.create({
     width: 18,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
 });

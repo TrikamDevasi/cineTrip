@@ -89,8 +89,11 @@ export const LIGHT_COLORS = {
   textInverse: '#FFFFFF',
 
   success: '#059669',
+  successSubtle: 'rgba(5, 150, 105, 0.14)',
   warning: '#D97706',
+  warningSubtle: 'rgba(217, 119, 6, 0.14)',
   danger: '#DC2626',
+  dangerSubtle: 'rgba(220, 38, 38, 0.14)',
 
   formatImax: '#7C3AED',
   formatDolby: '#BE123C',

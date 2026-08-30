@@ -1,7 +1,8 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import Icon, { ICON_SIZES } from './Icon';
-import { COLORS, RADIUS, SHADOWS } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { RADIUS, SHADOWS } from '../../constants/theme';
 
 /**
  * Standardized Accessible Icon-Only Button
@@ -16,7 +17,7 @@ import { COLORS, RADIUS, SHADOWS } from '../../constants/theme';
 export default function IconButton({
   icon,
   size = ICON_SIZES.sm,
-  color = COLORS.text,
+  color,
   accessibilityLabel,
   accessibilityHint,
   onPress,
@@ -25,6 +26,8 @@ export default function IconButton({
   style,
   ...props
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const getVariantStyle = () => {
     switch (variant) {
       case 'primary':
@@ -41,15 +44,15 @@ export default function IconButton({
   };
 
   const getVariantColor = () => {
-    if (color !== COLORS.text) return color;
+    if (color != null) return color;
     switch (variant) {
       case 'primary':
       case 'amber':
         return '#07090E';
       case 'danger':
-        return COLORS.danger;
+        return colors.danger;
       default:
-        return COLORS.text;
+        return colors.text;
     }
   };
 
@@ -75,7 +78,7 @@ export default function IconButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   base: {
     width: 44,
     height: 44,
@@ -84,12 +87,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   surface: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   primary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     ...SHADOWS.focus,
@@ -98,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   danger: {
-    backgroundColor: COLORS.dangerSubtle,
+    backgroundColor: colors.dangerSubtle,
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.25)',
   },

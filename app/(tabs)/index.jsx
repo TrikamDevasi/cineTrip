@@ -26,9 +26,11 @@ import { cinemaService } from '../../services/cinema';
 import { getCurrentCity } from '../../services/location';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [cinemas, setCinemas] = useState([]);
   const [cinemaLoading, setCinemaLoading] = useState(true);
@@ -75,6 +77,8 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -87,8 +91,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-            colors={[COLORS.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
@@ -147,7 +151,7 @@ export default function HomeScreen() {
         ) : nowPlaying.length === 0 ? (
           <View style={styles.unconnectedNoticeCard}>
             <View style={styles.noticeIconCircle}>
-              <Film size={24} color={COLORS.primary} strokeWidth={2} />
+              <Film size={24} color={colors.primary} strokeWidth={2} />
             </View>
             <Text style={styles.noticeTitle}>Live cinema listings aren't connected yet</Text>
             <Text style={styles.noticeDescription}>
@@ -215,7 +219,7 @@ export default function HomeScreen() {
         ) : cinemas.length === 0 ? (
           <View style={styles.unconnectedNoticeCard}>
             <View style={styles.noticeIconCircle}>
-              <MapPin size={24} color={COLORS.primary} strokeWidth={2} />
+              <MapPin size={24} color={colors.primary} strokeWidth={2} />
             </View>
             <Text style={styles.noticeTitle}>Live Theatres Not Connected</Text>
             <Text style={styles.noticeDescription}>
@@ -268,10 +272,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   scroll: {
     flex: 1,
@@ -297,13 +301,13 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     marginRight: 6,
   },
   activePlanTitle: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.primary,
+    color: colors.primary,
     letterSpacing: 0.8,
   },
   sourceBadgeRow: {
@@ -318,13 +322,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   cinemaCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.sm,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   cinemaCardTop: {
@@ -339,16 +343,16 @@ const styles = StyleSheet.create({
   },
   cinemaName: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   cinemaAddress: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   distanceText: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   cinemaMetaRow: {
     flexDirection: 'row',
@@ -356,12 +360,12 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   unconnectedNoticeCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     marginVertical: SPACING.xs,
     ...SHADOWS.card,
@@ -370,7 +374,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -379,14 +383,14 @@ const styles = StyleSheet.create({
   },
   noticeTitle: {
     ...TYPOGRAPHY.h3,
-    color: COLORS.text,
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 4,
   },
   noticeDescription: {
     ...TYPOGRAPHY.body,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     maxWidth: 320,

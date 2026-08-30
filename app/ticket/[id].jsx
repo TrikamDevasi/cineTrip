@@ -16,13 +16,18 @@ import QRCodeView from '../../components/ui/QRCodeView';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
 import { usePlannerStore } from '../../store/usePlannerStore';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function TicketModalScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const getPlanById = usePlannerStore((s) => s.getPlanById);
   const plan = getPlanById(id) || usePlannerStore((s) => s.plans[0]);
+  const isPlan = !plan || !plan.bookingRef || plan.bookingStatus === 'plan';
+
+  const styles = createStyles(colors);
 
   if (!plan) {
     return (
@@ -34,7 +39,7 @@ export default function TicketModalScreen() {
             onPress={() => router.back()}
             accessibilityLabel="Go back"
           />
-<Text style={styles.headerTitle}>{isPlan ? 'Movie Plan' : 'Digital Cinema Pass'}</Text>
+          <Text style={styles.headerTitle}>Digital Cinema Pass</Text>
           <View style={{ width: 44 }} />
         </View>
         <View style={styles.centerContainer}>
@@ -43,8 +48,6 @@ export default function TicketModalScreen() {
       </SafeAreaView>
     );
   }
-
-  const isPlan = !plan.bookingRef || plan.bookingStatus === 'plan';
 
   const handleCopyRef = async () => {
     if (!plan.bookingRef) {
@@ -153,10 +156,10 @@ export default function TicketModalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -169,7 +172,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   scroll: {
     flex: 1,
@@ -182,13 +185,13 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   qrCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     alignItems: 'center',
     marginTop: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   bookingRefRow: {
@@ -199,12 +202,12 @@ const styles = StyleSheet.create({
   refLabel: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   refNote: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     maxWidth: 280,
     lineHeight: 16,
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   bookingRef: {
     ...TYPOGRAPHY.displayMedium,
     fontSize: 22,
-    color: COLORS.text,
+    color: colors.text,
     letterSpacing: 2,
     marginTop: 2,
   },
@@ -231,6 +234,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
 });

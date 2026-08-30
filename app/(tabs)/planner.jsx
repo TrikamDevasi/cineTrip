@@ -50,7 +50,8 @@ import { getDeviceContacts, PRESET_SQUAD } from '../../services/contacts';
 import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 const SNACK_OPTIONS = [
   'Giant Caramel Popcorn',
@@ -107,6 +108,7 @@ function parseSlotTime(timeStr) {
 }
 
 export default function PlannerScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'plans'
   const [movieModalVisible, setMovieModalVisible] = useState(false);
@@ -345,6 +347,8 @@ export default function PlannerScreen() {
     }
   };
 
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -368,7 +372,7 @@ export default function PlannerScreen() {
           >
             <Film
               size={16}
-              color={activeTab === 'builder' ? '#07090E' : COLORS.textSecondary}
+              color={activeTab === 'builder' ? '#07090E' : colors.textSecondary}
               strokeWidth={2.2}
             />
             <Text style={[styles.modeTabText, activeTab === 'builder' && styles.modeTabTextActive]}>
@@ -386,7 +390,7 @@ export default function PlannerScreen() {
           >
             <Calendar
               size={16}
-              color={activeTab === 'plans' ? '#07090E' : COLORS.textSecondary}
+              color={activeTab === 'plans' ? '#07090E' : colors.textSecondary}
               strokeWidth={2.2}
             />
             <Text style={[styles.modeTabText, activeTab === 'plans' && styles.modeTabTextActive]}>
@@ -473,7 +477,7 @@ export default function PlannerScreen() {
                       {draft.movie.title}
                     </Text>
                     <View style={styles.selectedMovieMetaRow}>
-                      <Clock size={14} color={COLORS.textSecondary} strokeWidth={2} />
+                      <Clock size={14} color={colors.textSecondary} strokeWidth={2} />
                       <Text style={styles.selectedMovieMeta}>
                         {draft.movie.runtime || 165} min
                       </Text>
@@ -506,7 +510,7 @@ export default function PlannerScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Tap to select a movie"
                 >
-                  <Film size={22} color={COLORS.primary} strokeWidth={2.2} />
+                  <Film size={22} color={colors.primary} strokeWidth={2.2} />
                   <Text style={styles.emptyMoviePickerTitle}>Select Movie from Catalog</Text>
                   <Text style={styles.emptyMoviePickerSub}>Only films verified as playing now can be planned</Text>
                 </TouchableOpacity>
@@ -553,7 +557,7 @@ export default function PlannerScreen() {
                   {/* Cinema Selection (real provider data) */}
                   <Text style={[styles.subStepLabel, styles.cinemasLabel]}>SELECT THEATER & AUDITORIUM</Text>
                   {cinemaLoading ? (
-                    <ActivityIndicator size="small" color={COLORS.primary} />
+                    <ActivityIndicator size="small" color={colors.primary} />
                   ) : cinemas.length === 0 ? (
                     <Text style={styles.noDataText}>
                       No verified theatres found for this location.
@@ -579,7 +583,7 @@ export default function PlannerScreen() {
                                 </Text>
                                 {isSelected && (
                                   <View style={styles.selectedCheckIcon}>
-                                    <Check size={14} color={COLORS.primary} strokeWidth={2.5} />
+                                    <Check size={14} color={colors.primary} strokeWidth={2.5} />
                                   </View>
                                 )}
                               </View>
@@ -604,7 +608,7 @@ export default function PlannerScreen() {
                         AVAILABLE SHOWTIMES — {draft.date}
                       </Text>
                       {showtimesLoading ? (
-                        <ActivityIndicator size="small" color={COLORS.primary} />
+                        <ActivityIndicator size="small" color={colors.primary} />
                       ) : showtimes.length === 0 ? (
                         <Text style={styles.noDataText}>
                           No verified showtimes for this movie, theatre and date. Try another date.
@@ -627,7 +631,7 @@ export default function PlannerScreen() {
                                   <Text style={[styles.timeSlotTime, isSelected && styles.timeSlotTimeSelected]}>
                                     {slot.time}
                                   </Text>
-                                  {isSelected && <Check size={14} color={COLORS.primary} strokeWidth={2.5} />}
+                                  {isSelected && <Check size={14} color={colors.primary} strokeWidth={2.5} />}
                                 </View>
                                 {slot.label ? (
                                   <Text style={[styles.timeSlotLabel, isSelected && styles.timeSlotLabelSelected]}>
@@ -648,7 +652,7 @@ export default function PlannerScreen() {
                 </>
               ) : (
                 <View style={styles.unavailableCard}>
-                  <Info size={18} color={COLORS.textMuted} strokeWidth={2} style={{ marginBottom: 6 }} />
+                  <Info size={18} color={colors.textMuted} strokeWidth={2} style={{ marginBottom: 6 }} />
                   <Text style={styles.unavailableTitle}>Live showtimes aren't available for this location yet</Text>
                   <Text style={styles.unavailableText}>
                     CineTrip needs a ticketing provider for your area to show real cinemas, showtimes
@@ -715,7 +719,7 @@ export default function PlannerScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Add squad companions"
                 >
-                  <Plus size={14} color={COLORS.primary} strokeWidth={2.2} />
+                  <Plus size={14} color={colors.primary} strokeWidth={2.2} />
                   <Text style={styles.addSquadBtnText}>Manage Squad</Text>
                 </TouchableOpacity>
               </View>
@@ -731,7 +735,7 @@ export default function PlannerScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`Remove ${friend.name}`}
                       >
-                        <X size={14} color={COLORS.textMuted} strokeWidth={2} />
+                        <X size={14} color={colors.textMuted} strokeWidth={2} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -744,7 +748,7 @@ export default function PlannerScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Invite companions from contacts"
                 >
-                  <Users size={18} color={COLORS.textSecondary} strokeWidth={2} />
+                  <Users size={18} color={colors.textSecondary} strokeWidth={2} />
                   <Text style={styles.emptySquadText}>Tap to invite friends from your address book</Text>
                 </TouchableOpacity>
               )}
@@ -754,7 +758,7 @@ export default function PlannerScreen() {
               <TextInput
                 style={styles.notesInput}
                 placeholder="e.g., Meet at theater lobby 15 min before trailers..."
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={draft.notes || ''}
                 onChangeText={(text) => setDraftNotes({ notes: text })}
                 multiline
@@ -814,7 +818,7 @@ export default function PlannerScreen() {
 
           {catalog.loading && catalog.movies.length === 0 ? (
             <View style={styles.modalCenter}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : catalog.movies.length === 0 ? (
             <View style={styles.modalList}>
@@ -893,7 +897,7 @@ export default function PlannerScreen() {
             <TextInput
               style={styles.customInput}
               placeholder="Add companion by name..."
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={customFriendName}
               onChangeText={setCustomFriendName}
               onSubmitEditing={handleAddCustomFriend}
@@ -952,10 +956,10 @@ export default function PlannerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   modeTabsWrapper: {
     paddingHorizontal: SPACING.lg,
@@ -964,11 +968,11 @@ const styles = StyleSheet.create({
   },
   modeTabs: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     padding: 3,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   modeTab: {
     flex: 1,
@@ -980,11 +984,11 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modeTabActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   modeTabText: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontSize: 13,
   },
   modeTabTextActive: {
@@ -1002,11 +1006,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   sectionSubtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   planCardWrapper: {
@@ -1019,13 +1023,13 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   stepCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   stepHeader: {
@@ -1037,7 +1041,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -1047,32 +1051,32 @@ const styles = StyleSheet.create({
   stepBadgeText: {
     ...TYPOGRAPHY.bodyBold,
     fontSize: 12,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   stepHeaderTitles: {
     flex: 1,
   },
   stepTitle: {
     ...TYPOGRAPHY.h3,
-    color: COLORS.text,
+    color: colors.text,
   },
   stepSubtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   selectedMovieCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     padding: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   selectedPoster: {
     width: 75,
     height: 110,
     borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.backgroundSecondary,
+    backgroundColor: colors.backgroundSecondary,
   },
   selectedMovieInfo: {
     flex: 1,
@@ -1082,7 +1086,7 @@ const styles = StyleSheet.create({
   selectedMovieTitle: {
     ...TYPOGRAPHY.bodyBold,
     fontSize: 15,
-    color: COLORS.text,
+    color: colors.text,
   },
   selectedMovieMetaRow: {
     flexDirection: 'row',
@@ -1091,7 +1095,7 @@ const styles = StyleSheet.create({
   },
   selectedMovieMeta: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginLeft: 4,
   },
   formatRow: {
@@ -1104,7 +1108,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(229, 169, 60, 0.3)',
     borderStyle: 'dashed',
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.md,
@@ -1112,16 +1116,16 @@ const styles = StyleSheet.create({
   },
   emptyMoviePickerTitle: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   emptyMoviePickerSub: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   subStepLabel: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginBottom: SPACING.sm,
   },
   cinemasLabel: {
@@ -1132,55 +1136,55 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   dateChip: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   dateChipSelected: {
-    backgroundColor: COLORS.primarySubtle,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primarySubtle,
+    borderColor: colors.primary,
   },
   dateChipText: {
     ...TYPOGRAPHY.captionBold,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   dateChipTextSelected: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   noDataText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 18,
   },
   providerBadgeRow: {
     marginTop: SPACING.md,
   },
   unavailableCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     marginTop: SPACING.sm,
   },
   unavailableTitle: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 4,
   },
   unavailableText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 19,
   },
   demoNote: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    backgroundColor: COLORS.surface,
+    color: colors.textSecondary,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.xs,
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
@@ -1190,16 +1194,16 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   cinemaOption: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 56,
   },
   cinemaOptionSelected: {
-    backgroundColor: COLORS.primarySubtle,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primarySubtle,
+    borderColor: colors.primary,
   },
   cinemaLeft: {
     flex: 1,
@@ -1211,22 +1215,22 @@ const styles = StyleSheet.create({
   },
   cinemaName: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   cinemaNameSelected: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   selectedCheckIcon: {
     width: 22,
     height: 22,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cinemaAddress: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   cinemaBadgeRow: {
@@ -1237,7 +1241,7 @@ const styles = StyleSheet.create({
   },
   cinemaDistance: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   timeSlotsGrid: {
     flexDirection: 'row',
@@ -1246,17 +1250,17 @@ const styles = StyleSheet.create({
   },
   timeSlotCard: {
     width: '48%',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 60,
     justifyContent: 'center',
   },
   timeSlotCardSelected: {
-    backgroundColor: COLORS.primarySubtle,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primarySubtle,
+    borderColor: colors.primary,
   },
   timeSlotTop: {
     flexDirection: 'row',
@@ -1266,18 +1270,18 @@ const styles = StyleSheet.create({
   timeSlotTime: {
     ...TYPOGRAPHY.bodyBold,
     fontSize: 14,
-    color: COLORS.text,
+    color: colors.text,
   },
   timeSlotTimeSelected: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   timeSlotLabel: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   timeSlotLabelSelected: {
-    color: COLORS.text,
+    color: colors.text,
   },
   snacksWrap: {
     flexDirection: 'row',
@@ -1300,7 +1304,7 @@ const styles = StyleSheet.create({
   addSquadBtnText: {
     ...TYPOGRAPHY.bodyBold,
     fontSize: 12,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   selectedFriendsList: {
     flexDirection: 'row',
@@ -1310,42 +1314,42 @@ const styles = StyleSheet.create({
   friendTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     gap: 6,
   },
   friendTagName: {
     ...TYPOGRAPHY.bodyBold,
     fontSize: 12,
-    color: COLORS.text,
+    color: colors.text,
   },
   emptySquadPicker: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     padding: SPACING.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     gap: SPACING.sm,
     minHeight: 46,
   },
   emptySquadText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   notesInput: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 60,
     textAlignVertical: 'top',
   },
@@ -1355,13 +1359,13 @@ const styles = StyleSheet.create({
   },
   ctaNote: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: SPACING.sm,
   },
   modalSafeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1370,29 +1374,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.cardBorder,
+    borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   modalList: {
     padding: SPACING.lg,
   },
   modalMovieItem: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   modalMoviePoster: {
     width: 55,
     height: 80,
     borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   modalMovieInfo: {
     flex: 1,
@@ -1401,7 +1405,7 @@ const styles = StyleSheet.create({
   },
   modalMovieTitle: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 4,
   },
   modalMetaRow: {
@@ -1417,7 +1421,7 @@ const styles = StyleSheet.create({
   modalStatusText: {
     ...TYPOGRAPHY.badge,
     fontSize: 9,
-    color: COLORS.primary,
+    color: colors.primary,
     letterSpacing: 0.5,
     marginLeft: 'auto',
   },
@@ -1434,43 +1438,43 @@ const styles = StyleSheet.create({
   },
   customInput: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 44,
   },
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     padding: SPACING.md,
     borderRadius: RADIUS.md,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 54,
   },
   contactItemSelected: {
-    backgroundColor: COLORS.primarySubtle,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primarySubtle,
+    borderColor: colors.primary,
   },
   contactAvatar: {
     width: 36,
     height: 36,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   avatarText: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   contactInfo: {
     flex: 1,
@@ -1478,28 +1482,28 @@ const styles = StyleSheet.create({
   },
   contactName: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   contactPhone: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   contactCheck: {
     width: 24,
     height: 24,
     borderRadius: RADIUS.xs,
     borderWidth: 1.5,
-    borderColor: COLORS.textMuted,
+    borderColor: colors.textMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   contactCheckActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   modalFooter: {
     padding: SPACING.lg,
     borderTopWidth: 1,
-    borderTopColor: COLORS.cardBorder,
+    borderTopColor: colors.cardBorder,
   },
 });

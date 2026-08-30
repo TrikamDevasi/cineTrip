@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Armchair, Check, Info } from 'lucide-react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
 const SEATS_PER_ROW = 8;
@@ -14,6 +15,8 @@ export default function InteractiveSeatMap({
   ticketPrice = 350,
   demo = false,
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const isSeatOccupied = (seatId) => OCCUPIED_PRESETS.includes(seatId);
   const isSeatSelected = (seatId) => selectedSeats.includes(seatId);
 
@@ -34,7 +37,7 @@ export default function InteractiveSeatMap({
     <View style={styles.container}>
       {demo && (
         <View style={styles.demoNotice}>
-          <Info size={14} color={COLORS.textSecondary} strokeWidth={2} />
+          <Info size={14} color={colors.textSecondary} strokeWidth={2} />
           <Text style={styles.demoNoticeText}>
             DEMO SEAT LAYOUT — occupancy and pricing are illustrative, not live availability.
           </Text>
@@ -139,29 +142,29 @@ export default function InteractiveSeatMap({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   demoNotice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.xs,
     padding: SPACING.sm,
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   demoNoticeText: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     flex: 1,
     lineHeight: 16,
   },
@@ -173,14 +176,14 @@ const styles = StyleSheet.create({
     width: '80%',
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     marginBottom: 6,
     ...Platform.select({
       web: {
         boxShadow: '0px 2px 8px rgba(229, 169, 60, 0.8)',
       },
       default: {
-        shadowColor: COLORS.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
         shadowRadius: 6,
@@ -191,7 +194,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.badge,
     fontSize: 9,
     letterSpacing: 1.5,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   legendRow: {
     flexDirection: 'row',
@@ -212,7 +215,7 @@ const styles = StyleSheet.create({
   legendText: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   gridScroll: {
     justifyContent: 'center',
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     width: 14,
     textAlign: 'center',
   },
@@ -247,13 +250,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   seatAvailable: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   seatSelected: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderColor: '#FFFFFF',
-    shadowColor: COLORS.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 6,
@@ -265,7 +268,7 @@ const styles = StyleSheet.create({
   seatText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   seatTextSelected: {
     color: '#07090E',
@@ -281,12 +284,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   summaryLeft: {
     flex: 1,
@@ -295,12 +298,12 @@ const styles = StyleSheet.create({
   summaryLabel: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.primary,
+    color: colors.primary,
     marginBottom: 2,
   },
   summarySeatsText: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   summaryRight: {
     alignItems: 'flex-end',
@@ -308,11 +311,11 @@ const styles = StyleSheet.create({
   priceLabel: {
     ...TYPOGRAPHY.badge,
     fontSize: 9,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   priceValue: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
     fontWeight: '900',
   },
 });

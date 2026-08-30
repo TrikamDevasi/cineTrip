@@ -16,9 +16,11 @@ import { Film, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, Globe } from 'luci
 import Button from '../../components/ui/Button';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
+import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function LoginScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { login, loginWithGoogle, enterGuestMode } = useAuthStore();
   const updateProfile = usePreferencesStore((s) => s.updateProfile);
@@ -83,6 +85,8 @@ export default function LoginScreen() {
     }
   };
 
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -97,7 +101,7 @@ export default function LoginScreen() {
           {/* Logo / Header */}
           <View style={styles.heroSection}>
             <View style={styles.logoBadge}>
-              <Film size={28} color={COLORS.primary} strokeWidth={2.2} />
+              <Film size={28} color={colors.primary} strokeWidth={2.2} />
             </View>
             <Text style={styles.appName}>CineTrip</Text>
             <Text style={styles.tagline}>Your luxury theatrical companion</Text>
@@ -121,7 +125,7 @@ export default function LoginScreen() {
               accessibilityLabel="Sign in with Google"
             >
               {googleLoading ? (
-                <ActivityIndicator size="small" color={COLORS.primary} />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <View style={styles.googleContent}>
                   <View style={styles.googleIconCircle}>
@@ -142,13 +146,13 @@ export default function LoginScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>EMAIL ADDRESS</Text>
               <View style={styles.inputWrapper}>
-                <Mail size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Mail size={18} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={email}
                   onChangeText={(t) => { setEmail(t); setError(''); }}
                   placeholder="name@example.com"
-                  placeholderTextColor={COLORS.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -160,13 +164,13 @@ export default function LoginScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>PASSWORD</Text>
               <View style={styles.inputWrapper}>
-                <Lock size={18} color={COLORS.textMuted} style={styles.inputIcon} />
+                <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={password}
                   onChangeText={(t) => { setPassword(t); setError(''); }}
                   placeholder="••••••••"
-                  placeholderTextColor={COLORS.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
@@ -177,9 +181,9 @@ export default function LoginScreen() {
                   accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    <EyeOff size={18} color={COLORS.textMuted} />
+                    <EyeOff size={18} color={colors.textMuted} />
                   ) : (
-                    <Eye size={18} color={COLORS.textMuted} />
+                    <Eye size={18} color={colors.textMuted} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -198,6 +202,14 @@ export default function LoginScreen() {
           </View>
 
           {/* Footer Navigation */}
+          <View style={styles.forgotRow}>
+            <Link href="/(auth)/forgot-password" asChild>
+              <TouchableOpacity>
+                <Text style={styles.forgotLink}>Forgot password?</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Don't have an account? </Text>
             <Link href="/(auth)/register" asChild>
@@ -212,10 +224,10 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   flex: {
     flex: 1,
@@ -234,7 +246,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.sm,
@@ -245,23 +257,23 @@ const styles = StyleSheet.create({
   appName: {
     ...TYPOGRAPHY.displayLarge,
     fontSize: 28,
-    color: COLORS.text,
+    color: colors.text,
   },
   tagline: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   formCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.xl,
     padding: SPACING.xl,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   errorBanner: {
-    backgroundColor: COLORS.dangerSubtle,
+    backgroundColor: colors.dangerSubtle,
     borderRadius: RADIUS.xs,
     padding: SPACING.sm,
     marginBottom: SPACING.md,
@@ -270,14 +282,14 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.danger,
+    color: colors.danger,
     textAlign: 'center',
   },
   googleBtn: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
@@ -303,7 +315,7 @@ const styles = StyleSheet.create({
   },
   googleBtnText: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   dividerRow: {
     flexDirection: 'row',
@@ -317,7 +329,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginHorizontal: SPACING.sm,
   },
   inputGroup: {
@@ -326,16 +338,16 @@ const styles = StyleSheet.create({
   label: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     paddingHorizontal: SPACING.md,
     minHeight: 48,
   },
@@ -345,13 +357,21 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
   },
   eyeBtn: {
     padding: 6,
   },
   submitBtn: {
     marginTop: SPACING.xs,
+  },
+  forgotRow: {
+    alignItems: 'center',
+    marginTop: SPACING.lg,
+  },
+  forgotLink: {
+    ...TYPOGRAPHY.captionBold,
+    color: colors.textSecondary,
   },
   footerRow: {
     flexDirection: 'row',
@@ -361,10 +381,10 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   footerLink: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
 });

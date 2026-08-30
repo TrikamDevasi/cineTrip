@@ -5,13 +5,15 @@ import * as WebBrowser from 'expo-web-browser';
 import { processAuthSessionFromUrl } from '../../services/googleAuth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { saveToken } from '../../services/auth';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
+import { TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 import { Film } from 'lucide-react-native';
 
 // Complete session if opened as popup or web auth session
 WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthCallbackScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
   const [error, setError] = useState(null);
@@ -81,11 +83,13 @@ export default function AuthCallbackScreen() {
     };
   }, [params]);
 
+  const styles = createStyles(colors);
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.iconCircle}>
-          <Film size={28} color={COLORS.primary} />
+          <Film size={28} color={colors.primary} />
         </View>
 
         <Text style={styles.title}>CineTrip</Text>
@@ -103,7 +107,7 @@ export default function AuthCallbackScreen() {
           </View>
         ) : (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.statusText}>Completing Google Sign-In...</Text>
           </View>
         )}
@@ -112,16 +116,16 @@ export default function AuthCallbackScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.lg,
   },
   card: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.xl,
     padding: SPACING.xl,
     alignItems: 'center',
@@ -141,7 +145,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: SPACING.lg,
   },
   loadingBox: {
@@ -151,7 +155,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   errorBox: {
     alignItems: 'center',
@@ -161,11 +165,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.danger,
+    color: colors.danger,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.lg,
     borderRadius: RADIUS.md,

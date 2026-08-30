@@ -176,6 +176,36 @@ export async function reverseGeocode(coords) {
 }
 
 /**
+ * Geocode a free-text place/address query into coordinates using the
+ * OpenStreetMap Nominatim public API. No API key required; works on web and
+ * native. Returns { latitude, longitude, label } or null when nothing is found.
+ */
+export async function geocodeAddress(query) {
+  if (!query || !query.trim()) return null;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query.trim())}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'CineTrip (React Native Expo app)' },
+    });
+    if (!res.ok) return null;
+    const results = await res.json();
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const hit = results[0];
+    const latitude = parseFloat(hit.lat);
+    const longitude = parseFloat(hit.lon);
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) return null;
+    return {
+      latitude,
+      longitude,
+      label: hit.display_name || query.trim(),
+    };
+  } catch (e) {
+    console.warn('Geocode error:', e.message);
+    return null;
+  }
+}
+
+/**
  * Calculate distance in km between two lat/lng coordinates (Haversine formula).
  * Returns null when coordinates are missing — never a fabricated value.
  */

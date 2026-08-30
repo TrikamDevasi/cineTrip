@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, Platform, StyleSheet, Dimensions } from 'react-native';
-import { COLORS, RADIUS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { RADIUS, SPACING } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -8,6 +9,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
  * Base animated skeleton element
  */
 export function Skeleton({ width = '100%', height = 20, borderRadius = RADIUS.sm, style }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const opacityAnim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -49,6 +52,8 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = RADIUS.sm
  * Skeleton matching MovieCard poster + metadata layout
  */
 export function MovieCardSkeleton({ width = 150 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={[styles.movieCardSkeleton, { width }]}>
       <Skeleton width="100%" height={210} borderRadius={RADIUS.md} />
@@ -64,6 +69,8 @@ export function MovieCardSkeleton({ width = 150 }) {
  * Skeleton matching Cinema list cards
  */
 export function CinemaCardSkeleton() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.cinemaCardSkeleton}>
       <View style={styles.cinemaHeaderRow}>
@@ -83,6 +90,8 @@ export function CinemaCardSkeleton() {
  * Skeleton matching Memory Card in Journal
  */
 export function MemoryCardSkeleton() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.memoryCardSkeleton}>
       <Skeleton width="100%" height={220} borderRadius={RADIUS.lg} />
@@ -95,29 +104,29 @@ export function MemoryCardSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   skeletonBase: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   movieCardSkeleton: {
     marginRight: SPACING.md,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     padding: SPACING.xs,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   movieMetaSkeleton: {
     padding: SPACING.sm,
   },
   cinemaCardSkeleton: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   cinemaHeaderRow: {
     flexDirection: 'row',
@@ -129,13 +138,13 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   memoryCardSkeleton: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   memoryMeta: {
     marginTop: SPACING.md,

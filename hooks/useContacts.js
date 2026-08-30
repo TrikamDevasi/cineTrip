@@ -1,9 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Contacts from 'expo-contacts';
+import { PRESET_SQUAD, getInitials } from '../services/contacts';
 
 /**
- * Reusable contacts hook with permission, fetch, and search
+ * Reusable contacts hook with permission, fetch, search, and local mutations
  */
+const PRESET_MAPPED = PRESET_SQUAD.map((c) => ({
+  id: c.id,
+  name: c.name,
+  initials: c.initials || getInitials(c.name),
+  phone: '',
+  email: '',
+  imageUri: null,
+  avatar: '🎬',
+}));
+
 export const useContacts = () => {
   const [contacts, setContacts] = useState([]);
   const [permissionStatus, setPermissionStatus] = useState(null);
@@ -43,19 +54,28 @@ export const useContacts = () => {
         .map((c, i) => ({
           id: c.id,
           name: c.name,
+          initials: getInitials(c.name),
           phone: c.phoneNumbers?.[0]?.number || '',
           email: c.emails?.[0]?.email || '',
           imageUri: c.image?.uri || null,
           avatar: ['🍿', '✨', '🎬', '🥤', '🕶️', '🚀', '🔥', '⚡'][i % 8],
         }));
 
-      setContacts(mapped);
+      setContacts(mapped.length > 0 ? mapped : PRESET_MAPPED);
       setIsLoading(false);
     } catch (err) {
       setError(err.message);
       setIsLoading(false);
     }
   }, [requestPermission]);
+
+  const removeContact = useCallback((id) => {
+    setContacts((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  const updateContactLocally = useCallback((id, updates) => {
+    setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+  }, []);
 
   const searchContacts = useCallback(
     (query) => {
@@ -82,6 +102,8 @@ export const useContacts = () => {
     error,
     fetchContacts,
     searchContacts,
+    removeContact,
+    updateContactLocally,
     requestPermission,
   };
 };

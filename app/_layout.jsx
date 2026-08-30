@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View } from 'react-native';
-import { COLORS } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../store/useAuthStore';
 
 /**
@@ -13,15 +13,16 @@ import { useAuthStore } from '../store/useAuthStore';
  */
 export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
   return (
-    <SafeAreaProvider style={{ flex: 1, backgroundColor: COLORS.background }}>
-      <View style={{ flex: 1, backgroundColor: COLORS.background }}>
-        <StatusBar style="light" backgroundColor={COLORS.background} />
+    <SafeAreaProvider style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
         <RootNavigator />
       </View>
     </SafeAreaProvider>
@@ -31,12 +32,13 @@ export default function RootLayout() {
 function RootNavigator() {
   const initialized = useAuthStore((s) => s.initialized);
   const canAccessApp = useAuthStore((s) => s.isAuthenticated || s.isGuest);
+  const { colors } = useTheme();
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: COLORS.background, flex: 1 },
+        contentStyle: { backgroundColor: colors.background, flex: 1 },
         animation: 'fade_from_bottom',
       }}
     >
@@ -80,6 +82,22 @@ function RootNavigator() {
           headerShown: false,
           presentation: 'card',
           animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="contact/[id]"
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="contact/new"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
         }}
       />
       <Stack.Protected guard={initialized && canAccessApp}>

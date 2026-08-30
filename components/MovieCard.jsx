@@ -16,7 +16,8 @@ import { getImageUri } from '../services/tmdb';
 import { useWatchlistStore } from '../store/useWatchlistStore';
 import { usePlannerStore } from '../store/usePlannerStore';
 import { useMovieCatalog } from '../hooks/useMovieCatalog';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = Math.min((SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2, 175);
@@ -27,6 +28,8 @@ export default function MovieCard({
   onPress,
   cardWidth = CARD_WIDTH,
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const router = useRouter();
   const isInWatchlist = useWatchlistStore((s) => s.isInWatchlist(movie.id));
   const toggleWatchlist = useWatchlistStore((s) => s.toggleWatchlist);
@@ -121,9 +124,9 @@ export default function MovieCard({
               accessibilityLabel={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Save ${movie.title} to watchlist`}
             >
               {isInWatchlist ? (
-                <BookmarkCheck size={16} color={COLORS.primary} strokeWidth={2} />
+                <BookmarkCheck size={16} color={colors.primary} strokeWidth={2} />
               ) : (
-                <Bookmark size={16} color={COLORS.textSecondary} strokeWidth={2} />
+                <Bookmark size={16} color={colors.textSecondary} strokeWidth={2} />
               )}
             </TouchableOpacity>
           </View>
@@ -158,7 +161,7 @@ export default function MovieCard({
           accessibilityLabel={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Save ${movie.title} to watchlist`}
         >
           {isInWatchlist ? (
-            <BookmarkCheck size={16} color={COLORS.primary} strokeWidth={2.2} />
+            <BookmarkCheck size={16} color={colors.primary} strokeWidth={2.2} />
           ) : (
             <Bookmark size={16} color="#FFFFFF" strokeWidth={2} />
           )}
@@ -190,7 +193,7 @@ export default function MovieCard({
             accessibilityRole="button"
             accessibilityLabel={`Plan movie night for ${movie.title}`}
           >
-            <Ticket size={13} color={COLORS.primary} strokeWidth={2.2} />
+            <Ticket size={13} color={colors.primary} strokeWidth={2.2} />
             <Text style={styles.verticalPlanText}>Plan Night</Text>
           </TouchableOpacity>
         ) : (
@@ -203,21 +206,21 @@ export default function MovieCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   verticalCard: {
     marginRight: SPACING.md,
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   posterContainer: {
     width: '100%',
     height: 205,
     position: 'relative',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   verticalPoster: {
     width: '100%',
@@ -254,7 +257,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     gap: 3,
   },
   floatingRatingText: {
@@ -268,12 +271,12 @@ const styles = StyleSheet.create({
   verticalTitle: {
     ...TYPOGRAPHY.bodyBold,
     fontSize: 14,
-    color: COLORS.text,
+    color: colors.text,
   },
   verticalSubtitle: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
     marginBottom: 8,
   },
@@ -281,7 +284,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     borderRadius: RADIUS.xs,
     paddingVertical: 6,
     minHeight: 32,
@@ -292,31 +295,31 @@ const styles = StyleSheet.create({
   verticalPlanText: {
     ...TYPOGRAPHY.captionBold,
     fontSize: 11,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   verticalNotPlayingLabel: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     minHeight: 32,
     paddingVertical: 6,
     textAlign: 'center',
   },
   horizontalCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     marginBottom: SPACING.sm,
     marginHorizontal: SPACING.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   horizontalPoster: {
     width: 95,
     height: 140,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   horizontalContent: {
     flex: 1,
@@ -331,7 +334,7 @@ const styles = StyleSheet.create({
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
@@ -340,16 +343,16 @@ const styles = StyleSheet.create({
   ratingText: {
     ...TYPOGRAPHY.badge,
     fontSize: 11,
-    color: COLORS.text,
+    color: colors.text,
   },
   yearText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   title: {
     ...TYPOGRAPHY.bodyBold,
     fontSize: 14,
-    color: COLORS.text,
+    color: colors.text,
     marginVertical: 2,
   },
   formatRow: {
@@ -366,7 +369,7 @@ const styles = StyleSheet.create({
   quickPlanBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,
     borderRadius: RADIUS.xs,
@@ -381,7 +384,7 @@ const styles = StyleSheet.create({
   notPlayingLabel: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     flex: 1,
     marginRight: SPACING.sm,
   },
@@ -389,10 +392,10 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
 });

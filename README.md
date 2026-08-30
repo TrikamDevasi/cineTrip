@@ -34,22 +34,22 @@ Every item below has exactly one audit row, is mapped to code, and is marked `�
 
 ```text
 Total Features:            135
-✅ Implemented:            118
-⚠️ Partially Implemented:   12
-❌ Not Implemented:          5
+✅ Implemented:            130
+⚠️ Partially Implemented:    4
+❌ Not Implemented:          1
 🚫 Excluded:                0
-Implementation Percentage: 87.4%
+Implementation Percentage: 96.3%
 ```
 
 | Metric | Result |
 |---|--:|
 | Total Features | 135 |
-| ✅ Fully Implemented | 118 |
-| ⚠️ Partially Implemented | 12 |
-| ❌ Not Implemented | 5 |
+| ✅ Fully Implemented | 130 |
+| ⚠️ Partially Implemented | 4 |
+| ❌ Not Implemented | 1 |
 | 🚫 Excluded (no real implementation found) | 0 |
-| **Implementation Percentage (fully implemented only)** | **87.4%** |
-| Percentage including partials at half credit | 91.9% |
+| **Implementation Percentage (fully implemented only)** | **96.3%** |
+| Percentage including partials at half credit | 97.8% |
 
 > **Weighted score unavailable:** the supplied checklist defines feature categories but **does not provide category weights**. The percentages above are therefore **unweighted**. No weights were fabricated.
 
@@ -61,15 +61,15 @@ Definition: `Score = Full items / Total items × 100`. Partial items are *not* c
 |---|--:|--:|--:|--:|--:|
 | Core React Native Components | 14 | 14 | 0 | 0 | 100.0% |
 | Expo Router | 10 | 10 | 0 | 0 | 100.0% |
-| Camera | 16 | 10 | 3 | 3 | 62.5% |
-| Location | 13 | 12 | 1 | 0 | 92.3% |
-| Contacts | 11 | 7 | 2 | 2 | 63.6% |
-| Image & Media | 7 | 4 | 3 | 0 | 57.1% |
+| Camera | 16 | 15 | 0 | 1 | 93.8% |
+| Location | 13 | 13 | 0 | 0 | 100.0% |
+| Contacts | 11 | 11 | 0 | 0 | 100.0% |
+| Image & Media | 7 | 5 | 2 | 0 | 71.4% |
 | Backend — Node.js, Express & MongoDB | 14 | 13 | 1 | 0 | 92.9% |
 | API & Networking | 10 | 9 | 1 | 0 | 90.0% |
-| UI/UX & Extra Features | 21 | 20 | 1 | 0 | 95.2% |
+| UI/UX & Extra Features | 21 | 21 | 0 | 0 | 100.0% |
 | Code Concepts to Explain | 19 | 19 | 0 | 0 | 100.0% |
-| **Total** | **135** | **118** | **12** | **5** | **87.4%** |
+| **Total** | **135** | **130** | **4** | **1** | **96.3%** |
 
 ---
 
@@ -107,17 +107,17 @@ Legend: ✅ Implemented · ⚠️ Partially implemented · ❌ Not implemented �
 | 26 | Camera | Camera preview | ✅ | `CameraView` full-screen viewfinder | `app/memory/create.jsx:272` |
 | 27 | Camera | Capture image | ✅ | `takePictureAsync({quality:0.85})` | `app/memory/create.jsx:142` |
 | 28 | Camera | Front/back camera flip | ✅ | `flipCamera` + `facing` prop | `app/memory/create.jsx:135,275` |
-| 29 | Camera | Torch/flash | ⚠️ | Flash modes `off/on/auto` fully work; dedicated **torch** control is absent | `app/memory/create.jsx:55,130,276` |
-| 30 | Camera | Zoom | ❌ | No zoom control/prop anywhere | — |
-| 31 | Camera | Auto focus | ⚠️ | Relies on platform-default focus only; no explicit auto-focus handling | `app/memory/create.jsx` (no `autoFocus`) |
-| 32 | Camera | Tap-to-focus | ❌ | Not implemented | — |
+| 29 | Camera | Torch/flash | ✅ | Flash modes `off/on/auto` **and** a dedicated torch control (`enableTorch`) | `app/memory/create.jsx` (FLASH_MODES, torchActive) |
+| 30 | Camera | Zoom | ✅ | `+`/`-` zoom buttons drive `CameraView` `zoom` prop (`ZOOM_STEP=0.1`) | `app/memory/create.jsx` |
+| 31 | Camera | Auto focus | ✅ | `autofocus="on"` explicitly set on `CameraView` | `app/memory/create.jsx` |
+| 32 | Camera | Tap-to-focus | ✅ | Tap surface + animated focus reticle (`focusReticleAnim`) | `app/memory/create.jsx` |
 | 33 | Camera | Captured-image preview | ✅ | Photo preview card after capture | `app/memory/create.jsx:380-403` |
 | 34 | Camera | Retake image | ✅ | `Retake` button reopens camera and clears media | `app/memory/create.jsx:384-391` |
 | 35 | Camera | Save captured image | ✅ | Media uploads/stores via `addMemory` | `app/memory/create.jsx:219-257` |
-| 36 | Camera | Scan/document scanning | ❌ | No barcode/QR/document scanner | — |
+| 36 | Camera | Scan/document scanning | ❌ | No camera barcode/QR/document *scanner* (a QR *generator/renderer* exists for the pass, but no scan feature) | — |
 | 37 | Camera | Video recording | ✅ | `recordAsync({maxDuration:60})` | `app/memory/create.jsx:162` |
 | 38 | Camera | Start/stop recording | ✅ | Shutter toggles record/`stopRecording` | `app/memory/create.jsx:153-180` |
-| 39 | Camera | Video preview | ⚠️ | Captured video shown as static `Image` thumbnail; no video playback player | `app/memory/create.jsx:382` |
+| 39 | Camera | Video preview | ✅ | Dedicated `VideoPreview` player (native `Video` fallback / web `<video>`) | `components/ui/`, `app/memory/create.jsx` |
 | 40 | Camera | Permission/error handling | ✅ | Camera/mic permission alerts + capture/record error alerts | `app/memory/create.jsx:148,168,183-193` |
 | 41 | Location | Foreground location permission | ✅ | `requestForegroundPermissionsAsync` | `hooks/useLocation.js:21`, `services/location.js:78` |
 | 42 | Location | Get current location | ✅ | `getCurrentPositionAsync` | `hooks/useLocation.js:37` |
@@ -130,16 +130,16 @@ Legend: ✅ Implemented · ⚠️ Partially implemented · ❌ Not implemented �
 | 49 | Location | Move map to current location | ✅ | Locate me → `animateToRegion` | `app/map.jsx:130-148` |
 | 50 | Location | Reverse geocoding | ✅ | `reverseGeocodeAsync` | `hooks/useLocation.js:44`, `services/location.js:163` |
 | 51 | Location | Convert coordinates to address | ✅ | `reverseGeocode()` → readable address string | `services/location.js:163-176` |
-| 52 | Location | Location search/select | ⚠️ | Cinema *selection* works ("Plan Movie Night Here"); also a **location bypass**. Address *search* input is declared but not wired to a functional search | `app/map.jsx:52,124-128,150-153` |
+| 52 | Location | Location search/select | ✅ | Cinema *selection* ("Plan Movie Night Here") plus functional **address search** via Nominatim `geocodeAddress()` → sets location + fetches nearby cinemas | `app/map.jsx`, `services/location.js` |
 | 53 | Location | Permission/services error handling | ✅ | Denied overlay, retry + browse-without-location | `app/map.jsx:179-215` |
 | 54 | Contacts | Contacts permission | ✅ | `requestPermissionsAsync` | `hooks/useContacts.js:14`, `services/contacts.js:20` |
 | 55 | Contacts | Get all contacts | ✅ | `getContactsAsync` (pageSize 100–200) | `hooks/useContacts.js:30`, `services/contacts.js:22` |
 | 56 | Contacts | Display contacts with FlatList | ✅ | Contacts screen list | `app/contacts.jsx:160` |
 | 57 | Contacts | Search/filter contacts | ✅ | Name/phone/email filter | `hooks/useContacts.js:60-72` |
-| 58 | Contacts | Contact details | ⚠️ | Rows show name, phone, avatar; no dedicated detail view | `app/contacts.jsx:165-201` |
-| 59 | Contacts | Add/create contact | ⚠️ | `createDeviceContact` helper exists (`addContactAsync`) but is **not wired to any screen/flow** | `services/contacts.js:51` |
-| 60 | Contacts | Delete contact | ❌ | No delete implementation | — |
-| 61 | Contacts | Edit/update contact | ❌ | No edit/update implementation | — |
+| 58 | Contacts | Contact details | ✅ | Dedicated detail view with call / add to plan / edit / delete | `app/contact/[id].jsx` |
+| 59 | Contacts | Add/create contact | ✅ | `contact/new` create form via `createDeviceContact` + `updateContactLocally` | `app/contact/new.jsx`, `services/contacts.js`, `hooks/useContacts.js` |
+| 60 | Contacts | Delete contact | ✅ | `deleteDeviceContact` + remove from plan, with confirm | `app/contact/[id].jsx`, `services/contacts.js`, `hooks/useContacts.js` |
+| 61 | Contacts | Edit/update contact | ✅ | `updateDeviceContact` + `updateContactLocally` via the new edit form | `app/contact/new.jsx`, `services/contacts.js`, `hooks/useContacts.js` |
 | 62 | Contacts | Link contact | ✅ | Selected contacts added to plan squad (`toggleDraftFriend`) | `app/contacts.jsx:57-75` |
 | 63 | Contacts | Open/link contact using device app | ✅ | `Linking.openURL('tel:...')` opens device dialer | `app/contacts.jsx:77-85` |
 | 64 | Contacts | Permission handling | ✅ | Denied state → "Open Device Settings" | `app/contacts.jsx:87-109` |
@@ -148,7 +148,7 @@ Legend: ✅ Implemented · ⚠️ Partially implemented · ❌ Not implemented �
 | 67 | Image & Media | Display uploaded image | ✅ | Memory card + preview render media | `components/MemoryCard.jsx`, `app/memory/create.jsx:382` |
 | 68 | Image & Media | Image compression/resizing | ✅ | `quality:0.85` + `allowsEditing` crop on capture & pick | `app/memory/create.jsx:142,200-201` |
 | 69 | Image & Media | Video upload | ⚠️ | Same conditional Cloudinary path (uploads as `video/mp4`) | `services/media/mediaUploader.js:47` |
-| 70 | Image & Media | Media validation | ⚠️ | Only photo-vs-video type check; no size/format validation | `app/memory/create.jsx:206` |
+| 70 | Image & Media | Media validation | ✅ | `validateGalleryAsset` checks extension + size limits (`MAX_PHOTO_SIZE_MB=20`, `MAX_VIDEO_SIZE_MB=50`) | `app/memory/create.jsx` |
 | 71 | Image & Media | Loading state during upload | ✅ | `isSaving` → button loading state | `app/memory/create.jsx:86,225,531-538` |
 | 72 | Backend | Node.js + Express setup | ✅ | Express app, server entry, dotenv | `backend/src/app.js`, `backend/src/server.js` |
 | 73 | Backend | MongoDB connection | ✅ | Mongoose connect with retry/DNS fallback | `backend/src/config/database.js` |
@@ -189,7 +189,7 @@ Legend: ✅ Implemented · ⚠️ Partially implemented · ❌ Not implemented �
 | 108 | UI/UX | Pagination | ✅ | Discover infinite scroll; memories/plans paginated fetches | `app/(tabs)/discover.jsx`, `store/useMemoryStore.js`, `store/usePlannerStore.js` |
 | 109 | UI/UX | Local data persistence | ✅ | zustand persist + AsyncStorage for all stores | `store/usePlannerStore.js`, `useMemoryStore.js`, `useWatchlistStore.js`, `usePreferencesStore.js` |
 | 110 | UI/UX | Secure token storage | ✅ | `expo-secure-store` (native), `localStorage` (web), memory fallback | `services/auth.js` |
-| 111 | UI/UX | Dark/light theme | ⚠️ | `themeMode` (dark/light/system) preference stored + `useTheme` hook exists, but palette tokens are static `COLORS` — **no screen actually swaps palettes** | `hooks/useTheme.js`, `constants/theme.js`, `store/usePreferencesStore.js` |
+| 111 | UI/UX | Dark/light theme | ✅ | Reactive `useTheme()` + `createStyles(colors)` factory across every screen; palette swaps with `themeMode` (dark/light/system) | `hooks/useTheme.js`, `constants/theme.js`, `store/usePreferencesStore.js`, all `app/**/*.jsx` |
 | 112 | UI/UX | Reusable custom hooks | ✅ | `useAuth`, `useLocation`, `useContacts`, `useDebounce`, `useApi`, `useMovieCatalog`, `useTheme` | `hooks/*.js` |
 | 113 | UI/UX | Reusable UI components | ✅ | Button, Chip, Rating, Skeleton, EmptyState, ErrorState, MovieCard, MemoryCard, TicketCard… | `components/`, `components/ui/` |
 | 114 | UI/UX | Confirmation dialogs | ✅ | Sign-out + cancel-trip confirmations via `Alert.alert` | `app/(tabs)/profile.jsx:105-121`, `app/(tabs)/planner.jsx:429` |
@@ -226,27 +226,27 @@ Genuinely working functionality, verified by code tracing:
 - Reusable design system: Button, Chip, Rating, Skeleton, EmptyState, ErrorState, NetworkStatusBanner, FormatBadge, MovieCard, MemoryCard, TicketCard and more.
 
 **Authentication**
-- Email/password registration + login with JWT (bcrypt hashing, 30-day token) against a real backend.
+- Email/password registration + login with JWT (bcrypt hashing, 30-day token) against a real backend plus a **forgot/reset-password flow** (token-based backend endpoints + mobile screens).
 - Google OAuth (Supabase PKCE `WebBrowser` session + server-side verification, plus `/api/auth/google`).
 - Guest mode without sign-in, protected route guards, SecureStore token persistence, logout.
 
 **Movie Discovery & Details**
 - TMDB live feeds: Now Playing, Trending, Upcoming + debounced search + mood/genre/format filters + infinite scroll.
-- Movie detail with poster/backdrop, rating, year, runtime, genres, top cast, available formats, availability status, watchlist toggle, share.
+- Movie detail with poster/backdrop, rating, year, runtime, genres, top cast, available formats, availability status, watchlist toggle, share, and **"Watch Trailer"** (opens the movie's YouTube trailer via `Linking`).
 
 **Watchlist** — add/remove with optimistic UI, favorite-format preference, filter/search, paginated local cache with backend sync.
 
 **Plan / Pass (personal planning, not booking)**
 - Movie → cinema → date/showtime-slot → interactive seat map → friends/snacks → notes → save personal plan.
-- Digital pass UI with ticket-style card, share sheet + clipboard, "Log Screening Memory" pre-fill.
+- Digital pass UI with ticket-style card, a **scannable, real QR code** (dependency-free encoder + `react-native-svg`, verified against an external decoder), share sheet + clipboard, "Log Screening Memory" pre-fill.
 
-**Location & Map** — foreground permission, current/last-known GPS, live watcher with unsubscribe cleanup, reverse geocoding, Haversine distance, `react-native-maps` (native) / OSM embed (web), user + cinema markers, locate-me animation, permission-denied + bypass states.
+**Location & Map** — foreground permission, current/last-known GPS, live watcher with unsubscribe cleanup, reverse geocoding, Haversine distance, `react-native-maps` (native) / OSM embed (web), user + cinema markers, locate-me animation, **functional address search** (Nominatim → sets location + refetches cinemas), permission-denied + bypass states.
 
-**Contacts & Squad** — permission handling, device contacts via `expo-contacts`, FlatList, search, contact selection linked into the plan squad, call contact via `tel:` deep link.
+**Contacts & Squad** — permission handling, device contacts via `expo-contacts`, FlatList, search, contact selection linked into the plan squad, call contact via `tel:` deep link, plus full contact management: **detail view, add, edit, delete** (device + local state).
 
-**Camera & Memories** — camera/mic permission, live preview, capture with quality compression, front/back flip, flash modes, photo/video modes, start/stop recording, preview + retake, gallery picker, media uploader (Cloudinary when configured / local fallback), and full memory journaling (rating, story, companions, snack highlight, date) persisted locally + synced to backend.
+**Camera & Memories** — camera/mic permission, live preview, capture with quality compression, front/back flip, flash modes **+ dedicated torch control**, **pinch/tap-to-focus with animated focus reticle**, **explicit auto-focus**, **step zoom (+/−)**, photo/video modes, start/stop recording, **in-app video playback player**, preview + retake with **size/format validation**, gallery picker, media uploader (Cloudinary when configured / local fallback), and full memory journaling (rating, story, companions, snack highlight, date) persisted locally + synced to backend.
 
-**Profile & Preferences** — editable name/city, preferred format/chain/genres, notifications + calendar-sync *toggles*, milestones (IMAX/Dolby/theaters/average rating), sign-out.
+**Profile & Preferences** — editable name/city, preferred format/chain/genres, notifications + calendar-sync *toggles*, **dark/light/system theme** (reactive `useTheme` palette swap across every screen), milestones (IMAX/Dolby/theaters/average rating), sign-out.
 
 **Backend** — Express REST API; JWT auth middleware; Zod validation; bcrypt password hashing; Helmet, CORS, rate limiting; centralized error handling; MongoDB (User, Memory, Plan, Watchlist) with paginated queries; full CRUD.
 
@@ -256,18 +256,10 @@ Genuinely working functionality, verified by code tracing:
 
 Honest breakdown of what exists, what works, and what does not:
 
-1. **Torch/flash — camera.** Flash modes `off/on/auto` work. A dedicated *torch* control does not exist. (`app/memory/create.jsx:55,130`)
-2. **Auto focus — camera.** No explicit auto-focus handling; relies on the platform default. Tap-to-focus is entirely absent.
-3. **Video preview.** Recorded/imported video appears as a static image thumbnail rendered with RN `Image`; there is no video playback (no `expo-video`/`expo-av` player). (`app/memory/create.jsx:382`)
-4. **Location search/select.** Selecting a cinema from the list works ("Plan Movie Night Here"), and a no-location "browse" path exists. A functional *address search* is not wired (search input state exists but no search execution). (`app/map.jsx`)
-5. **Contact details / add contact.** Rows show name, phone, avatar — but there is no dedicated detail view. `createDeviceContact()` exists in the service layer but is *not connected to any screen*; there is no delete or edit contact.
-6. **Media upload (image/video).** `MediaUploader` performs a real Cloudinary multipart upload **only when** `EXPO_PUBLIC_CLOUDINARY_*` env vars are configured; the default is an honest "stored on device" local-URI fallback. Backend stores URI/URL strings only — no server-side file storage. (`services/media/mediaUploader.js`)
-7. **Media validation.** Only a photo-vs-video type check; no size/format verification.
-8. **Multipart/form-data upload.** Implemented but gated behind Cloudinary configuration (see #6).
-9. **Dark/light theme.** The user preference (`dark`/`light`/`system`) is stored, and `useTheme` computes `isDark`, but all screens import a **static dark `COLORS` palette** — switching the preference does not re-theme the UI. (`constants/theme.js`, `hooks/useTheme.js`)
-10. **Image/media storage on backend.** Stored as reference strings (local path or Cloudinary URL); no blob/file storage layer.
-11. **"Digital pass" QR.** The pass shows an *icon-based decorative QR* (`QrCode` from lucide). It is **not** a scannable/verifiable booking QR — see [Known Bugs](#-known-bugs--technical-issues) below.
-12. **Cinema/showtime data.** Real cinemas can come from the OSM/Overpass provider and simulated cinemas/showtimes from the mock provider (DEMO mode). There is **no live showtime or ticketing provider**, so showtimes/seat selection power a *plan*, not a purchase.
+1. **Media upload (image/video).** `MediaUploader` performs a real Cloudinary multipart upload **only when** `EXPO_PUBLIC_CLOUDINARY_*` env vars are configured; the default is an honest "stored on device" local-URI fallback. Backend stores URI/URL strings only — no server-side file storage. (`services/media/mediaUploader.js`)
+2. **Multipart/form-data upload.** Implemented but gated behind Cloudinary configuration (see #1).
+3. **Image/media storage on backend.** Stored as reference strings (local path or Cloudinary URL); no blob/file storage layer.
+4. **Cinema/showtime data.** Real cinemas can come from the OSM/Overpass provider and simulated cinemas/showtimes from the mock provider (DEMO mode). There is **no live showtime or ticketing provider**, so showtimes/seat selection power a *plan*, not a purchase. Related: a camera-based barcode/QR **scanner** is not implemented (a QR *generator* for the pass is).
 
 ---
 
@@ -275,52 +267,30 @@ Honest breakdown of what exists, what works, and what does not:
 
 From the checklist (no implementation found):
 
-1. **Camera zoom** — no zoom control. ❌
-2. **Camera tap-to-focus** — not implemented. ❌
-3. **Scan / document scanning** — no barcode, QR, or document scanner. ❌
-4. **Delete contact** — no delete contact implementation. ❌
-5. **Edit/update contact** — no edit contact implementation. ❌
+1. **Camera scan / document scanning** — no camera-based barcode, QR, or document *scanner*. (A QR *generator/renderer* is implemented for the digital pass, but scanning is not.)
 
 Project-level gaps (not in the checklist, but relevant to the app's marketing claims):
 
-- **Forgot-password flow** — no reset screen or password-recovery endpoint.
-- **Push notifications** — the profile toggle is stored only; no notification service is wired.
-- **Calendar export** — the toggle is stored only; nothing exports to a calendar.
+- **Push notifications** — the profile toggle is stored only; no notification service is wired (requires `expo-notifications` + a push provider).
+- **Calendar export** — the toggle is stored only; nothing exports to a calendar (requires `expo-calendar`/`expo-print`).
 - **Real ticket booking / checkout / payment** — deliberately absent (see [Planning vs. Booking](#-planning-vs-booking)).
-- **Trailer playback** in movie details — detail screen has no video/trailer.
-- **Scannable booking QR** — the pass QR is decorative.
+
+Resolved gaps (previously outstanding, now implemented):
+- **Forgot-password / reset-password flow** — screens + backend token-based endpoints added (`app/(auth)/forgot-password.jsx`, `reset-password.jsx`, `backend` `forgotPassword`/`resetPassword`).
+- **Trailer playback** in movie details — "Watch Trailer" opens the YouTube trailer via `Linking` (`app/movie/[id].jsx`).
+- **Scannable booking QR** — a real, dependency-free QR encoder + `QRCodeSvg` renderer now produces a scannable pass QR (`services/qr.js`, `components/ui/QRCodeSvg.jsx`).
 
 ---
 
 ## 🐛 Known Bugs / Technical Issues
 
-### 1. Ticket screen TDZ bug (confirmed) — `app/ticket/[id].jsx:37`
+### 1. Ticket screen TDZ bug (fixed) — `app/ticket/[id].jsx`
 
-When a plan is **not found** (e.g. deleted plan, or deep-linking to a missing id), the screen renders the "not found" error UI:
+Previously, `isPlan` was a `const` declared *after* the `if (!plan)` early return, so reading it inside that block threw `ReferenceError: Cannot access 'isPlan' before initialization` when a plan lookup failed. **Fixed** by computing `isPlan` (and related values) before the guard, so the not-found path shows the intended error UI instead of crashing.
 
-```jsx
-if (!plan) {
-  return (
-    ...
-    <Text style={styles.headerTitle}>{isPlan ? 'Movie Plan' : 'Digital Cinema Pass'}</Text>
-    ...
-  );
-}
+### 2. Scannable pass QR (resolved)
 
-const isPlan = !plan.bookingRef || plan.bookingStatus === 'plan'; // declared AFTER the early return
-```
-
-`isPlan` is a `const` declared *after* the `if (!plan)` block, so reading it inside that block throws:
-
-```
-ReferenceError: Cannot access 'isPlan' before initialization
-```
-
-**Impact:** instead of showing "Ticket pass not found", the app **crashes** when a plan lookup fails. It does not affect the normal happy path (plan exists), which is why it has gone unnoticed. Fix: compute `isPlan` before the guard (or render a static title in the error path).
-
-### 2. Decorative QR (by design, but misleading)
-
-`components/ui/QRCodeView.jsx` renders the Lucide `QrCode` glyph — it is **not a real, scannable QR code** and never encodes booking data. Combined with the backend refusing real `bookingRef`/`showtimeId`, the pass cannot be scanned at a cinema.
+`QRCodeView.jsx` previously rendered the Lucide `QrCode` glyph — not a real, scannable code. It now renders a genuine, scannable QR via a dependency-free encoder (`services/qr.js`) + `react-native-svg` (`components/ui/QRCodeSvg.jsx`) for verified bookings, while unconnected "plans" keep an honest placeholder. The encoder was validated by decoding its output with an independent QR decoder across every version (1–7) it emits.
 
 ### 3. Demo/sample data fallbacks
 

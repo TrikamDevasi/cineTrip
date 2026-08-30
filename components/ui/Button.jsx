@@ -7,7 +7,8 @@ import {
   View,
 } from 'react-native';
 import Icon, { ICON_SIZES } from './Icon';
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
 /**
  * Standardized Luxury Cinematic Button Component
@@ -35,19 +36,21 @@ export default function Button({
   accessibilityLabel,
   ...props
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const getTextColor = () => {
-    if (disabled) return COLORS.textMuted;
+    if (disabled) return colors.textMuted;
     switch (variant) {
       case 'primary':
         return '#07090E'; // High contrast black on golden amber
       case 'secondary':
-        return COLORS.text;
+        return colors.text;
       case 'surface':
-        return COLORS.text;
+        return colors.text;
       case 'outline':
-        return COLORS.primary;
+        return colors.primary;
       case 'ghost':
-        return COLORS.textSecondary;
+        return colors.textSecondary;
       case 'danger':
         return '#FFFFFF';
       default:
@@ -57,7 +60,7 @@ export default function Button({
 
   const sizeStyle = size === 'sm' ? styles.sizeSm : size === 'lg' ? styles.sizeLg : styles.sizeMd;
   const textSizeStyle = size === 'sm' ? styles.textSm : size === 'lg' ? styles.textLg : styles.textMd;
-  const textColor = disabled ? COLORS.textMuted : getTextColor();
+  const textColor = disabled ? colors.textMuted : getTextColor();
 
   const getVariantStyle = () => {
     switch (variant) {
@@ -99,7 +102,7 @@ export default function Button({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? '#07090E' : COLORS.primary}
+          color={variant === 'primary' ? '#07090E' : colors.primary}
           style={styles.spinner}
         />
       ) : (
@@ -133,7 +136,7 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   base: {
     borderRadius: RADIUS.sm,
     justifyContent: 'center',
@@ -183,31 +186,31 @@ const styles = StyleSheet.create({
   },
   // Variants
   primary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     ...SHADOWS.focus,
   },
   secondary: {
-    backgroundColor: COLORS.surfaceHighlight,
+    backgroundColor: colors.surfaceHighlight,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   surface: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   outline: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
   },
   ghost: {
     backgroundColor: 'transparent',
   },
   danger: {
-    backgroundColor: COLORS.danger,
+    backgroundColor: colors.danger,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },

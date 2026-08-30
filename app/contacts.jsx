@@ -26,9 +26,11 @@ import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import { useContacts } from '../hooks/useContacts';
 import { usePlannerStore } from '../store/usePlannerStore';
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 export default function ContactsScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const {
     contacts,
@@ -84,6 +86,8 @@ export default function ContactsScreen() {
     );
   };
 
+  const styles = createStyles(colors);
+
   if (permissionStatus === 'denied') {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -128,18 +132,25 @@ export default function ContactsScreen() {
             accessibilityLabel="Add selected contacts to planner"
           />
         ) : (
-          <View style={{ width: 44 }} />
+          <Button
+            title="New"
+            icon="Plus"
+            variant="surface"
+            size="sm"
+            onPress={() => router.push('/contact/new')}
+            accessibilityLabel="Add a new contact"
+          />
         )}
       </View>
 
       {/* Search Input Bar */}
       <View style={styles.searchSection}>
         <View style={styles.searchContainer}>
-          <Search size={18} color={COLORS.primary} strokeWidth={2} style={styles.searchIcon} />
+          <Search size={18} color={colors.primary} strokeWidth={2} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search squad by name or phone..."
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -150,7 +161,7 @@ export default function ContactsScreen() {
               accessibilityRole="button"
               accessibilityLabel="Clear search text"
             >
-              <X size={16} color={COLORS.textMuted} strokeWidth={2} />
+              <X size={16} color={colors.textMuted} strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
@@ -167,11 +178,11 @@ export default function ContactsScreen() {
           return (
             <TouchableOpacity
               style={[styles.contactCard, isSelected && styles.contactCardSelected]}
-              onPress={() => handleSelectContact(item)}
+              onPress={() => router.push({ pathname: '/contact/[id]', params: { id: item.id } })}
               activeOpacity={0.75}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: isSelected }}
+              accessibilityRole="button"
               accessibilityLabel={`${item.name}, ${item.phone || 'No phone'}`}
+              accessibilityHint="Opens contact details"
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{item.initials || item.name.charAt(0)}</Text>
@@ -193,9 +204,16 @@ export default function ContactsScreen() {
                     style={{ marginRight: SPACING.xs }}
                   />
                 )}
-                <View style={[styles.checkCircle, isSelected && styles.checkCircleActive]}>
+                <TouchableOpacity
+                  onPress={() => handleSelectContact(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={`Select ${item.name}`}
+                  style={[styles.checkCircle, isSelected && styles.checkCircleActive]}
+                >
                   {isSelected && <Check size={16} color="#07090E" strokeWidth={3} />}
-                </View>
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
@@ -212,10 +230,10 @@ export default function ContactsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -224,11 +242,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.cardBorder,
+    borderBottomColor: colors.cardBorder,
   },
   headerTitle: {
     ...TYPOGRAPHY.h3,
-    color: COLORS.text,
+    color: colors.text,
   },
   searchSection: {
     paddingHorizontal: SPACING.lg,
@@ -237,11 +255,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 48,
   },
   searchIcon: {
@@ -250,7 +268,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
   },
   clearBtn: {
     width: 36,
@@ -265,31 +283,31 @@ const styles = StyleSheet.create({
   contactCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 56,
   },
   contactCardSelected: {
     backgroundColor: 'rgba(0, 240, 255, 0.08)',
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   avatarText: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   contactInfo: {
     flex: 1,
@@ -297,11 +315,11 @@ const styles = StyleSheet.create({
   },
   contactName: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   contactPhone: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   actionsRow: {
@@ -313,12 +331,12 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: RADIUS.xs,
     borderWidth: 1.5,
-    borderColor: COLORS.textMuted,
+    borderColor: colors.textMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkCircleActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
 });

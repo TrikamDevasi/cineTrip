@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -30,8 +31,9 @@ import FormatBadge from '../components/FormatBadge';
 import EmptyState from '../components/ui/EmptyState';
 import { useLocation } from '../hooks/useLocation';
 import { cinemaService } from '../services/cinema';
-import { getDistanceKm } from '../services/location';
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { getDistanceKm, geocodeAddress } from '../services/location';
+import { useTheme } from '../hooks/useTheme';
+import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import { usePlannerStore } from '../store/usePlannerStore';
 import APP_CONFIG from '../constants/config';
 
@@ -45,6 +47,7 @@ try {
 }
 
 export default function MapScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const setDraftCinema = usePlannerStore((s) => s.setDraftCinema);
   const { location: deviceCoords, getCurrentLocation, getLastKnownLocation, permissionStatus } = useLocation();
@@ -127,6 +130,39 @@ export default function MapScreen() {
     fetchNearbyTheaters({ latitude: 19.076, longitude: 72.8777 });
   };
 
+  const focusMapOnCoords = (coords, delta = 0.015) => {
+    if (mapRef.current && Platform.OS !== 'web') {
+      try {
+        mapRef.current.animateToRegion({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          latitudeDelta: delta,
+          longitudeDelta: delta,
+        }, 800);
+      } catch (err) {
+        console.warn('Map focus error:', err.message);
+      }
+    }
+  };
+
+  const handleAddressSearch = async () => {
+    const query = searchQuery.trim();
+    if (!query) return;
+
+    const result = await geocodeAddress(query);
+    if (!result) {
+      Alert.alert('Location not found', `We couldn't find "${searchQuery}". Try a city, landmark, or full address.`);
+      return;
+    }
+
+    const coords = { latitude: result.latitude, longitude: result.longitude };
+    setLocationDenied(false);
+    setBypassLocation(false);
+    setSelectedLocation(coords);
+    focusMapOnCoords(coords);
+    await fetchNearbyTheaters(coords);
+  };
+
   const handleGoToMyLocation = () => {
     if (deviceCoords) {
       setSelectedLocation(deviceCoords);
@@ -176,6 +212,8 @@ export default function MapScreen() {
   const bbox = `${activeLon - 0.01},${activeLat - 0.01},${activeLon + 0.01},${activeLat + 0.01}`;
   const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${activeLat},${activeLon}`;
 
+  const styles = createStyles(colors);
+
   // Show Location Permission Denied Overlay
   if (locationDenied && !bypassLocation) {
     return (
@@ -187,7 +225,7 @@ export default function MapScreen() {
         </View>
         <View style={styles.centerContainer}>
           <View style={styles.errorIconCircle}>
-            <AlertTriangle size={32} color={COLORS.warning} />
+            <AlertTriangle size={32} color={colors.warning} />
           </View>
           <Text style={styles.errorHeading}>Location access is required</Text>
           <Text style={styles.errorDescription}>
@@ -223,6 +261,25 @@ export default function MapScreen() {
         <IconButton icon="LocateFixed" variant="surface" onPress={handleGoToMyLocation} />
       </View>
 
+      {/* Address Search Bar */}
+      <View style={styles.searchBar}>
+        <Search size={18} color={colors.textMuted} />
+        <TextInput
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search an address, city, or landmark..."
+          placeholderTextColor={colors.textMuted}
+          returnKeyType="search"
+          onSubmitEditing={handleAddressSearch}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <X size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* Map Split Layout */}
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
@@ -248,7 +305,7 @@ export default function MapScreen() {
               <Marker
                 coordinate={selectedLocation}
                 title="Your Location"
-                pinColor={COLORS.primary}
+                pinColor={colors.primary}
               />
             )}
             {cinemas.map((c) => (
@@ -257,14 +314,14 @@ export default function MapScreen() {
                 coordinate={{ latitude: c.latitude, longitude: c.longitude }}
                 title={c.name}
                 description={c.address}
-                pinColor={highlightedCinema?.id === c.id ? COLORS.primary : COLORS.accentCyan}
+                pinColor={highlightedCinema?.id === c.id ? colors.primary : colors.accentCyan}
                 onPress={() => setHighlightedCinema(c)}
               />
             ))}
           </MapView>
         ) : (
           <View style={styles.radarFallback}>
-            <MapPin size={40} color={COLORS.primary} />
+            <MapPin size={40} color={colors.primary} />
             <Text style={styles.radarText}>Radar searching for nearby Auditoriums...</Text>
           </View>
         )}
@@ -289,7 +346,7 @@ export default function MapScreen() {
 
         {cinemaLoading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator color={COLORS.primary} size="large" />
+            <ActivityIndicator color={colors.primary} size="large" />
             <Text style={styles.loadingText}>Fetching theater metadata...</Text>
           </View>
         ) : cinemas.length === 0 ? (
@@ -351,10 +408,10 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -367,7 +424,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   centerContainer: {
     flex: 1,
@@ -386,13 +443,13 @@ const styles = StyleSheet.create({
   },
   errorHeading: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   errorDescription: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: SPACING.xl,
@@ -405,7 +462,27 @@ const styles = StyleSheet.create({
     height: 250,
     backgroundColor: '#07090e',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.cardBorder,
+    borderBottomColor: colors.cardBorder,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    height: 44,
+    backgroundColor: colors.card,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: SPACING.sm,
+  },
+  searchInput: {
+    flex: 1,
+    ...TYPOGRAPHY.body,
+    color: colors.text,
+    paddingVertical: 0,
   },
   webMapFrame: {
     width: '100%',
@@ -423,7 +500,7 @@ const styles = StyleSheet.create({
   },
   radarText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginTop: SPACING.sm,
   },
   sheetScroll: {
@@ -443,10 +520,10 @@ const styles = StyleSheet.create({
   sheetHeading: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   demoBadge: {
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
@@ -456,7 +533,7 @@ const styles = StyleSheet.create({
   demoBadgeText: {
     ...TYPOGRAPHY.badge,
     fontSize: 9,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   loadingBox: {
     alignItems: 'center',
@@ -464,21 +541,21 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: SPACING.md,
   },
   cinemaCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     marginBottom: SPACING.sm,
     ...SHADOWS.card,
   },
   highlightedCard: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.cardElevated,
+    borderColor: colors.primary,
+    backgroundColor: colors.cardElevated,
   },
   cardTop: {
     flexDirection: 'row',
@@ -491,16 +568,16 @@ const styles = StyleSheet.create({
   },
   cinemaName: {
     ...TYPOGRAPHY.h3,
-    color: COLORS.text,
+    color: colors.text,
   },
   cinemaAddress: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   distanceBadge: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   formatRow: {
     flexDirection: 'row',

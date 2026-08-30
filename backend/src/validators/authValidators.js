@@ -28,6 +28,33 @@ const loginSchema = z.object({
   password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .email('Please enter a valid email address')
+    .toLowerCase(),
+});
+
+const resetPasswordSchema = z
+  .object({
+    email: z
+      .string({ required_error: 'Email is required' })
+      .email('Please enter a valid email address')
+      .toLowerCase(),
+    password: z
+      .string({ required_error: 'Password is required' })
+      .min(6, 'Password must be at least 6 characters')
+      .max(100, 'Password too long'),
+    confirmPassword: z.string({ required_error: 'Please confirm your password' }),
+    token: z
+      .string({ required_error: 'Reset token is required' })
+      .min(1, 'Reset token is required'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
 const validate = (schema) => (req, res, next) => {
   try {
     req.body = schema.parse(req.body);
@@ -41,4 +68,10 @@ const validate = (schema) => (req, res, next) => {
   }
 };
 
-module.exports = { registerSchema, loginSchema, validate };
+module.exports = {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  validate,
+};

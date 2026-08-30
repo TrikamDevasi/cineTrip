@@ -2,16 +2,18 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Platform, View, StyleSheet } from 'react-native';
 import { House, Compass, Ticket, Bookmark, Camera, User } from 'lucide-react-native';
-import { COLORS, TYPOGRAPHY } from '../../constants/theme';
+import { TYPOGRAPHY } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           backgroundColor: '#090C14',
           borderTopColor: 'rgba(255, 255, 255, 0.07)',

@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
 
-const SOURCE_META = {
+const SOURCE_META = (colors) => ({
   LIVE: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.14)' },
   CACHED: { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.14)' },
   DEMO: { color: '#A78BFA', bg: 'rgba(139, 92, 246, 0.16)' },
-  UNAVAILABLE: { color: COLORS.textMuted, bg: 'rgba(148, 163, 184, 0.14)' },
-};
+  UNAVAILABLE: { color: colors.textMuted, bg: 'rgba(148, 163, 184, 0.14)' },
+});
 
 /**
  * Small pill that tells users exactly where the data on screen came from:
@@ -16,7 +17,9 @@ const SOURCE_META = {
  * is not.
  */
 export default function DataSourceBadge({ source = 'UNAVAILABLE', label, style }) {
-  const meta = SOURCE_META[source] || SOURCE_META.UNAVAILABLE;
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const meta = SOURCE_META(colors)[source] || SOURCE_META(colors).UNAVAILABLE;
   return (
     <View style={[styles.badge, { backgroundColor: meta.bg, borderColor: meta.color }, style]}>
       <View style={[styles.dot, { backgroundColor: meta.color }]} />
@@ -25,7 +28,7 @@ export default function DataSourceBadge({ source = 'UNAVAILABLE', label, style }
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',

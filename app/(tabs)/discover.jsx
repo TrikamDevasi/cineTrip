@@ -22,7 +22,8 @@ import MoodSelector from '../../components/MoodSelector';
 import { searchMovies, getTrendingMovies, getNowPlayingMovies, getUpcomingMovies } from '../../services/tmdb';
 import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import { useDebounce } from '../../hooks/useDebounce';
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FORMAT_FILTERS = ['All Formats', 'IMAX Laser', 'Dolby Cinema', '4DX', 'RealD 3D'];
@@ -33,6 +34,7 @@ const CATEGORY_TABS = [
 ];
 
 export default function DiscoverScreen() {
+  const { colors } = useTheme();
   const [activeCategory, setActiveCategory] = useState('in_theaters');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFormat, setSelectedFormat] = useState('All Formats');
@@ -163,6 +165,8 @@ export default function DiscoverScreen() {
 
   const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
 
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -170,11 +174,11 @@ export default function DiscoverScreen() {
       {/* SEARCH BAR */}
       <View style={styles.searchBarWrapper}>
         <View style={styles.searchContainer}>
-          <Search size={18} color={COLORS.primary} strokeWidth={2.2} style={styles.searchIcon} />
+          <Search size={18} color={colors.primary} strokeWidth={2.2} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search films, directors, IMAX..."
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
@@ -182,7 +186,7 @@ export default function DiscoverScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn}>
-              <X size={16} color={COLORS.textMuted} strokeWidth={2} />
+              <X size={16} color={colors.textMuted} strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
@@ -205,7 +209,7 @@ export default function DiscoverScreen() {
               >
                 <Icon
                   size={15}
-                  color={isSelected ? '#07090E' : COLORS.textSecondary}
+                  color={isSelected ? '#07090E' : colors.textSecondary}
                   strokeWidth={2.2}
                 />
                 <Text style={[styles.categoryTabText, isSelected && styles.categoryTabTextActive]}>
@@ -256,8 +260,8 @@ export default function DiscoverScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-            colors={[COLORS.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
         onEndReached={loadMoreMovies}
@@ -296,7 +300,7 @@ export default function DiscoverScreen() {
         ListFooterComponent={
           loadingMore ? (
             <View style={styles.footerLoader}>
-              <ActivityIndicator size="small" color={COLORS.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : null
         }
@@ -305,10 +309,10 @@ export default function DiscoverScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   searchBarWrapper: {
     paddingHorizontal: SPACING.lg,
@@ -318,11 +322,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 46,
     ...SHADOWS.card,
   },
@@ -332,7 +336,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
   },
   clearBtn: {
     padding: 6,
@@ -350,18 +354,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: 7,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     gap: 6,
   },
   categoryTabActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   categoryTabText: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   categoryTabTextActive: {
     color: '#07090E',

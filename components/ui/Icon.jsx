@@ -1,17 +1,20 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react-native';
-import { COLORS, ICON_SIZES, ICON_STROKE_WIDTH } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { ICON_SIZES, ICON_STROKE_WIDTH } from '../../constants/theme';
 
 export { ICON_SIZES, ICON_STROKE_WIDTH };
 
 export default function Icon({
   name,
   size = 'md',
-  color = COLORS.text,
+  color,
   strokeWidth = ICON_STROKE_WIDTH,
   style,
   ...props
 }) {
+  const { colors } = useTheme();
+  const resolvedColor = color ?? colors.text;
   if (!name) return null;
 
   // Resolve size from token or numeric value
@@ -24,7 +27,7 @@ export default function Icon({
     return (
       <Component
         size={resolvedSize}
-        color={color}
+        color={resolvedColor}
         strokeWidth={strokeWidth}
         style={style}
         {...props}
@@ -43,7 +46,7 @@ export default function Icon({
   return (
     <IconComponent
       size={resolvedSize}
-      color={color}
+      color={resolvedColor}
       strokeWidth={strokeWidth}
       style={style}
       {...props}

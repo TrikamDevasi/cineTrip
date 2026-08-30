@@ -1,7 +1,8 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
 /**
  * Standardized Chip Component for filters, categories and tags
@@ -16,6 +17,8 @@ export default function Chip({
   textStyle,
   accessibilityLabel,
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <TouchableOpacity
       activeOpacity={0.75}
@@ -32,7 +35,7 @@ export default function Chip({
       <View style={styles.contentRow}>
         {selected ? (
           <View style={styles.iconWrapper}>
-            <Check size={14} color={COLORS.primary} strokeWidth={2.5} />
+            <Check size={14} color={colors.primary} strokeWidth={2.5} />
           </View>
         ) : icon ? (
           <View style={styles.iconWrapper}>{icon}</View>
@@ -61,7 +64,7 @@ export default function Chip({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   chipContainer: {
     minHeight: 38,
     paddingHorizontal: SPACING.md,
@@ -74,12 +77,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipUnselected: {
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.cardBorder,
+    backgroundColor: colors.surface,
+    borderColor: colors.cardBorder,
   },
   chipSelected: {
-    backgroundColor: COLORS.primarySubtle,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primarySubtle,
+    borderColor: colors.primary,
   },
   contentRow: {
     flexDirection: 'row',
@@ -93,25 +96,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   labelUnselected: {
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   labelSelected: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   badge: {
     marginLeft: 6,
-    backgroundColor: COLORS.surfaceElevated,
+    backgroundColor: colors.surfaceElevated,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
   },
   badgeSelected: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   badgeText: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   badgeTextSelected: {
     color: '#07090E',

@@ -4,9 +4,12 @@ import { Film, MapPin, Search, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from './ui/IconButton';
 import { usePreferencesStore } from '../store/usePreferencesStore';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
 
 export default function Header({ showSearch = true, onSearchPress }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const router = useRouter();
   const city = usePreferencesStore((s) => s.city);
   const userName = usePreferencesStore((s) => s.userName);
@@ -16,7 +19,7 @@ export default function Header({ showSearch = true, onSearchPress }) {
       <View style={styles.left}>
         <View style={styles.brandRow}>
           <View style={styles.brandIconWrapper}>
-            <Film size={16} color={COLORS.primary} strokeWidth={2.2} />
+            <Film size={16} color={colors.primary} strokeWidth={2.2} />
           </View>
           <Text style={styles.brandText}>
             Cine<Text style={styles.brandAccent}>Trip</Text>
@@ -30,7 +33,7 @@ export default function Header({ showSearch = true, onSearchPress }) {
           accessibilityLabel={`Current location: ${city || 'Select city'}. Tap to view cinema map.`}
           activeOpacity={0.75}
         >
-          <MapPin size={12} color={COLORS.primary} strokeWidth={2} />
+          <MapPin size={12} color={colors.primary} strokeWidth={2} />
           <Text style={styles.locationText} numberOfLines={1}>
             {city || 'Local Metro'}
           </Text>
@@ -53,7 +56,7 @@ export default function Header({ showSearch = true, onSearchPress }) {
           icon="User"
           variant="surface"
           size={18}
-          color={COLORS.primary}
+          color={colors.primary}
           onPress={() => router.push('/(tabs)/profile')}
           accessibilityLabel={userName ? `Profile for ${userName}` : 'View profile and settings'}
         />
@@ -62,7 +65,7 @@ export default function Header({ showSearch = true, onSearchPress }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -70,7 +73,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.sm,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
@@ -85,7 +88,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: RADIUS.xs,
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -96,11 +99,11 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h1,
     fontSize: 20,
     fontWeight: '900',
-    color: COLORS.text,
+    color: colors.text,
     letterSpacing: -0.3,
   },
   brandAccent: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   locationRow: {
     flexDirection: 'row',
@@ -111,7 +114,7 @@ const styles = StyleSheet.create({
   locationText: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   right: {

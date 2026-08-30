@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Star } from 'lucide-react-native';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
 export default function Rating({
   rating = 0,
@@ -11,6 +12,8 @@ export default function Rating({
   showNumeric = true,
   size = 22,
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const stars = Array.from({ length: maxRating }, (_, i) => i + 1);
 
   return (
@@ -31,7 +34,7 @@ export default function Rating({
             >
               <Star
                 size={size}
-                color={isFilled ? '#E5A93C' : COLORS.textMuted}
+                color={isFilled ? '#E5A93C' : colors.textMuted}
                 fill={isFilled ? '#E5A93C' : 'transparent'}
                 strokeWidth={1.5}
               />
@@ -51,7 +54,7 @@ export default function Rating({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     alignItems: 'center',
     marginVertical: SPACING.xs,
@@ -69,12 +72,12 @@ const styles = StyleSheet.create({
   },
   numericContainer: {
     marginTop: SPACING.xs,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: SPACING.md,
     paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   numericText: {
     ...TYPOGRAPHY.captionBold,

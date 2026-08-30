@@ -2,16 +2,19 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import Icon from './ui/Icon';
-import { COLORS, TYPOGRAPHY, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, SPACING } from '../constants/theme';
 
 export default function SectionHeader({ title, subtitle, actionText, onAction, icon }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.container}>
       <View style={styles.left}>
         <View style={styles.titleRow}>
           {icon && (
             <View style={styles.iconWrapper}>
-              <Icon name={icon} size={18} color={COLORS.primary} strokeWidth={2.2} />
+              <Icon name={icon} size={18} color={colors.primary} strokeWidth={2.2} />
             </View>
           )}
           <Text style={styles.title}>{title}</Text>
@@ -28,14 +31,14 @@ export default function SectionHeader({ title, subtitle, actionText, onAction, i
           accessibilityLabel={`${actionText} ${title}`}
         >
           <Text style={styles.actionText}>{actionText}</Text>
-          <ChevronRight size={14} color={COLORS.primary} strokeWidth={2.2} />
+          <ChevronRight size={14} color={colors.primary} strokeWidth={2.2} />
         </TouchableOpacity>
       )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -57,11 +60,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   subtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   actionBtn: {
@@ -72,7 +75,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.primary,
+    color: colors.primary,
     letterSpacing: 0.2,
   },
 });

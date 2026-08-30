@@ -8,46 +8,39 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, useRouter } from 'expo-router';
-import { Film, User, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react-native';
+import { Link, useRouter, useLocalSearchParams } from 'expo-router';
+import { Lock, Eye, EyeOff, ArrowLeft, KeyRound } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
-import { useAuthStore } from '../../store/useAuthStore';
-import { usePreferencesStore } from '../../store/usePreferencesStore';
+import api from '../../services/api';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
-export default function RegisterScreen() {
+export default function ResetPasswordScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { register, loginWithGoogle } = useAuthStore();
-  const updateProfile = usePreferencesStore((s) => s.updateProfile);
+  const params = useLocalSearchParams();
+  const token = typeof params.token === 'string' ? params.token : (params.token || null);
+  const email = typeof params.email === 'string' ? params.email : (params.email || '');
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   const validate = () => {
-    if (!name.trim()) return 'Please enter your name.';
-    if (name.trim().length < 2) return 'Name must be at least 2 characters.';
-    if (!email.trim()) return 'Please enter your email address.';
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return 'Please enter a valid email address.';
-    if (!password) return 'Please enter a password.';
+    if (!token) return 'This reset link is invalid or incomplete. Please request a new one.';
+    if (!password) return 'Please enter a new password.';
     if (password.length < 6) return 'Password must be at least 6 characters.';
     if (password !== confirmPassword) return 'Passwords do not match.';
     return null;
   };
 
-  const handleRegister = async () => {
+  const handleReset = async () => {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -57,40 +50,18 @@ export default function RegisterScreen() {
     setError('');
     setLoading(true);
 
-    const result = await register({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      password,
-      confirmPassword,
-    });
-
-    setLoading(false);
-
-    if (result.success) {
-      router.replace('/(tabs)');
-    } else {
-      setError(result.error || 'Registration failed. Please try again.');
-    }
-  };
-
-  const handleGoogleRegister = async () => {
-    setError('');
-    setGoogleLoading(true);
-
     try {
-      const result = await loginWithGoogle();
-      if (result.success) {
-        if (!result.redirecting) {
-          router.replace('/(tabs)');
-        }
-        return;
-      } else if (!result.cancelled) {
-        setError(result.error || 'Google Sign-In was not completed.');
-      }
+      await api.post('/api/auth/reset-password', {
+        token,
+        email,
+        password,
+        confirmPassword,
+      });
+      router.replace('/(auth)/login');
     } catch (err) {
-      setError(err.message || 'Google Sign-In encountered an unexpected error.');
+      setError(err.message || 'Reset failed. Please try again.');
     } finally {
-      setGoogleLoading(false);
+      setLoading(false);
     }
   };
 
@@ -120,10 +91,10 @@ export default function RegisterScreen() {
           {/* Logo / Header */}
           <View style={styles.heroSection}>
             <View style={styles.logoBadge}>
-              <Film size={28} color={colors.primary} strokeWidth={2.2} />
+              <KeyRound size={28} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <Text style={styles.appName}>Join CineTrip</Text>
-            <Text style={styles.tagline}>Create your theatrical cinephile passport</Text>
+            <Text style={styles.appName}>Choose a New Password</Text>
+            <Text style={styles.tagline}>Must be at least 6 characters</Text>
           </View>
 
           {/* Form Card */}
@@ -134,70 +105,9 @@ export default function RegisterScreen() {
               </View>
             ) : null}
 
-            {/* Google Sign-In */}
-            <TouchableOpacity
-              style={styles.googleBtn}
-              onPress={handleGoogleRegister}
-              disabled={googleLoading || loading}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Sign up with Google"
-            >
-              {googleLoading ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <View style={styles.googleContent}>
-                  <View style={styles.googleIconCircle}>
-                    <Text style={styles.googleG}>G</Text>
-                  </View>
-                  <Text style={styles.googleBtnText}>Continue with Google</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or register with email</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Name Field */}
+            {/* New Password Field */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>FULL NAME</Text>
-              <View style={styles.inputWrapper}>
-                <User size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={(t) => { setName(t); setError(''); }}
-                  placeholder="Your Name"
-                  placeholderTextColor={colors.textMuted}
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
-
-            {/* Email Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>EMAIL ADDRESS</Text>
-              <View style={styles.inputWrapper}>
-                <Mail size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={(t) => { setEmail(t); setError(''); }}
-                  placeholder="name@example.com"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-            </View>
-
-            {/* Password Field */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>PASSWORD</Text>
+              <Text style={styles.label}>NEW PASSWORD</Text>
               <View style={styles.inputWrapper}>
                 <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
@@ -208,60 +118,76 @@ export default function RegisterScreen() {
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  editable={!loading}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword((p) => !p)}
                   style={styles.eyeBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={18} color={colors.textMuted} /> : <Eye size={18} color={colors.textMuted} />}
+                  {showPassword ? (
+                    <EyeOff size={18} color={colors.textMuted} />
+                  ) : (
+                    <Eye size={18} color={colors.textMuted} />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Confirm Password Field */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>CONFIRM PASSWORD</Text>
+              <Text style={styles.label}>CONFIRM NEW PASSWORD</Text>
               <View style={styles.inputWrapper}>
                 <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={confirmPassword}
                   onChangeText={(t) => { setConfirmPassword(t); setError(''); }}
-                  placeholder="••••••••"
+                  placeholder="Re-enter your new password"
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!showConfirm}
                   autoCapitalize="none"
+                  editable={!loading}
                 />
                 <TouchableOpacity
                   onPress={() => setShowConfirm((p) => !p)}
                   style={styles.eyeBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={showConfirm ? 'Hide password' : 'Show password'}
                 >
-                  {showConfirm ? <EyeOff size={18} color={colors.textMuted} /> : <Eye size={18} color={colors.textMuted} />}
+                  {showConfirm ? (
+                    <EyeOff size={18} color={colors.textMuted} />
+                  ) : (
+                    <Eye size={18} color={colors.textMuted} />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Submit Button */}
             <Button
-              title="Create Account"
+              title="Reset Password"
               variant="primary"
               size="lg"
               loading={loading}
-              onPress={handleRegister}
-              accessibilityLabel="Create Account"
+              onPress={handleReset}
+              accessibilityLabel="Reset Password"
               style={styles.submitBtn}
             />
           </View>
 
           {/* Footer Navigation */}
-          <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <Link href="/(auth)/login" asChild>
-              <TouchableOpacity>
-                <Text style={styles.footerLink}>Sign in</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
+          {!token ? (
+            <View style={styles.footerRow}>
+              <Text style={styles.footerText}>Link missing or expired? </Text>
+              <Link href="/(auth)/forgot-password" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.footerLink}>Request a new one</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -279,6 +205,8 @@ const createStyles = (colors) => StyleSheet.create({
   scroll: {
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   topNav: {
     marginBottom: SPACING.sm,
@@ -303,11 +231,13 @@ const createStyles = (colors) => StyleSheet.create({
     ...TYPOGRAPHY.displayLarge,
     fontSize: 26,
     color: colors.text,
+    textAlign: 'center',
   },
   tagline: {
     ...TYPOGRAPHY.body,
     color: colors.textSecondary,
     marginTop: 2,
+    textAlign: 'center',
   },
   formCard: {
     backgroundColor: colors.card,
@@ -329,53 +259,6 @@ const createStyles = (colors) => StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: colors.danger,
     textAlign: 'center',
-  },
-  googleBtn: {
-    backgroundColor: colors.surface,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    minHeight: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  googleContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  googleIconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  googleG: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#4285F4',
-  },
-  googleBtnText: {
-    ...TYPOGRAPHY.bodyBold,
-    color: colors.text,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: SPACING.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  dividerText: {
-    ...TYPOGRAPHY.caption,
-    color: colors.textMuted,
-    marginHorizontal: SPACING.sm,
   },
   inputGroup: {
     marginBottom: SPACING.md,
@@ -414,8 +297,7 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: SPACING.lg,
-    paddingBottom: SPACING.md,
+    marginTop: SPACING.xl,
   },
   footerText: {
     ...TYPOGRAPHY.body,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
 
 export default function FormatBadge({ format = 'IMAX Laser', size = 'medium', style }) {
   const isSmall = size === 'small';

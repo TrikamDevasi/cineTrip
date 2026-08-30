@@ -22,11 +22,13 @@ import EmptyState from '../../components/ui/EmptyState';
 import { MovieCardSkeleton } from '../../components/ui/Skeleton';
 import { useWatchlistStore } from '../../store/useWatchlistStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function WatchlistScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const [filterType, setFilterType] = useState('all');
   const [search, setSearch] = useState('');
@@ -85,6 +87,8 @@ export default function WatchlistScreen() {
 
   const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
 
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -141,11 +145,11 @@ export default function WatchlistScreen() {
       {/* Search Filter in Watchlist */}
       {watchlist.length > 3 && (
         <View style={styles.searchWrapper}>
-          <Search size={16} color={COLORS.textMuted} strokeWidth={2} style={{ marginRight: SPACING.sm }} />
+          <Search size={16} color={colors.textMuted} strokeWidth={2} style={{ marginRight: SPACING.sm }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Filter saved films..."
-            placeholderTextColor={COLORS.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={search}
             onChangeText={setSearch}
           />
@@ -181,8 +185,8 @@ export default function WatchlistScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
             />
           }
           renderItem={({ item }) => (
@@ -194,10 +198,10 @@ export default function WatchlistScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   topHeader: {
     flexDirection: 'row',
@@ -212,11 +216,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   subtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   filterSection: {
@@ -229,19 +233,19 @@ const styles = StyleSheet.create({
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.full,
     paddingHorizontal: SPACING.md,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 42,
   },
   searchInput: {
     flex: 1,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
   },
   listContainer: {
     paddingHorizontal: SPACING.lg,

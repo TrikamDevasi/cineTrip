@@ -2,9 +2,12 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Calendar, MapPin, Star, Sparkles, Users, Utensils } from 'lucide-react-native';
 import FormatBadge from './FormatBadge';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
 export default function MemoryCard({ memory, onDelete }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   if (!memory) return null;
 
   const movie = memory.movie || {};
@@ -35,7 +38,7 @@ export default function MemoryCard({ memory, onDelete }) {
               {movie.title || 'Theatrical Experience'}
             </Text>
             <View style={styles.cinemaRow}>
-              <MapPin size={12} color={COLORS.primary} strokeWidth={2} />
+              <MapPin size={12} color={colors.primary} strokeWidth={2} />
               <Text style={styles.cinemaText} numberOfLines={1}>
                 {memory.cinemaName || 'Certified IMAX Laser Auditorium'}
               </Text>
@@ -62,7 +65,7 @@ export default function MemoryCard({ memory, onDelete }) {
         {/* 5. MEMORY HIGHLIGHT QUOTE */}
         {memory.favoriteMoment ? (
           <View style={styles.highlightBox}>
-            <Sparkles size={14} color={COLORS.primary} strokeWidth={2} />
+            <Sparkles size={14} color={colors.primary} strokeWidth={2} />
             <Text style={styles.highlightText} numberOfLines={2}>
               <Text style={styles.highlightBold}>Highlight: </Text>
               {memory.favoriteMoment}
@@ -75,7 +78,7 @@ export default function MemoryCard({ memory, onDelete }) {
           <View style={styles.footerRow}>
             {memory.companions && memory.companions.length > 0 && (
               <View style={styles.companionsRow}>
-                <Users size={12} color={COLORS.textSecondary} strokeWidth={2} style={{ marginRight: 4 }} />
+                <Users size={12} color={colors.textSecondary} strokeWidth={2} style={{ marginRight: 4 }} />
                 {memory.companions.map((c, idx) => (
                   <View key={idx} style={styles.avatarTag}>
                     <Text style={styles.companionName}>{c.name}</Text>
@@ -86,7 +89,7 @@ export default function MemoryCard({ memory, onDelete }) {
 
             {memory.snackHighlight ? (
               <View style={styles.snackRow}>
-                <Utensils size={12} color={COLORS.primary} strokeWidth={2} />
+                <Utensils size={12} color={colors.primary} strokeWidth={2} />
                 <Text style={styles.snackText} numberOfLines={1}>
                   {memory.snackHighlight}
                 </Text>
@@ -99,21 +102,21 @@ export default function MemoryCard({ memory, onDelete }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
     ...SHADOWS.card,
   },
   photoContainer: {
     width: '100%',
     height: 200,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     position: 'relative',
   },
   photo: {
@@ -155,7 +158,7 @@ const styles = StyleSheet.create({
   },
   movieTitle: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 2,
   },
   cinemaRow: {
@@ -166,23 +169,23 @@ const styles = StyleSheet.create({
   cinemaText: {
     ...TYPOGRAPHY.caption,
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.full,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     gap: 4,
   },
   ratingText: {
     ...TYPOGRAPHY.badge,
     fontSize: 11,
-    color: COLORS.text,
+    color: colors.text,
   },
   formatRow: {
     flexDirection: 'row',
@@ -190,14 +193,14 @@ const styles = StyleSheet.create({
   },
   storyText: {
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
     lineHeight: 20,
     marginBottom: SPACING.sm,
   },
   highlightBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     borderRadius: RADIUS.xs,
     padding: SPACING.sm,
     gap: 6,
@@ -207,13 +210,13 @@ const styles = StyleSheet.create({
   },
   highlightText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.text,
+    color: colors.text,
     flex: 1,
     lineHeight: 16,
   },
   highlightBold: {
     fontWeight: '800',
-    color: COLORS.primary,
+    color: colors.primary,
   },
   footerRow: {
     flexDirection: 'row',
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   avatarTag: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
@@ -238,7 +241,7 @@ const styles = StyleSheet.create({
   companionName: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   snackRow: {
     flexDirection: 'row',
@@ -248,6 +251,6 @@ const styles = StyleSheet.create({
   snackText: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
 });

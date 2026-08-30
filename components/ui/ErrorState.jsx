@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AlertCircle, RefreshCw } from 'lucide-react-native';
 import Button from './Button';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
 export default function ErrorState({
   title = 'Something Went Wrong',
@@ -11,10 +12,12 @@ export default function ErrorState({
   retryLabel = 'Try Again',
   style,
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={[styles.container, style]}>
       <View style={styles.iconCircle}>
-        <AlertCircle size={28} color={COLORS.danger} strokeWidth={2} />
+        <AlertCircle size={28} color={colors.danger} strokeWidth={2} />
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
@@ -32,7 +35,7 @@ export default function ErrorState({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -43,7 +46,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.dangerSubtle,
+    backgroundColor: colors.dangerSubtle,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.md,
@@ -52,13 +55,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 4,
   },
   message: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,

@@ -8,10 +8,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   Share,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, Bookmark, BookmarkCheck, Star, Ticket, Clock, Calendar, Film } from 'lucide-react-native';
+import { ArrowLeft, Share2, Bookmark, BookmarkCheck, Star, Ticket, Play, Clock, Calendar, Film } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FormatBadge from '../../components/FormatBadge';
 import Button from '../../components/ui/Button';
@@ -20,9 +21,11 @@ import { getMovieDetails, getImageUri } from '../../services/tmdb';
 import { useWatchlistStore } from '../../store/useWatchlistStore';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { useMovieCatalog } from '../../hooks/useMovieCatalog';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 export default function MovieDetailScreen() {
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [movie, setMovie] = useState(null);
@@ -53,7 +56,19 @@ export default function MovieDetailScreen() {
 
   const handlePlanNight = () => {
     if (!movie) return;
-    const availability = getAvailability(movie);
+  const availability = getAvailability(movie);
+
+  const trailer = React.useMemo(() => {
+    const results = movie.videos && movie.videos.results ? movie.videos.results : [];
+    return results
+      .filter((v) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser') && v.key)
+      .sort((a, b) => (a.type === 'Trailer' ? -1 : 1))[0];
+  }, [movie]);
+
+  const handlePlayTrailer = () => {
+    if (!trailer || !trailer.key) return;
+    Linking.openURL(`https://www.youtube.com/watch?v=${trailer.key}`).catch(() => {});
+  };
     if (!availability.canBook) return;
     setDraftMovie(movie);
     router.push('/(tabs)/planner');
@@ -68,10 +83,12 @@ export default function MovieDetailScreen() {
     } catch (e) {}
   };
 
+  const styles = createStyles(colors);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -136,7 +153,7 @@ export default function MovieDetailScreen() {
               <IconButton
                 icon={isInWatchlist ? "BookmarkCheck" : "Bookmark"}
                 variant="surface"
-                color={isInWatchlist ? COLORS.primary : COLORS.text}
+                color={isInWatchlist ? colors.primary : colors.text}
                 onPress={() => toggleWatchlist(movie)}
                 accessibilityLabel={isInWatchlist ? `Remove ${movie.title} from watchlist` : `Add ${movie.title} to watchlist`}
               />
@@ -228,6 +245,27 @@ export default function MovieDetailScreen() {
             />
           </View>
 
+          {/* 3b. TRAILER */}
+          {trailer ? (
+            <TouchableOpacity
+              style={styles.trailerStrip}
+              onPress={handlePlayTrailer}
+              activeOpacity={0.8}
+              accessibilityLabel={`Watch ${movie.title} trailer`}
+            >
+              <View style={styles.trailerPlay}>
+                <Play size={18} color="#07090E" fill="#07090E" strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.trailerTitle}>Watch Trailer</Text>
+                <Text style={styles.trailerSubtitle} numberOfLines={1}>
+                  {trailer.name || 'Official trailer'}
+                </Text>
+              </View>
+              <Film size={18} color={colors.primary} strokeWidth={2} />
+            </TouchableOpacity>
+          ) : null}
+
           {/* 4. THEATRICAL FORMAT AVAILABILITY */}
           {formats.length > 0 && (
             <View style={styles.sectionBlock}>
@@ -304,20 +342,20 @@ export default function MovieDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorText: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     paddingHorizontal: SPACING.lg,
     maxWidth: 300,
@@ -369,9 +407,9 @@ const styles = StyleSheet.create({
     width: 115,
     height: 172,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     ...SHADOWS.card,
   },
   titleColumn: {
@@ -382,12 +420,12 @@ const styles = StyleSheet.create({
   movieTitle: {
     ...TYPOGRAPHY.displayMedium,
     fontSize: 22,
-    color: COLORS.text,
+    color: colors.text,
     lineHeight: 28,
   },
   tagline: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontStyle: 'italic',
     marginTop: 2,
     marginBottom: SPACING.xs,
@@ -400,7 +438,7 @@ const styles = StyleSheet.create({
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
@@ -409,20 +447,20 @@ const styles = StyleSheet.create({
   ratingText: {
     ...TYPOGRAPHY.badge,
     fontSize: 11,
-    color: COLORS.text,
+    color: colors.text,
   },
   metaDivider: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginHorizontal: 4,
   },
   metaText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   genreText: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.primary,
+    color: colors.primary,
     marginTop: 2,
   },
   actionBlock: {
@@ -433,13 +471,42 @@ const styles = StyleSheet.create({
   primaryActionWrap: {
     flex: 1,
   },
+  trailerStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.xl,
+  },
+  trailerPlay: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trailerTitle: {
+    ...TYPOGRAPHY.body,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  trailerSubtitle: {
+    ...TYPOGRAPHY.caption,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
   sectionBlock: {
     marginBottom: SPACING.xl,
   },
   sectionHeading: {
     ...TYPOGRAPHY.badge,
     fontSize: 11,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginBottom: SPACING.sm,
     letterSpacing: 1,
   },
@@ -449,7 +516,7 @@ const styles = StyleSheet.create({
   },
   overviewText: {
     ...TYPOGRAPHY.bodyLarge,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 24,
   },
   castScroll: {
@@ -464,34 +531,34 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     marginBottom: SPACING.xs,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   castAvatarPlaceholder: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xs,
   },
   castAvatarInitial: {
     ...TYPOGRAPHY.h3,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   castName: {
     ...TYPOGRAPHY.caption,
     fontWeight: '700',
-    color: COLORS.text,
+    color: colors.text,
     textAlign: 'center',
   },
   characterName: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
   },
   availabilityCard: {
@@ -510,7 +577,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
   },
@@ -525,7 +592,7 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 5,
-    backgroundColor: COLORS.textMuted,
+    backgroundColor: colors.textMuted,
     marginTop: 5,
   },
   availabilityTitle: {
@@ -537,12 +604,12 @@ const styles = StyleSheet.create({
   availabilityTitleUnavail: {
     ...TYPOGRAPHY.body,
     fontWeight: '700',
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   availabilitySubtitle: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     lineHeight: 18,
   },
 });

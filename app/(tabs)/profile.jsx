@@ -41,7 +41,8 @@ import { useWatchlistStore } from '../../store/useWatchlistStore';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useAuth } from '../../hooks/useAuth';
-import { COLORS, RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
 const FORMAT_OPTIONS = [
   'IMAX 70mm & Laser',
@@ -60,6 +61,7 @@ const CHAIN_OPTIONS = [
 ];
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { logout } = useAuth();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -120,6 +122,8 @@ export default function ProfileScreen() {
     );
   };
 
+  const styles = createStyles(colors);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
@@ -132,7 +136,7 @@ export default function ProfileScreen() {
           {/* PROFILE IDENTITY CARD */}
           <View style={styles.profileCard}>
             <View style={styles.avatarCircle}>
-              <User size={28} color={COLORS.primary} strokeWidth={2} />
+              <User size={28} color={colors.primary} strokeWidth={2} />
             </View>
 
             {isEditing ? (
@@ -142,14 +146,14 @@ export default function ProfileScreen() {
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="Your Name"
-                  placeholderTextColor={COLORS.textMuted}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <TextInput
                   style={styles.editInput}
                   value={editCity}
                   onChangeText={setEditCity}
                   placeholder="Home City"
-                  placeholderTextColor={COLORS.textMuted}
+                  placeholderTextColor={colors.textMuted}
                 />
                 <View style={styles.editButtonsRow}>
                   <Button
@@ -202,7 +206,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${plansCount} planned movie nights`}
             >
-              <Ticket size={18} color={COLORS.primary} strokeWidth={2.2} />
+              <Ticket size={18} color={colors.primary} strokeWidth={2.2} />
               <Text style={styles.statNum}>{plansCount}</Text>
               <Text style={styles.statTxt}>Passes</Text>
             </TouchableOpacity>
@@ -230,7 +234,7 @@ export default function ProfileScreen() {
               accessibilityRole="button"
               accessibilityLabel={`${memoriesCount} memories in journal`}
             >
-              <Camera size={18} color={COLORS.accentGreen} strokeWidth={2.2} />
+              <Camera size={18} color={colors.accentGreen} strokeWidth={2.2} />
               <Text style={styles.statNum}>{memoriesCount}</Text>
               <Text style={styles.statTxt}>Memories</Text>
             </TouchableOpacity>
@@ -263,7 +267,7 @@ export default function ProfileScreen() {
               <View style={styles.milestoneDivider} />
 
               <View style={styles.milestoneItem}>
-                <Text style={[styles.milestoneVal, { color: COLORS.primary }]}>{avgRating} ★</Text>
+                <Text style={[styles.milestoneVal, { color: colors.primary }]}>{avgRating} ★</Text>
                 <Text style={styles.milestoneLbl}>Avg Rating</Text>
               </View>
             </View>
@@ -332,7 +336,7 @@ export default function ProfileScreen() {
               <Switch
                 value={notificationsEnabled}
                 onValueChange={(val) => updateProfile({ notificationsEnabled: val })}
-                trackColor={{ false: COLORS.surface, true: COLORS.primary }}
+                trackColor={{ false: colors.surface, true: colors.primary }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -345,7 +349,7 @@ export default function ProfileScreen() {
               <Switch
                 value={autoExportCalendar}
                 onValueChange={(val) => updateProfile({ autoExportCalendar: val })}
-                trackColor={{ false: COLORS.surface, true: COLORS.primary }}
+                trackColor={{ false: colors.surface, true: colors.primary }}
                 thumbColor="#FFFFFF"
               />
             </View>
@@ -379,10 +383,10 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   scroll: {
     flex: 1,
@@ -391,14 +395,14 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl * 2,
   },
   profileCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     ...SHADOWS.card,
   },
@@ -406,11 +410,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
     marginBottom: SPACING.sm,
   },
   profileInfo: {
@@ -419,11 +423,11 @@ const styles = StyleSheet.create({
   },
   userName: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   userHandle: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
     marginBottom: SPACING.sm,
   },
@@ -435,14 +439,14 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   editInput: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     minHeight: 44,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   editButtonsRow: {
     flexDirection: 'row',
@@ -452,13 +456,13 @@ const styles = StyleSheet.create({
   },
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     justifyContent: 'space-around',
     alignItems: 'center',
     ...SHADOWS.card,
@@ -471,31 +475,31 @@ const styles = StyleSheet.create({
   },
   statNum: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
     marginTop: 2,
   },
   statTxt: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: COLORS.cardBorder,
+    backgroundColor: colors.cardBorder,
   },
   sectionCard: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   sectionTitle: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginBottom: SPACING.sm,
     letterSpacing: 1,
   },
@@ -508,8 +512,8 @@ const styles = StyleSheet.create({
   passportBadge: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.primary,
-    backgroundColor: COLORS.primarySubtle,
+    color: colors.primary,
+    backgroundColor: colors.primarySubtle,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: RADIUS.xs,
@@ -529,19 +533,19 @@ const styles = StyleSheet.create({
   milestoneVal: {
     ...TYPOGRAPHY.h2,
     fontSize: 18,
-    color: COLORS.text,
+    color: colors.text,
   },
   milestoneLbl: {
     ...TYPOGRAPHY.caption,
     fontSize: 10,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
   },
   milestoneDivider: {
     width: 1,
     height: 28,
-    backgroundColor: COLORS.cardBorder,
+    backgroundColor: colors.cardBorder,
   },
   horizontalChips: {
     flexDirection: 'row',
@@ -556,7 +560,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 48,
   },
   settingTextCol: {
@@ -565,11 +569,11 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   settingSub: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: 2,
   },
   accountSection: {

@@ -6,9 +6,12 @@ import * as Clipboard from 'expo-clipboard';
 import FormatBadge from './FormatBadge';
 import Button from './ui/Button';
 import IconButton from './ui/IconButton';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { useTheme } from '../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
 export default function TicketCard({ plan, isFullPass = false }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const router = useRouter();
 
   if (!plan || !plan.movie) return null;
@@ -40,7 +43,7 @@ export default function TicketCard({ plan, isFullPass = false }) {
       <View style={styles.topSection}>
         <View style={styles.headerRow}>
           <View style={styles.brandingRow}>
-            <Ticket size={15} color={COLORS.primary} strokeWidth={2.2} />
+            <Ticket size={15} color={colors.primary} strokeWidth={2.2} />
             <Text style={styles.passHeaderTitle}>{isPlan ? 'CINETRIP MOVIE PLAN' : 'CINETRIP PASS'}</Text>
           </View>
           <View style={styles.statusBadge}>
@@ -55,7 +58,7 @@ export default function TicketCard({ plan, isFullPass = false }) {
         </Text>
 
         <View style={styles.cinemaRow}>
-          <Film size={14} color={COLORS.primary} strokeWidth={2} />
+          <Film size={14} color={colors.primary} strokeWidth={2} />
           <Text style={styles.cinemaName} numberOfLines={1}>
             {cinema.name || (isPlan ? 'Live showtimes not connected yet' : 'Cinema Auditorium')}
           </Text>
@@ -101,7 +104,7 @@ export default function TicketCard({ plan, isFullPass = false }) {
         {/* Squad Attendees */}
         {friends.length > 0 && (
           <View style={styles.squadRow}>
-            <Users size={14} color={COLORS.textSecondary} strokeWidth={2} />
+            <Users size={14} color={colors.textSecondary} strokeWidth={2} />
             <Text style={styles.squadCount}>{friends.length} Squad Members</Text>
           </View>
         )}
@@ -134,14 +137,14 @@ export default function TicketCard({ plan, isFullPass = false }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   ticketContainer: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginVertical: SPACING.sm,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
     ...SHADOWS.card,
   },
@@ -167,10 +170,10 @@ const styles = StyleSheet.create({
   passHeaderTitle: {
     ...TYPOGRAPHY.ticketMono,
     fontSize: 11,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   statusBadge: {
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.full,
@@ -180,11 +183,11 @@ const styles = StyleSheet.create({
   statusText: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   movieTitle: {
     ...TYPOGRAPHY.h1,
-    color: COLORS.text,
+    color: colors.text,
     marginBottom: 4,
   },
   cinemaRow: {
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
   cinemaName: {
     ...TYPOGRAPHY.body,
     fontSize: 13,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   formatRow: {
     flexDirection: 'row',
@@ -214,10 +217,10 @@ const styles = StyleSheet.create({
     height: 20,
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderLeftWidth: 0,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     marginLeft: -1,
   },
   rightNotch: {
@@ -225,10 +228,10 @@ const styles = StyleSheet.create({
     height: 20,
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderRightWidth: 0,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     marginRight: -1,
   },
   dashedLine: {
@@ -254,28 +257,28 @@ const styles = StyleSheet.create({
   metaLabel: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginBottom: 2,
   },
   metaValue: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   metaHighlight: {
     ...TYPOGRAPHY.captionBold,
-    color: COLORS.primary,
+    color: colors.primary,
     marginTop: 2,
   },
   bookingRefText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     fontSize: 11,
     marginTop: 2,
   },
   squadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: RADIUS.xs,
@@ -284,7 +287,7 @@ const styles = StyleSheet.create({
   },
   squadCount: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   actionRow: {
     flexDirection: 'row',

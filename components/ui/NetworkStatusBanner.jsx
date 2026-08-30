@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { WifiOff, RefreshCw } from 'lucide-react-native';
-import { COLORS, TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
 export default function NetworkStatusBanner({ isOffline = false, isSyncing = false, style }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   if (!isOffline && !isSyncing) return null;
 
   return (
@@ -16,15 +19,15 @@ export default function NetworkStatusBanner({ isOffline = false, isSyncing = fal
     >
       {isOffline ? (
         <>
-          <WifiOff size={14} color={COLORS.warning} strokeWidth={2} style={styles.icon} />
+          <WifiOff size={14} color={colors.warning} strokeWidth={2} style={styles.icon} />
           <Text style={styles.bannerText}>
             Offline Mode — Using local cache & saved passes.
           </Text>
         </>
       ) : (
         <>
-          <RefreshCw size={14} color={COLORS.primary} strokeWidth={2} style={styles.icon} />
-          <Text style={[styles.bannerText, { color: COLORS.primary }]}>
+          <RefreshCw size={14} color={colors.primary} strokeWidth={2} style={styles.icon} />
+          <Text style={[styles.bannerText, { color: colors.primary }]}>
             Syncing changes with cloud database...
           </Text>
         </>
@@ -33,7 +36,7 @@ export default function NetworkStatusBanner({ isOffline = false, isSyncing = fal
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -46,11 +49,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   offlineBanner: {
-    backgroundColor: COLORS.warningSubtle,
+    backgroundColor: colors.warningSubtle,
     borderColor: 'rgba(245, 158, 11, 0.3)',
   },
   syncingBanner: {
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     borderColor: 'rgba(229, 169, 60, 0.3)',
   },
   icon: {
@@ -59,7 +62,7 @@ const styles = StyleSheet.create({
   bannerText: {
     ...TYPOGRAPHY.caption,
     fontSize: 11,
-    color: COLORS.warning,
+    color: colors.warning,
     fontWeight: '600',
   },
 });

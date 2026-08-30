@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
+  Animated,
   View,
   Text,
   ScrollView,
@@ -28,6 +29,10 @@ import {
   Trash2,
   Check,
   ArrowLeft,
+  Flashlight,
+  Play,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -41,7 +46,8 @@ import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import APP_CONFIG from '../../constants/config';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useContacts } from '../../hooks/useContacts';
-import { COLORS, TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 
 const EXPERIENCE_TYPES = [
   'IMAX Laser 3D',
@@ -54,7 +60,36 @@ const EXPERIENCE_TYPES = [
 
 const FLASH_MODES = ['off', 'on', 'auto'];
 
+const ZOOM_STEP = 0.1;
+const MAX_PHOTO_SIZE_MB = 20;
+const MAX_VIDEO_SIZE_MB = 50;
+const MB = 1024 * 1024;
+const PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'heic'];
+const VIDEO_EXTENSIONS = ['mp4', 'mov'];
+const FOCUS_RETICLE_SIZE = 48;
+const FOCUS_RETICLE_MS = 900;
+
+function VideoPreview({ uri }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  if (Platform.OS === 'web') {
+    return <video src={uri} controls playsInline style={styles.previewWebVideo} />;
+  }
+  return (
+    <View style={styles.previewMedia}>
+      <RNImage source={{ uri }} style={styles.previewMedia} resizeMode="cover" />
+      <View style={styles.videoPlayOverlay}>
+        <View style={styles.videoPlayBadge}>
+          <Play size={18} color="#FFFFFF" strokeWidth={2.2} fill="#FFFFFF" />
+        </View>
+        <Text style={styles.videoPlaybackNote}>Real playback requires the video player.</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function CreateMemoryScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -69,6 +104,13 @@ export default function CreateMemoryScreen() {
   const [mediaMode, setMediaMode] = useState('photo');
   const cameraRef = useRef(null);
   const recordingTimerRef = useRef(null);
+  const hintTimerRef = useRef(null);
+  const cameraSurfaceDims = useRef(null);
+  const focusReticleAnim = useRef(new Animated.Value(0));
+  const [zoom, setZoom] = useState(0);
+  const [torchActive, setTorchActive] = useState(false);
+  const [focusPoint, setFocusPoint] = useState(null);
+  const [focusHintVisible, setFocusHintVisible] = useState(false);
 
   // Captured media
   const [photoUri, setPhotoUri] = useState(null);
@@ -124,6 +166,7 @@ export default function CreateMemoryScreen() {
   useEffect(() => {
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     };
   }, []);
 
@@ -136,6 +179,91 @@ export default function CreateMemoryScreen() {
     setCameraFacing((prev) => (prev === 'back' ? 'front' : 'back'));
   };
 
+  const closeCamera = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    if (hintTimerRef.current) {
+      clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordingSeconds(0);
+    setCameraActive(false);
+    setZoom(0);
+    setTorchActive(false);
+    setFocusPoint(null);
+    setFocusHintVisible(false);
+  };
+
+  const handleZoomIn = () => {
+    setZoom((z) => Math.min(1, Math.round((z + ZOOM_STEP) * 10) / 10));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((z) => Math.max(0, Math.round((z - ZOOM_STEP) * 10) / 10));
+  };
+
+  const handleToggleTorch = () => {
+    setTorchActive((prev) => !prev);
+  };
+
+  const handleTapToFocus = (e) => {
+    const { locationX, locationY } = e.nativeEvent;
+    const dims = cameraSurfaceDims.current;
+    const clamp = (v, max) =>
+      Math.min(Math.max(v, FOCUS_RETICLE_SIZE / 2), max - FOCUS_RETICLE_SIZE / 2);
+    const x = dims ? clamp(locationX, dims.width) : locationX;
+    const y = dims ? clamp(locationY, dims.height) : locationY;
+    setFocusPoint({ x, y, ts: Date.now() });
+    setFocusHintVisible(true);
+    focusReticleAnim.current.setValue(0);
+    Animated.sequence([
+      Animated.timing(focusReticleAnim.current, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.delay(FOCUS_RETICLE_MS - 360),
+      Animated.timing(focusReticleAnim.current, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setFocusPoint(null));
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setFocusHintVisible(false), 1600);
+  };
+
+  const validateGalleryAsset = (asset) => {
+    const isVideo = asset.type === 'video';
+    const uriPath = String(asset.uri || '').toLowerCase();
+    const fileName = String(asset.fileName || uriPath.split('/').pop() || '').toLowerCase();
+    const ext = fileName.includes('.') ? fileName.split('.').pop() : '';
+    const allowedPhoto = ext ? PHOTO_EXTENSIONS.includes(ext) : true;
+    const allowedVideo = ext ? VIDEO_EXTENSIONS.includes(ext) : true;
+    if (isVideo && !allowedVideo) {
+      Alert.alert('Invalid Format', 'Please pick a supported video file (mp4 or mov).');
+      return false;
+    }
+    if (!isVideo && !allowedPhoto) {
+      Alert.alert('Invalid Format', 'Please pick a supported photo (jpg, png or heic).');
+      return false;
+    }
+    const maxBytes = (isVideo ? MAX_VIDEO_SIZE_MB : MAX_PHOTO_SIZE_MB) * MB;
+    if (asset.fileSize != null && asset.fileSize > maxBytes) {
+      Alert.alert(
+        'File Too Large',
+        isVideo
+          ? `Videos must be smaller than ${MAX_VIDEO_SIZE_MB} MB.`
+          : `Photos must be smaller than ${MAX_PHOTO_SIZE_MB} MB.`
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleTakePhoto = async () => {
     if (!cameraRef.current) return;
     try {
@@ -143,7 +271,7 @@ export default function CreateMemoryScreen() {
       if (photo?.uri) {
         setPhotoUri(photo.uri);
         setVideoUri(null);
-        setCameraActive(false);
+        closeCamera();
       }
     } catch {
       Alert.alert('Camera Error', 'Failed to capture photo.');
@@ -163,7 +291,7 @@ export default function CreateMemoryScreen() {
       if (video?.uri) {
         setVideoUri(video.uri);
         setPhotoUri(null);
-        setCameraActive(false);
+        closeCamera();
       }
     } catch {
       Alert.alert('Recording Error', 'Failed to record video.');
@@ -203,6 +331,7 @@ export default function CreateMemoryScreen() {
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+        if (!validateGalleryAsset(asset)) return;
         if (asset.type === 'video') {
           setVideoUri(asset.uri);
           setPhotoUri(null);
@@ -266,6 +395,8 @@ export default function CreateMemoryScreen() {
     }
   };
 
+  const styles = createStyles(colors);
+
   if (cameraActive) {
     return (
       <SafeAreaView style={styles.cameraSafeArea}>
@@ -273,15 +404,27 @@ export default function CreateMemoryScreen() {
           ref={cameraRef}
           style={styles.cameraView}
           facing={cameraFacing}
-          flash={flashMode}
+          flash={Platform.OS === 'web' && torchActive ? 'torch' : flashMode}
+          enableTorch={torchActive}
+          zoom={zoom}
+          autofocus="on"
           mode={mediaMode === 'video' ? 'video' : 'picture'}
         >
+          <TouchableOpacity
+            style={styles.cameraTouchSurface}
+            activeOpacity={1}
+            onPress={handleTapToFocus}
+            onLayout={(e) => {
+              cameraSurfaceDims.current = e.nativeEvent.layout;
+            }}
+            accessibilityLabel="Tap camera preview to focus"
+          />
           {/* Top Camera Controls */}
           <View style={styles.cameraTopBar}>
             <IconButton
               icon="X"
               variant="surface"
-              onPress={() => setCameraActive(false)}
+              onPress={closeCamera}
               accessibilityLabel="Exit camera"
             />
 
@@ -291,6 +434,13 @@ export default function CreateMemoryScreen() {
                 variant="surface"
                 onPress={cycleFlash}
                 accessibilityLabel={`Flash: ${flashMode}`}
+                style={{ marginRight: SPACING.sm }}
+              />
+              <IconButton
+                icon="Flashlight"
+                variant={torchActive ? 'primary' : 'surface'}
+                onPress={handleToggleTorch}
+                accessibilityLabel={torchActive ? 'Torch on, tap to turn off' : 'Torch off, tap to turn on'}
                 style={{ marginRight: SPACING.sm }}
               />
               <IconButton
@@ -326,6 +476,57 @@ export default function CreateMemoryScreen() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Zoom Controls */}
+          <View style={styles.zoomControls}>
+            <IconButton
+              icon="ZoomIn"
+              variant="surface"
+              onPress={handleZoomIn}
+              disabled={zoom >= 1}
+              accessibilityLabel="Zoom in"
+            />
+            <IconButton
+              icon="ZoomOut"
+              variant="surface"
+              onPress={handleZoomOut}
+              disabled={zoom <= 0}
+              style={{ marginTop: SPACING.sm }}
+              accessibilityLabel="Zoom out"
+            />
+          </View>
+
+          {/* Focus Reticle + Hint */}
+          {focusPoint ? (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.focusReticle,
+                {
+                  left: focusPoint.x - FOCUS_RETICLE_SIZE / 2,
+                  top: focusPoint.y - FOCUS_RETICLE_SIZE / 2,
+                  opacity: focusReticleAnim.current.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 1],
+                  }),
+                  transform: [
+                    {
+                      scale: focusReticleAnim.current.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.7, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          ) : null}
+
+          {focusHintVisible ? (
+            <View style={styles.focusHint} pointerEvents="none">
+              <Text style={styles.focusHintText}>Tap to focus</Text>
+            </View>
+          ) : null}
 
           {/* Bottom Shutter Action */}
           <View style={styles.cameraBottomBar}>
@@ -379,7 +580,11 @@ export default function CreateMemoryScreen() {
           <View style={styles.mediaCard}>
             {photoUri || videoUri ? (
               <View style={styles.previewContainer}>
-                <RNImage source={{ uri: photoUri || videoUri }} style={styles.previewMedia} resizeMode="cover" />
+                {videoUri ? (
+                  <VideoPreview uri={videoUri} />
+                ) : (
+                  <RNImage source={{ uri: photoUri }} style={styles.previewMedia} resizeMode="cover" />
+                )}
                 <View style={styles.previewOverlay}>
                   <Button
                     title="Retake"
@@ -410,7 +615,7 @@ export default function CreateMemoryScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Open camera to take photo or video"
                 >
-                  <Camera size={22} color={COLORS.primary} strokeWidth={2.2} />
+                  <Camera size={22} color={colors.primary} strokeWidth={2.2} />
                   <Text style={styles.pickerTileTitle}>Take Theater Photo / Video</Text>
                   <Text style={styles.pickerTileSub}>Capture the marquee, lobby or ticket stub</Text>
                 </TouchableOpacity>
@@ -473,7 +678,7 @@ export default function CreateMemoryScreen() {
             <TextInput
               style={styles.textInput}
               placeholder="e.g., PVR IMAX Laser Grand Mall"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={cinemaName}
               onChangeText={setCinemaName}
             />
@@ -497,7 +702,7 @@ export default function CreateMemoryScreen() {
             <TextInput
               style={[styles.textInput, styles.textArea]}
               placeholder="How was the crowd reaction, screen clarity, and sound immersion?"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={story}
               onChangeText={setStory}
               multiline
@@ -508,7 +713,7 @@ export default function CreateMemoryScreen() {
             <TextInput
               style={styles.textInput}
               placeholder="e.g., The third act IMAX aspect ratio shift..."
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={favoriteMoment}
               onChangeText={setFavoriteMoment}
             />
@@ -520,7 +725,7 @@ export default function CreateMemoryScreen() {
             <TextInput
               style={styles.textInput}
               placeholder="e.g., Large Butter Popcorn + Cold Brew"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={snackHighlight}
               onChangeText={setSnackHighlight}
             />
@@ -543,14 +748,54 @@ export default function CreateMemoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: colors.background,
   },
   cameraSafeArea: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  cameraTouchSurface: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  zoomControls: {
+    position: 'absolute',
+    right: SPACING.lg,
+    top: '45%',
+    zIndex: 20,
+  },
+  focusReticle: {
+    position: 'absolute',
+    width: FOCUS_RETICLE_SIZE,
+    height: FOCUS_RETICLE_SIZE,
+    borderRadius: FOCUS_RETICLE_SIZE / 2,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySubtle,
+    zIndex: 15,
+  },
+  focusHint: {
+    position: 'absolute',
+    top: '12%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 20,
+  },
+  focusHintText: {
+    ...TYPOGRAPHY.caption,
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(7, 9, 14, 0.72)',
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    overflow: 'hidden',
   },
   cameraView: {
     flex: 1,
@@ -576,15 +821,15 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
   },
   mediaModeTabActive: {
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
   },
   mediaModeText: {
     ...TYPOGRAPHY.badge,
     fontSize: 11,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
   },
   mediaModeTextActive: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   cameraBottomBar: {
     alignItems: 'center',
@@ -600,19 +845,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   shutterBtnRecording: {
-    borderColor: COLORS.danger,
+    borderColor: colors.danger,
   },
   shutterInner: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   shutterInnerSquare: {
     width: 28,
     height: 28,
     borderRadius: 6,
-    backgroundColor: COLORS.danger,
+    backgroundColor: colors.danger,
   },
   header: {
     flexDirection: 'row',
@@ -625,7 +870,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...TYPOGRAPHY.h2,
-    color: COLORS.text,
+    color: colors.text,
   },
   scroll: {
     flex: 1,
@@ -635,11 +880,11 @@ const styles = StyleSheet.create({
   },
   mediaCard: {
     margin: SPACING.lg,
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   previewContainer: {
     position: 'relative',
@@ -648,6 +893,39 @@ const styles = StyleSheet.create({
   previewMedia: {
     width: '100%',
     height: '100%',
+  },
+  previewWebVideo: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  videoPlayOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(7, 9, 14, 0.35)',
+  },
+  videoPlayBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(7, 9, 14, 0.65)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlaybackNote: {
+    ...TYPOGRAPHY.caption,
+    color: colors.textSecondary,
+    marginTop: SPACING.sm,
+    textAlign: 'center',
+    paddingHorizontal: SPACING.lg,
   },
   previewOverlay: {
     position: 'absolute',
@@ -667,7 +945,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(229, 169, 60, 0.3)',
     borderStyle: 'dashed',
-    backgroundColor: COLORS.primarySubtle,
+    backgroundColor: colors.primarySubtle,
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.md,
@@ -675,28 +953,28 @@ const styles = StyleSheet.create({
   },
   pickerTileTitle: {
     ...TYPOGRAPHY.bodyBold,
-    color: COLORS.text,
+    color: colors.text,
   },
   pickerTileSub: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
   },
   galleryButtonWrap: {
     marginTop: SPACING.md,
   },
   formSection: {
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.lg,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.md,
     padding: SPACING.lg,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
   },
   sectionHeading: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginBottom: SPACING.sm,
   },
   horizontalChips: {
@@ -704,19 +982,19 @@ const styles = StyleSheet.create({
   },
   emptyMoviesText: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+    color: colors.textSecondary,
     marginTop: SPACING.sm,
     lineHeight: 18,
   },
   textInput: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: 10,
     ...TYPOGRAPHY.body,
-    color: COLORS.text,
+    color: colors.text,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: colors.cardBorder,
     minHeight: 44,
   },
   textArea: {
