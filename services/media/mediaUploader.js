@@ -29,12 +29,18 @@ export class MediaUploader {
       return { success: false, error: 'No media URI provided' };
     }
 
+    const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov'];
+    const fileExt = (localUri.split('.').pop() || '').toLowerCase();
+    if (fileExt && !ALLOWED_EXTS.includes(fileExt)) {
+      return { success: false, error: `Unsupported media format .${fileExt}. Allowed formats: ${ALLOWED_EXTS.join(', ')}` };
+    }
+
     // If cloud credentials exist, perform real cloud upload
     if (this.isCloudConfigured()) {
       try {
         const formData = new FormData();
-        const fileExt = localUri.split('.').pop() || (mediaType === 'video' ? 'mp4' : 'jpg');
-        const filename = `cinetrip_${Date.now()}.${fileExt}`;
+        const effectiveExt = fileExt || (mediaType === 'video' ? 'mp4' : 'jpg');
+        const filename = `cinetrip_${Date.now()}.${effectiveExt}`;
 
         formData.append('file', {
           uri: localUri,

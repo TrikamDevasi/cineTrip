@@ -37,6 +37,7 @@ import FormatBadge from '../../components/FormatBadge';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
 import Chip from '../../components/ui/Chip';
+import CinephileRecapModal from '../../components/CinephileRecapModal';
 import { FALLBACK_GENRES } from '../../services/tmdb';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { usePlannerStore } from '../../store/usePlannerStore';
@@ -83,6 +84,7 @@ export default function ProfileScreen() {
   } = usePreferencesStore();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [recapVisible, setRecapVisible] = useState(false);
   const [editName, setEditName] = useState(userName || '');
   const [editCity, setEditCity] = useState(city || '');
 
@@ -272,10 +274,19 @@ export default function ProfileScreen() {
               <View style={styles.milestoneDivider} />
 
               <View style={styles.milestoneItem}>
-                <Text style={[styles.milestoneVal, { color: colors.primary }]}>{avgRating} â˜…</Text>
+                <Text style={[styles.milestoneVal, { color: colors.primary }]}>{avgRating} ★</Text>
                 <Text style={styles.milestoneLbl}>Avg Rating</Text>
               </View>
             </View>
+
+            <Button
+              title="View My Cinema Recap"
+              icon="Film"
+              variant="outline"
+              size="md"
+              onPress={() => setRecapVisible(true)}
+              style={{ marginTop: 14 }}
+            />
           </View>
 
           {/* PREFERRED FORMATS */}
@@ -398,6 +409,11 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <CinephileRecapModal
+        visible={recapVisible}
+        onClose={() => setRecapVisible(false)}
+      />
     </SafeAreaView>
   );
 }

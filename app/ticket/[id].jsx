@@ -24,6 +24,7 @@ import { usePlannerStore } from '../../store/usePlannerStore';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 import { isConfirmedPass, countdownTo, isMovieDay } from '../../services/personalization';
+import { openCalendarEvent } from '../../services/calendar';
 import { goBack } from '../../lib/navigation';
 
 export default function TicketModalScreen() {
@@ -211,43 +212,53 @@ export default function TicketModalScreen() {
           </View>
         </View>
 
-        {/* Primary Bottom Actions */}
-        <View style={styles.actionsWrapper}>
-          {cinema.latitude != null && cinema.longitude != null ? (
+          {/* Primary Bottom Actions */}
+          <View style={styles.actionsWrapper}>
             <Button
-              title="View Directions"
-              icon="MapPin"
+              title="Add to Calendar"
+              icon="Calendar"
               variant="outline"
               size="md"
-              onPress={handleDirections}
-              accessibilityLabel="Open directions to the cinema"
+              onPress={() => openCalendarEvent(plan)}
+              accessibilityLabel="Add showtime to system calendar"
               style={{ marginBottom: SPACING.sm }}
             />
-          ) : null}
 
-          <Button
-            title="Log Screening Memory"
-            icon="Camera"
-            variant="primary"
-            size="lg"
-            onPress={() => {
-              router.push(
-                `/memory/create?movieId=${movie.id || ''}&movieTitle=${encodeURIComponent(movie.title || '')}&cinema=${encodeURIComponent(cinema.name || '')}&format=${encodeURIComponent(cinema.screenType || '')}`
-              );
-            }}
-            accessibilityLabel="Log a theatrical memory for this movie night"
-            style={{ marginBottom: SPACING.sm }}
-          />
+            {cinema.latitude != null && cinema.longitude != null ? (
+              <Button
+                title="View Directions"
+                icon="MapPin"
+                variant="outline"
+                size="md"
+                onPress={handleDirections}
+                accessibilityLabel="Open directions to the cinema"
+                style={{ marginBottom: SPACING.sm }}
+              />
+            ) : null}
 
-          <Button
-            title="Share Pass with Squad"
-            icon="Share2"
-            variant="surface"
-            size="md"
-            onPress={handleSharePass}
-            accessibilityLabel="Share cinema pass with movie squad"
-          />
-        </View>
+            <Button
+              title="Log Screening Memory"
+              icon="Camera"
+              variant="primary"
+              size="lg"
+              onPress={() => {
+                router.push(
+                  `/memory/create?movieId=${movie.id || ''}&movieTitle=${encodeURIComponent(movie.title || '')}&cinema=${encodeURIComponent(cinema.name || '')}&format=${encodeURIComponent(cinema.screenType || '')}`
+                );
+              }}
+              accessibilityLabel="Log a theatrical memory for this movie night"
+              style={{ marginBottom: SPACING.sm }}
+            />
+
+            <Button
+              title="Share Pass with Squad"
+              icon="Share2"
+              variant="surface"
+              size="md"
+              onPress={handleSharePass}
+              accessibilityLabel="Share cinema pass with movie squad"
+            />
+          </View>
       </ScrollView>
 
       {/* QR ENLARGE MODAL */}

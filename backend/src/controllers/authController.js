@@ -82,7 +82,7 @@ const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
-    // Find user (must not leak whether an account exists)
+    // Find user (anti-enumeration: same generic message regardless)
     const user = await User.findOne({ email });
 
     if (user) {
@@ -91,15 +91,16 @@ const forgotPassword = async (req, res, next) => {
       user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
       await user.save();
 
-      // DEMO MODE: no email service is wired up, so return the token so the
-      // client can construct the reset link directly.
-      return res.json({
-        message: 'If an account exists for that email, a reset link has been sent.',
-        resetToken,
-      });
+      // Only expose reset token if explicitly in local development with DEV flag
+      if (process.env.NODE_ENV === 'development' && process.env.ALLOW_DEV_RESET_TOKEN === 'true') {
+        return res.json({
+          message: 'If an account exists for that email, a reset link has been sent.',
+          devResetToken: resetToken,
+        });
+      }
     }
 
-    // Generic response regardless of whether the user exists (anti-enumeration)
+    // Generic response regardless of whether the user exists (anti-enumeration & anti-token-leakage)
     res.json({
       message: 'If an account exists for that email, a reset link has been sent.',
     });
