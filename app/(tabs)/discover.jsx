@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,8 @@ import {
   SlidersHorizontal,
   Clock,
   Flame,
+  Layers,
+  Filter,
 } from 'lucide-react-native';
 import Header from '../../components/Header';
 import MovieCard from '../../components/MovieCard';
@@ -60,6 +62,7 @@ export default function DiscoverScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFormat, setSelectedFormat] = useState('All Formats');
   const [selectedMood, setSelectedMood] = useState(null);
+  const [activeFilterTab, setActiveFilterTab] = useState('formats'); // 'formats' | 'moods'
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [genres, setGenres] = useState([]);
@@ -199,14 +202,22 @@ export default function DiscoverScreen() {
 
   const clearFilters = () => {
     setFilters(DEFAULT_FILTERS);
+    setSelectedFormat('All Formats');
+    setSelectedMood(null);
     setFilterSheetOpen(false);
   };
 
   const activeFilterCount = useMemo(
     () =>
-      [filters.genreId, filters.year, filters.minRating > 0 ? filters.minRating : null, filters.language]
-        .filter(Boolean).length,
-    [filters]
+      [
+        filters.genreId,
+        filters.year,
+        filters.minRating > 0 ? filters.minRating : null,
+        filters.language,
+        selectedFormat !== 'All Formats' ? selectedFormat : null,
+        selectedMood,
+      ].filter(Boolean).length,
+    [filters, selectedFormat, selectedMood]
   );
 
   const filteredMovies = movies.filter((movie) => {
@@ -221,136 +232,222 @@ export default function DiscoverScreen() {
     }
     let matchesMood = true;
     if (selectedMood) {
-      matchesMood = movie.mood === selectedMood || (movie.genres && movie.genres.some((g) => g.name === 'Action' || g.name === 'Sci-Fi'));
+      matchesMood =
+        movie.mood === selectedMood ||
+        (movie.genres && movie.genres.some((g) => g.name === 'Action' || g.name === 'Sci-Fi'));
     }
     return matchesFormat && matchesMood;
   });
 
   const showSuggestions = searchFocused && searchQuery.trim().length === 0;
-
   const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
+
+  // Title label for the current section
+  const sectionTitle = useMemo(() => {
+    if (searchQuery.trim()) {
+      return `Results for "${searchQuery}" (${filteredMovies.length})`;
+    }
+    if (activeCategory === 'in_theaters') return 'Now Showing in Theaters';
+    if (activeCategory === 'trending') return 'Trending This Week';
+    if (activeCategory === 'upcoming') return 'Upcoming Releases';
+    return 'Explore Movies';
+  }, [searchQuery, activeCategory, filteredMovies.length]);
+
+  // Render the unified scrollable header
+  const renderListHeader = useCallback(() => {
+    return (
+      <View style={styles.scrollHeaderContainer}>
+        {/* 1. SEARCH BAR */}
+        <View style={styles.searchBarWrapper}>
+          <View style={[styles.searchContainer, searchFocused && styles.searchContainerFocused]}>
+            <Search size={18} color={searchFocused ? colors.primary : colors.textMuted} strokeWidth={2.2} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search films, directors, IMAX..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              onSubmitEditing={submitSearch}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn} accessibilityLabel="Clear search">
+                <X size={16} color={colors.textMuted} strokeWidth={2} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* 2. RECENT SEARCHES (Dropdown when focused & empty) */}
+        {showSuggestions && recentSearches.length > 0 && (
+          <View style={styles.suggestionsCard}>
+            <View style={styles.suggestionsHeader}>
+              <Text style={styles.suggestionsTitle}>RECENT SEARCHES</Text>
+              <TouchableOpacity onPress={clearRecentSearches} accessibilityRole="button" accessibilityLabel="Clear search history">
+                <Text style={styles.clearHistoryText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            {recentSearches.slice(0, 5).map((q) => (
+              <TouchableOpacity
+                key={q}
+                style={styles.suggestionRow}
+                onPress={() => {
+                  setSearchQuery(q);
+                  recordSearch(q);
+                  setSearchFocused(false);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Search for ${q}`}
+              >
+                <Clock size={14} color={colors.textMuted} strokeWidth={2} />
+                <Text style={styles.suggestionText} numberOfLines={1}>{q}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 3. HORIZONTAL CATEGORY SEGMENT TABS */}
+        {!searchQuery.trim() && (
+          <View style={styles.categorySegmentRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoryScroll}
+            >
+              {CATEGORY_TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isSelected = activeCategory === tab.id;
+                return (
+                  <TouchableOpacity
+                    key={tab.id}
+                    style={[styles.categoryTab, isSelected && styles.categoryTabActive]}
+                    onPress={() => setActiveCategory(tab.id)}
+                    activeOpacity={0.8}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: isSelected }}
+                  >
+                    <Icon size={14} color={isSelected ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
+                    <Text style={[styles.categoryTabText, isSelected && styles.categoryTabTextActive]}>
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Advanced Filters Button Pill */}
+              <TouchableOpacity
+                style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+                onPress={() => setFilterSheetOpen(true)}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Open advanced filters"
+              >
+                <SlidersHorizontal size={14} color={activeFilterCount > 0 ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
+                <Text style={[styles.filterBtnText, activeFilterCount > 0 && styles.filterBtnTextActive]}>
+                  Filters
+                </Text>
+                {activeFilterCount > 0 && (
+                  <View style={styles.filterCountBadge}>
+                    <Text style={styles.filterCountText}>{activeFilterCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
+
+        {/* 4. SUB-FILTER BAR (Switch between Formats & Moods or Swipeable Chips) */}
+        {!searchQuery.trim() && (
+          <View style={styles.subFilterSection}>
+            <View style={styles.subFilterHeaderRow}>
+              <View style={styles.subFilterSegmentToggle}>
+                <TouchableOpacity
+                  style={[styles.subFilterToggleBtn, activeFilterTab === 'formats' && styles.subFilterToggleBtnActive]}
+                  onPress={() => setActiveFilterTab('formats')}
+                >
+                  <Layers size={12} color={activeFilterTab === 'formats' ? colors.primary : colors.textMuted} />
+                  <Text style={[styles.subFilterToggleText, activeFilterTab === 'formats' && styles.subFilterToggleTextActive]}>
+                    Formats
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.subFilterToggleBtn, activeFilterTab === 'moods' && styles.subFilterToggleBtnActive]}
+                  onPress={() => setActiveFilterTab('moods')}
+                >
+                  <Sparkles size={12} color={activeFilterTab === 'moods' ? colors.primary : colors.textMuted} />
+                  <Text style={[styles.subFilterToggleText, activeFilterTab === 'moods' && styles.subFilterToggleTextActive]}>
+                    Moods
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {activeFilterCount > 0 && (
+                <TouchableOpacity onPress={clearFilters} style={styles.resetFilterBtn}>
+                  <Text style={styles.resetFilterText}>Reset ({activeFilterCount})</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Formats Strip */}
+            {activeFilterTab === 'formats' && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.chipsScroll}
+              >
+                {FORMAT_FILTERS.map((fmt) => (
+                  <Chip
+                    key={fmt}
+                    label={fmt}
+                    selected={selectedFormat === fmt}
+                    onPress={() => setSelectedFormat(fmt)}
+                    accessibilityLabel={`Filter by format ${fmt}`}
+                  />
+                ))}
+              </ScrollView>
+            )}
+
+            {/* Moods Strip */}
+            {activeFilterTab === 'moods' && (
+              <MoodSelector selectedMood={selectedMood} onSelectMood={(moodId) => setSelectedMood(moodId)} />
+            )}
+          </View>
+        )}
+
+        {/* 5. SECTION HEADLINE */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeaderTitle}>{sectionTitle}</Text>
+          <Text style={styles.sectionHeaderSubtitle}>
+            {filteredMovies.length} {filteredMovies.length === 1 ? 'film' : 'films'}
+          </Text>
+        </View>
+      </View>
+    );
+  }, [
+    searchQuery,
+    searchFocused,
+    showSuggestions,
+    recentSearches,
+    activeCategory,
+    activeFilterCount,
+    activeFilterTab,
+    selectedFormat,
+    selectedMood,
+    sectionTitle,
+    filteredMovies.length,
+    colors,
+    styles,
+  ]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <Header />
 
-      {/* SEARCH BAR */}
-      <View style={styles.searchBarWrapper}>
-        <View style={styles.searchContainer}>
-          <Search size={18} color={colors.primary} strokeWidth={2.2} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search films, directors, IMAX..."
-            placeholderTextColor={colors.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            onSubmitEditing={submitSearch}
-            returnKeyType="search"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearBtn} accessibilityLabel="Clear search">
-              <X size={16} color={colors.textMuted} strokeWidth={2} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* RECENT SEARCHES (dropdown when focused & empty) */}
-      {showSuggestions && recentSearches.length > 0 && (
-        <View style={styles.suggestionsCard}>
-          <View style={styles.suggestionsHeader}>
-            <Text style={styles.suggestionsTitle}>Recent searches</Text>
-            <TouchableOpacity onPress={clearRecentSearches} accessibilityRole="button" accessibilityLabel="Clear search history">
-              <Text style={styles.clearHistoryText}>Clear</Text>
-            </TouchableOpacity>
-          </View>
-          {recentSearches.slice(0, 5).map((q) => (
-            <TouchableOpacity
-              key={q}
-              style={styles.suggestionRow}
-              onPress={() => {
-                setSearchQuery(q);
-                recordSearch(q);
-                setSearchFocused(false);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Search for ${q}`}
-            >
-              <Clock size={15} color={colors.textMuted} strokeWidth={2} />
-              <Text style={styles.suggestionText} numberOfLines={1}>{q}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* CATEGORY SELECTOR TABS */}
-      {!searchQuery.trim() && (
-        <View style={styles.categoryTabsContainer}>
-          {CATEGORY_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeCategory === tab.id;
-            return (
-              <TouchableOpacity
-                key={tab.id}
-                style={[styles.categoryTab, isSelected && styles.categoryTabActive]}
-                onPress={() => setActiveCategory(tab.id)}
-                activeOpacity={0.8}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: isSelected }}
-              >
-                <Icon size={15} color={isSelected ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
-                <Text style={[styles.categoryTabText, isSelected && styles.categoryTabTextActive]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-
-          {/* FILTERS BUTTON */}
-          <TouchableOpacity
-            style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
-            onPress={() => setFilterSheetOpen(true)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Open advanced filters"
-          >
-            <SlidersHorizontal size={15} color={activeFilterCount > 0 ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
-            <Text style={[styles.filterBtnText, activeFilterCount > 0 && styles.filterBtnTextActive]}>
-              Filters
-            </Text>
-            {activeFilterCount > 0 && (
-              <View style={styles.filterCountBadge}>
-                <Text style={styles.filterCountText}>{activeFilterCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* FORMAT FILTER CHIPS */}
-      <View style={styles.filtersSection}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {FORMAT_FILTERS.map((fmt) => (
-            <Chip
-              key={fmt}
-              label={fmt}
-              selected={selectedFormat === fmt}
-              onPress={() => setSelectedFormat(fmt)}
-              accessibilityLabel={`Filter by format ${fmt}`}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* MOOD SELECTOR */}
-      <View style={styles.moodSection}>
-        <MoodSelector selectedMood={selectedMood} onSelectMood={(moodId) => setSelectedMood(moodId)} />
-      </View>
-
-      {/* MOVIE GRID RESULTS */}
+      {/* UNIFIED SCROLLABLE MOVIE GRID & HEADER */}
       <FlatList
         data={filteredMovies}
         keyExtractor={(item, index) => `${item.id}-${index}`}
@@ -358,6 +455,7 @@ export default function DiscoverScreen() {
         columnWrapperStyle={styles.gridRow}
         contentContainerStyle={styles.gridContent}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderListHeader}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -390,7 +488,7 @@ export default function DiscoverScreen() {
                   ? 'No verified theatrical screenings currently found. Check your TMDB connection.'
                   : 'No movie results found for the selected category.'
               }
-              actionLabel={searchQuery || activeFilterCount > 0 ? 'Reset' : undefined}
+              actionLabel={searchQuery || activeFilterCount > 0 ? 'Reset Filters' : undefined}
               actionIcon="X"
               onAction={() => {
                 if (searchQuery) {
@@ -428,69 +526,262 @@ export default function DiscoverScreen() {
   );
 }
 
-const createStyles = (colors) => StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
-  searchBarWrapper: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, paddingBottom: SPACING.xs },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.md,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    minHeight: 46,
-    ...SHADOWS.card,
-  },
-  searchIcon: { marginRight: SPACING.sm },
-  searchInput: { flex: 1, ...TYPOGRAPHY.body, color: colors.text },
-  clearBtn: { padding: 6 },
+const createStyles = (colors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollHeaderContainer: {
+      paddingBottom: SPACING.xs,
+    },
 
-  suggestionsCard: {
-    marginHorizontal: SPACING.lg,
-    backgroundColor: colors.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingVertical: SPACING.xs,
-    ...SHADOWS.card,
-  },
-  suggestionsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xs,
-  },
-  suggestionsTitle: { ...TYPOGRAPHY.captionBold, color: colors.textMuted, fontSize: 11, letterSpacing: 1 },
-  clearHistoryText: { ...TYPOGRAPHY.caption, color: colors.primary },
-  suggestionRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-  suggestionText: { ...TYPOGRAPHY.body, color: colors.text, flex: 1 },
+    // ── SEARCH BAR ──────────────────────────────────────────────
+    searchBarWrapper: {
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: SPACING.xs,
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.md,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      minHeight: 44,
+      ...SHADOWS.card,
+    },
+    searchContainerFocused: {
+      borderColor: colors.primary,
+      backgroundColor: '#0E131E',
+    },
+    searchIcon: {
+      marginRight: SPACING.sm,
+    },
+    searchInput: {
+      flex: 1,
+      ...TYPOGRAPHY.body,
+      color: colors.text,
+      fontSize: 14,
+      paddingVertical: 8,
+    },
+    clearBtn: {
+      padding: 6,
+    },
 
-  categoryTabsContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, marginTop: SPACING.xs, marginBottom: SPACING.xs, gap: SPACING.xs },
-  categoryTab: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.md, paddingVertical: 7,
-    borderRadius: RADIUS.full, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder, gap: 6,
-  },
-  categoryTabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  categoryTabText: { ...TYPOGRAPHY.captionBold, color: colors.textSecondary },
-  categoryTabTextActive: { color: '#07090E' },
-  filterBtn: {
-    flexDirection: 'row', alignItems: 'center', marginLeft: 'auto', paddingHorizontal: SPACING.md, paddingVertical: 7,
-    borderRadius: RADIUS.full, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder, gap: 6,
-  },
-  filterBtnActive: { backgroundColor: colors.primarySubtle, borderColor: colors.primary },
-  filterBtnText: { ...TYPOGRAPHY.captionBold, color: colors.textSecondary },
-  filterBtnTextActive: { color: colors.primary },
-  filterCountBadge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  filterCountText: { ...TYPOGRAPHY.badge, fontSize: 11, color: '#07090E', fontWeight: '700' },
+    // ── SUGGESTIONS CARD ─────────────────────────────────────────
+    suggestionsCard: {
+      marginHorizontal: SPACING.lg,
+      marginBottom: SPACING.sm,
+      backgroundColor: colors.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      paddingVertical: SPACING.xs,
+      ...SHADOWS.card,
+    },
+    suggestionsHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.sm,
+      paddingBottom: SPACING.xs,
+    },
+    suggestionsTitle: {
+      ...TYPOGRAPHY.captionBold,
+      color: colors.textMuted,
+      fontSize: 10,
+      letterSpacing: 1,
+    },
+    clearHistoryText: {
+      ...TYPOGRAPHY.caption,
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    suggestionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+    },
+    suggestionText: {
+      ...TYPOGRAPHY.body,
+      color: colors.text,
+      fontSize: 13,
+      flex: 1,
+    },
 
-  filtersSection: { paddingVertical: SPACING.xs },
-  filterScroll: { paddingHorizontal: SPACING.lg },
-  moodSection: { marginBottom: SPACING.xs },
-  gridContent: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.xs, paddingBottom: SPACING.xxl * 2 },
-  gridRow: { justifyContent: 'space-between' },
-  skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  footerLoader: { paddingVertical: SPACING.md, alignItems: 'center' },
-});
+    // ── HORIZONTAL CATEGORY SEGMENTS ─────────────────────────────
+    categorySegmentRow: {
+      marginTop: SPACING.xs,
+      marginBottom: SPACING.xs,
+    },
+    categoryScroll: {
+      paddingHorizontal: SPACING.lg,
+      gap: 8,
+    },
+    categoryTab: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: RADIUS.full,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      gap: 6,
+    },
+    categoryTabActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    categoryTabText: {
+      ...TYPOGRAPHY.captionBold,
+      color: colors.textSecondary,
+      fontSize: 12,
+    },
+    categoryTabTextActive: {
+      color: '#07090E',
+      fontWeight: '800',
+    },
+    filterBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: RADIUS.full,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      gap: 6,
+    },
+    filterBtnActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    filterBtnText: {
+      ...TYPOGRAPHY.captionBold,
+      color: colors.textSecondary,
+      fontSize: 12,
+    },
+    filterBtnTextActive: {
+      color: '#07090E',
+      fontWeight: '800',
+    },
+    filterCountBadge: {
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: '#07090E',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    filterCountText: {
+      fontSize: 10,
+      color: colors.primary,
+      fontWeight: '900',
+    },
+
+    // ── SUB-FILTER SECTION (FORMATS / MOODS TOGGLE) ──────────────
+    subFilterSection: {
+      marginTop: 6,
+      marginBottom: 6,
+    },
+    subFilterHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: SPACING.lg,
+      marginBottom: 6,
+    },
+    subFilterSegmentToggle: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderRadius: RADIUS.full,
+      padding: 2,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    subFilterToggleBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: RADIUS.full,
+    },
+    subFilterToggleBtnActive: {
+      backgroundColor: '#161D2B',
+      borderWidth: 1,
+      borderColor: 'rgba(229, 169, 60, 0.3)',
+    },
+    subFilterToggleText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.textMuted,
+    },
+    subFilterToggleTextActive: {
+      color: colors.primary,
+      fontWeight: '800',
+    },
+    resetFilterBtn: {
+      paddingVertical: 2,
+      paddingHorizontal: 6,
+    },
+    resetFilterText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.primary,
+    },
+    chipsScroll: {
+      paddingHorizontal: SPACING.lg,
+      gap: 6,
+      paddingVertical: 2,
+    },
+
+    // ── SECTION HEADLINE ─────────────────────────────────────────
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: SPACING.xs,
+    },
+    sectionHeaderTitle: {
+      ...TYPOGRAPHY.h2,
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    sectionHeaderSubtitle: {
+      ...TYPOGRAPHY.caption,
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: '600',
+    },
+
+    // ── MOVIE GRID ───────────────────────────────────────────────
+    gridContent: {
+      paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.xs,
+      paddingBottom: SPACING.xxl * 2,
+    },
+    gridRow: {
+      justifyContent: 'space-between',
+    },
+    skeletonGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+    },
+    footerLoader: {
+      paddingVertical: SPACING.md,
+      alignItems: 'center',
+    },
+  });

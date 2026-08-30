@@ -208,7 +208,6 @@ export default function MovieCard({
 
 const createStyles = (colors) => StyleSheet.create({
   verticalCard: {
-    marginRight: SPACING.md,
     backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     overflow: 'hidden',

@@ -18,10 +18,11 @@ export default function Index() {
     );
   }
 
-  // On Web / desktop browsers: if user is not already logged in, show the stunning cinematic landing page directly at "/"!
-  if (Platform.OS === 'web' && !canAccessApp) {
-    return <LandingScreen />;
+  // If already authenticated or in guest session, go straight to the app tabs
+  if (canAccessApp) {
+    return <Redirect href="/(tabs)" />;
   }
 
-  return <Redirect href={canAccessApp ? '/(tabs)' : '/(auth)/login'} />;
+  // Otherwise, present the stunning cinematic landing page first (on both Mobile & Web)
+  return <LandingScreen />;
 }
