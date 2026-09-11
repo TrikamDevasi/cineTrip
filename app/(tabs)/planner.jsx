@@ -19,18 +19,12 @@ import {
   Film,
   Calendar,
   Clock,
-  MapPin,
   Users,
   Check,
   Plus,
-  Trash2,
   X,
   Star,
-  Armchair,
-  Utensils,
-  StickyNote,
   Info,
-  RefreshCw,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
@@ -157,8 +151,10 @@ export default function PlannerScreen() {
 
   const [cinemas, setCinemas] = useState([]);
   const [showtimes, setShowtimes] = useState([]);
+  const [seatMap, setSeatMap] = useState(null);
   const [cinemaLoading, setCinemaLoading] = useState(false);
   const [showtimesLoading, setShowtimesLoading] = useState(false);
+  const [seatMapLoading, setSeatMapLoading] = useState(false);
 
   useEffect(() => {
     loadContacts();
@@ -180,6 +176,28 @@ export default function PlannerScreen() {
       setShowtimes([]);
     }
   }, [draft.movie, draft.cinema, draft.date]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSeatMap = async () => {
+      const showtimeId = draft.showtimeId;
+      if (!providerAvailable || !showtimeId || !cinemaService.capabilities?.seats) {
+        setSeatMap(null);
+        return;
+      }
+      setSeatMapLoading(true);
+      try {
+        const map = await cinemaService.getSeatMap(showtimeId);
+        if (!cancelled && map) setSeatMap(map);
+      } catch (e) {
+        if (!cancelled) setSeatMap(null);
+      } finally {
+        if (!cancelled) setSeatMapLoading(false);
+      }
+    };
+    loadSeatMap();
+    return () => { cancelled = true; };
+  }, [providerAvailable, draft.showtimeId, draft.cinema?.id]);
 
   const loadNearbyCinemas = async () => {
     setCinemaLoading(true);
@@ -744,7 +762,16 @@ export default function PlannerScreen() {
                 }}
                 maxSeats={6}
                 ticketPrice={providerAvailable ? (draft.showtime && draft.showtime.price) || 350 : 350}
+                rows={seatMap?.rows}
+                seatsPerRow={seatMap?.seatsPerRow}
+                occupiedSeats={seatMap?.occupiedSeats}
               />
+              {seatMapLoading && (
+                <View style={styles.seatMapLoadingRow}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.seatMapLoadingText}>Loading seat availability…</Text>
+                </View>
+              )}
 
               {/* Snacks Concession Selector */}
               <Text style={[styles.subStepLabel, { marginTop: SPACING.lg }]}>THEATER REFRESHMENTS</Text>
@@ -1297,6 +1324,16 @@ const createStyles = (colors) => StyleSheet.create({
     padding: SPACING.sm,
     marginBottom: SPACING.sm,
     lineHeight: 18,
+  },
+  seatMapLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  seatMapLoadingText: {
+    ...TYPOGRAPHY.caption,
+    color: colors.textSecondary,
   },
   cinemasList: {
     gap: SPACING.sm,

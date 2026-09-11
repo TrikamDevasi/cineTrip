@@ -6,19 +6,14 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '../lib/alert';
 import {
-  ArrowLeft,
   Search,
   X,
-  Users,
-  Phone,
   Check,
-  Plus,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from '../components/ui/IconButton';
@@ -27,7 +22,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { useContacts } from '../hooks/useContacts';
 import { usePlannerStore } from '../store/usePlannerStore';
 import { useTheme } from '../hooks/useTheme';
-import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import { goBack } from '../lib/navigation';
 
 export default function ContactsScreen() {

@@ -12,16 +12,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Film,
   MapPin,
-  ChevronRight,
   Ticket,
-  Sparkles,
   Compass,
-  Calendar,
   Bookmark,
   Camera,
-  Clapperboard,
-  Star,
-  Clock,
   Wand2,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -34,8 +28,7 @@ import SectionHeader from '../../components/SectionHeader';
 import FormatBadge from '../../components/FormatBadge';
 import DataSourceBadge from '../../components/DataSourceBadge';
 import Button from '../../components/ui/Button';
-import EmptyState from '../../components/ui/EmptyState';
-import { MovieCardSkeleton, CinemaCardSkeleton, MemoryCardSkeleton } from '../../components/ui/Skeleton';
+import { MovieCardSkeleton, CinemaCardSkeleton } from '../../components/ui/Skeleton';
 import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import { getUpcomingMovies } from '../../services/tmdb';
 import { cinemaService } from '../../services/cinema';

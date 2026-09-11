@@ -18,7 +18,6 @@ import {
   MapPin,
   Users,
   Compass,
-  Sparkles,
   Star,
   Clock,
   Check,
@@ -29,14 +28,10 @@ import {
   Radio,
   Camera,
   Share2,
-  Layers,
   Utensils,
   Menu,
   X,
-  Bookmark,
-  Calendar,
   Copy,
-  Volume2,
 } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import QRCodeSvg from '../components/ui/QRCodeSvg';
@@ -44,7 +39,7 @@ import FormatBadge from '../components/FormatBadge';
 import { useAuthStore } from '../store/useAuthStore';
 import { usePlannerStore } from '../store/usePlannerStore';
 import { useTheme } from '../hooks/useTheme';
-import { RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { RADIUS, SHADOWS } from '../constants/theme';
 import { FALLBACK_MOVIES, getImageUri } from '../services/tmdb';
 import { showAlert } from '../lib/alert';
 

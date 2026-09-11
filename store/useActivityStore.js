@@ -20,21 +20,6 @@ const summarizeMovie = (movie) => {
   };
 };
 
-const summarizeCinema = (cinema) => {
-  if (!cinema) return null;
-  return {
-    id: cinema.id,
-    name: cinema.name,
-    address: cinema.address,
-    screenType: cinema.screenType,
-    features: cinema.features || [],
-    latitude: cinema.latitude,
-    longitude: cinema.longitude,
-    city: cinema.city,
-    brand: cinema.brand,
-  };
-};
-
 export const useActivityStore = create(
   persist(
     (set, get) => ({

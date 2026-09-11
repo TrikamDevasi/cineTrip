@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '../lib/alert';
@@ -16,17 +15,12 @@ import {
   Search,
   X,
   MapPin,
-  LocateFixed,
-  Navigation,
-  ChevronRight,
-  ArrowLeft,
-  Ticket,
   AlertTriangle,
-  Compass,
   List,
   Map,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { WebView } from 'react-native-webview';
 import IconButton from '../components/ui/IconButton';
 import Button from '../components/ui/Button';
 import FormatBadge from '../components/FormatBadge';
@@ -39,15 +33,6 @@ import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../constants/theme';
 import { usePlannerStore } from '../store/usePlannerStore';
 import APP_CONFIG from '../constants/config';
 import { goBack } from '../lib/navigation';
-
-let MapView, Marker;
-try {
-  const Maps = require('react-native-maps');
-  MapView = Maps.default;
-  Marker = Maps.Marker;
-} catch {
-  MapView = null;
-}
 
 export default function MapScreen() {
   const { colors } = useTheme();
@@ -134,15 +119,12 @@ export default function MapScreen() {
     fetchNearbyTheaters({ latitude: 19.076, longitude: 72.8777 });
   };
 
-  const focusMapOnCoords = (coords, delta = 0.015) => {
+  const focusMapOnCoords = (coords, zoom = 15) => {
     if (mapRef.current && Platform.OS !== 'web') {
       try {
-        mapRef.current.animateToRegion({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          latitudeDelta: delta,
-          longitudeDelta: delta,
-        }, 800);
+        mapRef.current.injectJavaScript(
+          `if (window.focusLocation) { window.focusLocation(${coords.latitude}, ${coords.longitude}, ${zoom}); } true;`
+        );
       } catch (err) {
         console.warn('Map focus error:', err.message);
       }
@@ -170,18 +152,7 @@ export default function MapScreen() {
   const handleGoToMyLocation = () => {
     if (deviceCoords) {
       setSelectedLocation(deviceCoords);
-      if (mapRef.current && Platform.OS !== 'web') {
-        try {
-          mapRef.current.animateToRegion({
-            latitude: deviceCoords.latitude,
-            longitude: deviceCoords.longitude,
-            latitudeDelta: 0.015,
-            longitudeDelta: 0.015,
-          }, 800);
-        } catch (err) {
-          console.warn('Map focus error:', err.message);
-        }
-      }
+      focusMapOnCoords(deviceCoords);
     } else {
       initLocation();
     }
@@ -196,27 +167,59 @@ export default function MapScreen() {
     setHighlightedCinema(cinema);
     if (mapRef.current && Platform.OS !== 'web') {
       try {
-        mapRef.current.animateToRegion({
-          latitude: cinema.latitude,
-          longitude: cinema.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }, 600);
+        mapRef.current.injectJavaScript(
+          `if (window.selectCinema) { window.selectCinema('${cinema.id}'); } true;`
+        );
       } catch (err) {
         console.warn('Map zoom to cinema error:', err.message);
       }
     }
   };
 
+  const handleWebViewMessage = (event) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'SELECT_CINEMA') {
+        const found = cinemas.find((c) => String(c.id) === String(data.id));
+        if (found) {
+          setHighlightedCinema(found);
+        }
+      }
+    } catch {
+      // ignore non-JSON messages
+    }
+  };
+
+  // Support web iframe message reception
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const handleWebMessage = (e) => {
+        try {
+          const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+          if (data && data.type === 'SELECT_CINEMA') {
+            const found = cinemas.find((c) => String(c.id) === String(data.id));
+            if (found) setHighlightedCinema(found);
+          }
+        } catch {}
+      };
+      window.addEventListener('message', handleWebMessage);
+      return () => window.removeEventListener('message', handleWebMessage);
+    }
+  }, [cinemas]);
+
   const activeLat = selectedLocation?.latitude || 19.076;
   const activeLon = selectedLocation?.longitude || 72.8777;
 
-  // Always use OpenStreetMap embed on web â€” zero-cost, no API key required.
-  // Google Maps Embed API was rejected (API not enabled in GCP Console).
+  // Always use OpenStreetMap embed on web — zero-cost, no API key required.
   const bbox = `${activeLon - 0.01},${activeLat - 0.01},${activeLon + 0.01},${activeLat + 0.01}`;
   const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${activeLat},${activeLon}`;
 
-  const styles = createStyles(colors);
+  const leafletHtml = useMemo(
+    () => generateLeafletHtml(activeLat, activeLon, cinemas, highlightedCinema?.id),
+    [activeLat, activeLon, cinemas, highlightedCinema?.id]
+  );
+
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   // Show Location Permission Denied Overlay
   if (locationDenied && !bypassLocation) {
@@ -317,46 +320,27 @@ export default function MapScreen() {
         <View style={styles.mapContainer}>
           {Platform.OS === 'web' ? (
             <iframe
-              src={embedUrl}
+              srcDoc={leafletHtml}
               style={styles.webMapFrame}
-              allowFullScreen
-              loading="lazy"
               title="Interactive Map Display"
             />
-          ) : MapView ? (
-            <MapView
+          ) : (
+            <WebView
               ref={mapRef}
               style={styles.nativeMap}
-              initialRegion={{
-                latitude: activeLat,
-                longitude: activeLon,
-                latitudeDelta: 0.03,
-                longitudeDelta: 0.03,
-              }}
-            >
-              {selectedLocation && (
-                <Marker
-                  coordinate={selectedLocation}
-                  title="Your Location"
-                  pinColor={colors.primary}
-                />
+              originWhitelist={['*']}
+              source={{ html: leafletHtml }}
+              onMessage={handleWebViewMessage}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <View style={styles.radarFallback}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.radarText}>Loading interactive map...</Text>
+                </View>
               )}
-              {cinemas.map((c) => (
-                <Marker
-                  key={c.id}
-                  coordinate={{ latitude: c.latitude, longitude: c.longitude }}
-                  title={c.name}
-                  description={c.address}
-                  pinColor={highlightedCinema?.id === c.id ? colors.primary : colors.accentCyan}
-                  onPress={() => setHighlightedCinema(c)}
-                />
-              ))}
-            </MapView>
-          ) : (
-            <View style={styles.radarFallback}>
-              <MapPin size={40} color={colors.primary} />
-              <Text style={styles.radarText}>Radar searching for nearby Auditoriums...</Text>
-            </View>
+            />
           )}
         </View>
       )}
@@ -654,3 +638,110 @@ const createStyles = (colors) => StyleSheet.create({
     alignItems: 'flex-start',
   },
 });
+
+function generateLeafletHtml(lat, lon, cinemaList, selectedCinemaId) {
+  const safeCinemaData = JSON.stringify(
+    (cinemaList || []).map((c) => ({
+      id: String(c.id || ''),
+      name: String(c.name || 'Cinema').replace(/'/g, "\\'"),
+      address: String(c.address || '').replace(/'/g, "\\'"),
+      lat: Number(c.latitude),
+      lon: Number(c.longitude),
+      screenType: c.screenType || '',
+    }))
+  );
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #map { width: 100%; height: 100%; background: #07090e; }
+    .leaflet-popup-content-wrapper {
+      background: #121824;
+      color: #f1f5f9;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .leaflet-popup-content { margin: 8px 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; }
+    .leaflet-popup-tip { background: #121824; }
+    .popup-title { font-weight: bold; color: #e5a93c; margin-bottom: 2px; }
+    .popup-addr { color: #94a3b8; font-size: 11px; }
+    .user-marker {
+      width: 16px;
+      height: 16px;
+      background: #3b82f6;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+    }
+    .cinema-pin {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #e5a93c;
+      color: #000;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      font-size: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .cinema-pin.selected {
+      background: #22d3ee;
+      transform: scale(1.15);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', { zoomControl: false }).setView([${lat}, ${lon}], 14);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    var userIcon = L.divIcon({ className: 'user-marker-container', html: '<div class="user-marker"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+    L.marker([${lat}, ${lon}], { icon: userIcon }).addTo(map).bindPopup('<b>Your Location</b>');
+
+    var cinemas = ${safeCinemaData};
+    var markers = {};
+    cinemas.forEach(function(c) {
+      if (!c.lat || !c.lon) return;
+      var isSel = c.id === '${selectedCinemaId || ''}';
+      var pinHtml = '<div class="cinema-pin' + (isSel ? ' selected' : '') + '">🎬</div>';
+      var icon = L.divIcon({ className: 'custom-cinema-icon', html: pinHtml, iconSize: [28, 28], iconAnchor: [14, 14] });
+      var marker = L.marker([c.lat, c.lon], { icon: icon }).addTo(map);
+      marker.bindPopup('<div class="popup-title">' + c.name + '</div><div class="popup-addr">' + c.address + '</div>');
+      marker.on('click', function() {
+        var payload = JSON.stringify({ type: 'SELECT_CINEMA', id: c.id });
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(payload);
+        } else if (window.parent && window.parent !== window) {
+          window.parent.postMessage(payload, '*');
+        }
+      });
+      markers[c.id] = marker;
+    });
+
+    window.focusLocation = function(targetLat, targetLon, zoom) {
+      map.setView([targetLat, targetLon], zoom || 15);
+    };
+
+    window.selectCinema = function(id) {
+      if (markers[id]) {
+        markers[id].openPopup();
+        map.panTo(markers[id].getLatLng());
+      }
+    };
+  </script>
+</body>
+</html>`;
+}

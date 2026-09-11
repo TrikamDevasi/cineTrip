@@ -12,10 +12,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, Bookmark, BookmarkCheck, Star, Ticket, Play, Clock, Film, Sparkles } from 'lucide-react-native';
+import { Star, Play, Film, Sparkles } from 'lucide-react-native';
 import { goBack } from '../../lib/navigation';
 import { LinearGradient } from 'expo-linear-gradient';
-import MovieCard from '../../components/MovieCard';
 import FormatBadge from '../../components/FormatBadge';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';

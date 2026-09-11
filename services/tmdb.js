@@ -322,20 +322,3 @@ export async function discoverMovies({
   }
 }
 
-/**
- * Person search (actors/directors). Returns fan-credits style results.
- */
-export async function searchPeople(query) {
-  if (!query || !query.trim()) return [];
-  if (!isApiConfigured) return [];
-  try {
-    const url = API_KEY
-      ? `${TMDB_BASE_URL}/search/person?api_key=${API_KEY}&query=${encodeURIComponent(query)}`
-      : `${TMDB_BASE_URL}/search/person?query=${encodeURIComponent(query)}`;
-    const data = await fetchJson(url, getHeaders());
-    return data.results || [];
-  } catch (e) {
-    console.warn('TMDB Person search failed:', e.message);
-    return [];
-  }
-}

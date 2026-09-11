@@ -1,11 +1,17 @@
 import * as Contacts from 'expo-contacts';
+import { Linking } from 'react-native';
 
+/**
+ * Demo squad used only when explicitly requested (e.g. for first-run onboarding).
+ * Each entry is marked isDemoContact: true so callers can display them differently.
+ * NEVER silently show these as if they were real device contacts.
+ */
 export const PRESET_SQUAD = [
-  { id: 'squad-1', name: 'Alex Chen', initials: 'AC', handle: '@alex_film', status: 'accepted' },
-  { id: 'squad-2', name: 'Sarah Miller', initials: 'SM', handle: '@sarah_m', status: 'accepted' },
-  { id: 'squad-3', name: 'Dev Patel', initials: 'DP', handle: '@dev_cine', status: 'invited' },
-  { id: 'squad-4', name: 'Elena Vance', initials: 'EV', handle: '@elena_v', status: 'invited' },
-  { id: 'squad-5', name: 'Marcus Brody', initials: 'MB', handle: '@marcus_b', status: 'invited' },
+  { id: 'squad-1', name: 'Alex Chen', initials: 'AC', handle: '@alex_film', status: 'accepted', isDemoContact: true },
+  { id: 'squad-2', name: 'Sarah Miller', initials: 'SM', handle: '@sarah_m', status: 'accepted', isDemoContact: true },
+  { id: 'squad-3', name: 'Dev Patel', initials: 'DP', handle: '@dev_cine', status: 'invited', isDemoContact: true },
+  { id: 'squad-4', name: 'Elena Vance', initials: 'EV', handle: '@elena_v', status: 'invited', isDemoContact: true },
+  { id: 'squad-5', name: 'Marcus Brody', initials: 'MB', handle: '@marcus_b', status: 'invited', isDemoContact: true },
 ];
 
 export function isPresetId(id) {
@@ -19,35 +25,54 @@ export function getInitials(name) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/**
+ * Open the device Settings app so the user can grant contacts permission manually.
+ */
+export function openContactsSettings() {
+  Linking.openSettings().catch(() => {});
+}
+
+/**
+ * Fetch device contacts.
+ *
+ * Returns { granted: boolean, permissionDenied: boolean, contacts: Array }
+ *
+ * IMPORTANT: If permission is denied, contacts is always empty [].
+ * Callers must handle permissionDenied and show a proper UI prompt.
+ * We NEVER silently fall back to PRESET_SQUAD.
+ */
 export async function getDeviceContacts() {
   try {
     const { status } = await Contacts.requestPermissionsAsync();
-    if (status === 'granted') {
-      const { data } = await Contacts.getContactsAsync({
-        fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Emails, Contacts.Fields.Image],
-        pageSize: 100,
-        sort: Contacts.SortTypes.FirstName,
-      });
 
-      if (data && data.length > 0) {
-        return data
-          .filter(c => c.name && c.name.trim().length > 0)
-          .map((c, i) => ({
-            id: c.id || `contact-${i}`,
-            name: c.name,
-            initials: getInitials(c.name),
-            phone: c.phoneNumbers && c.phoneNumbers[0] ? c.phoneNumbers[0].number : '',
-            email: c.emails && c.emails[0] ? c.emails[0].email : '',
-            status: 'invited',
-          }));
-      }
+    if (status !== 'granted') {
+      return { granted: false, permissionDenied: true, contacts: [] };
     }
-    return PRESET_SQUAD;
+
+    const { data } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Emails, Contacts.Fields.Image],
+      pageSize: 100,
+      sort: Contacts.SortTypes.FirstName,
+    });
+
+    const mapped = (data || [])
+      .filter((c) => c.name && c.name.trim().length > 0)
+      .map((c, i) => ({
+        id: c.id || `contact-${i}`,
+        name: c.name,
+        initials: getInitials(c.name),
+        phone: c.phoneNumbers?.[0]?.number || '',
+        email: c.emails?.[0]?.email || '',
+        status: 'invited',
+        isDemoContact: false,
+      }));
+
+    return { granted: true, permissionDenied: false, contacts: mapped };
   } catch (err) {
-    console.warn('Contacts service warning:', err.message);
-    return PRESET_SQUAD;
+    return { granted: false, permissionDenied: false, contacts: [], error: err.message };
   }
 }
+
 
 /**
  * Add a new contact to device address book

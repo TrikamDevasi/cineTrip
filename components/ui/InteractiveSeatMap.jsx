@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
-import { Armchair, Check, Info } from 'lucide-react-native';
+import { Info } from 'lucide-react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
-const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
-const SEATS_PER_ROW = 8;
-const OCCUPIED_PRESETS = ['A3', 'A4', 'B5', 'C2', 'D4', 'D5', 'E1', 'E8'];
+const DEFAULT_ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const DEFAULT_SEATS_PER_ROW = 8;
+const DEFAULT_OCCUPIED = ['A3', 'A4', 'B5', 'C2', 'D4', 'D5', 'E1', 'E8'];
 
 export default function InteractiveSeatMap({
   selectedSeats = [],
@@ -14,10 +14,13 @@ export default function InteractiveSeatMap({
   maxSeats = 6,
   ticketPrice = 350,
   demo = false,
+  rows = DEFAULT_ROWS,
+  seatsPerRow = DEFAULT_SEATS_PER_ROW,
+  occupiedSeats = DEFAULT_OCCUPIED,
 }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const isSeatOccupied = (seatId) => OCCUPIED_PRESETS.includes(seatId);
+  const isSeatOccupied = (seatId) => occupiedSeats.includes(seatId);
   const isSeatSelected = (seatId) => selectedSeats.includes(seatId);
 
   const handleToggleSeat = (seatId) => {
@@ -69,12 +72,12 @@ export default function InteractiveSeatMap({
       {/* Interactive Seating Grid */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gridScroll}>
         <View style={styles.grid}>
-          {ROWS.map((row) => (
+          {rows.map((row) => (
             <View key={row} style={styles.row}>
               <Text style={styles.rowLabel}>{row}</Text>
               
               <View style={styles.seatsRow}>
-                {Array.from({ length: SEATS_PER_ROW }, (_, idx) => {
+                {Array.from({ length: seatsPerRow }, (_, idx) => {
                   const seatNum = idx + 1;
                   const seatId = `${row}${seatNum}`;
                   const occupied = isSeatOccupied(seatId);

@@ -7,11 +7,10 @@ import {
   StyleSheet,
   Linking,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Star, Phone, Globe, Clock, Ticket, Check } from 'lucide-react-native';
+import { MapPin, Phone, Globe, Clock } from 'lucide-react-native';
 import { goBack } from '../../lib/navigation';
 import FormatBadge from '../../components/FormatBadge';
 import Button from '../../components/ui/Button';

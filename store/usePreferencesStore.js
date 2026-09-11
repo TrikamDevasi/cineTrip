@@ -3,6 +3,10 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 import { getToken } from '../services/auth';
+import {
+  requestNotificationPermission,
+  cancelAllReminders,
+} from '../services/notifications';
 
 export const usePreferencesStore = create(
   persist(
@@ -105,6 +109,29 @@ export const usePreferencesStore = create(
           }
         } catch {
           // Silent local fallback
+        }
+      },
+
+      /**
+       * Toggle notifications — actually requests OS permission when enabling,
+       * cancels all pending reminders when disabling.
+       * Returns { granted: boolean }
+       */
+      setNotificationsEnabled: async (enabled) => {
+        if (enabled) {
+          const permStatus = await requestNotificationPermission();
+          if (permStatus !== 'granted') {
+            // Permission denied — don't lie to the user
+            set({ notificationsEnabled: false });
+            return { granted: false };
+          }
+          set({ notificationsEnabled: true });
+          return { granted: true };
+        } else {
+          // Cancel all pending reminders when user disables
+          await cancelAllReminders();
+          set({ notificationsEnabled: false });
+          return { granted: false };
         }
       },
 

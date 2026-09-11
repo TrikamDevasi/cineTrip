@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { Calendar, MapPin, Star, Sparkles, Users, Utensils } from 'lucide-react-native';
 import FormatBadge from './FormatBadge';
 import { useTheme } from '../hooks/useTheme';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Share } from 'react-native';
-import { Ticket, Film, Users, QrCode, Share2, Copy } from 'lucide-react-native';
+import { Ticket, Film, Users } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import FormatBadge from './FormatBadge';

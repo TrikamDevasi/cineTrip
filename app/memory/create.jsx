@@ -16,25 +16,9 @@ import { showAlert } from '../../lib/alert';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   Camera,
-  Video,
-  Zap,
-  ZapOff,
-  SwitchCamera,
-  RotateCcw,
-  Image as ImageIcon,
-  Film,
-  Users,
-  Utensils,
-  Sparkles,
-  Trash2,
-  Check,
-  ArrowLeft,
-  Flashlight,
-  Play,
-  ZoomIn,
-  ZoomOut,
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { Video, ResizeMode } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
@@ -47,7 +31,7 @@ import APP_CONFIG from '../../constants/config';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useContacts } from '../../hooks/useContacts';
 import { useTheme } from '../../hooks/useTheme';
-import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 import { goBack } from '../../lib/navigation';
 
 const EXPERIENCE_TYPES = [
@@ -76,18 +60,19 @@ function VideoPreview({ uri }) {
   if (Platform.OS === 'web') {
     return <video src={uri} controls playsInline style={styles.previewWebVideo} />;
   }
+  // Real video player using expo-av — not a static image with a fake play button
   return (
-    <View style={styles.previewMedia}>
-      <RNImage source={{ uri }} style={styles.previewMedia} resizeMode="cover" />
-      <View style={styles.videoPlayOverlay}>
-        <View style={styles.videoPlayBadge}>
-          <Play size={18} color="#FFFFFF" strokeWidth={2.2} fill="#FFFFFF" />
-        </View>
-        <Text style={styles.videoPlaybackNote}>Real playback requires the video player.</Text>
-      </View>
-    </View>
+    <Video
+      source={{ uri }}
+      style={styles.previewMedia}
+      useNativeControls
+      resizeMode={ResizeMode.COVER}
+      shouldPlay={false}
+      isLooping={false}
+    />
   );
 }
+
 
 export default function CreateMemoryScreen() {
   const { colors } = useTheme();
@@ -401,16 +386,18 @@ export default function CreateMemoryScreen() {
   if (cameraActive) {
     return (
       <SafeAreaView style={styles.cameraSafeArea}>
+        <View style={styles.cameraView}>
         <CameraView
           ref={cameraRef}
-          style={styles.cameraView}
+          style={StyleSheet.absoluteFill}
           facing={cameraFacing}
           flash={Platform.OS === 'web' && torchActive ? 'torch' : flashMode}
           enableTorch={torchActive}
           zoom={zoom}
           autofocus="on"
           mode={mediaMode === 'video' ? 'video' : 'picture'}
-        >
+        />
+        <View style={styles.cameraOverlay} pointerEvents="box-none">
           <TouchableOpacity
             style={styles.cameraTouchSurface}
             activeOpacity={1}
@@ -553,7 +540,8 @@ export default function CreateMemoryScreen() {
               </TouchableOpacity>
             )}
           </View>
-        </CameraView>
+        </View>
+        </View>
       </SafeAreaView>
     );
   }
@@ -800,6 +788,9 @@ const createStyles = (colors) => StyleSheet.create({
   },
   cameraView: {
     flex: 1,
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
   },
   cameraTopBar: {

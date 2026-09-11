@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '../../lib/alert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Copy, Share2, ArrowLeft, MapPin, ChevronUp, WifiOff, X } from 'lucide-react-native';
+import { ChevronUp, WifiOff } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
 import TicketCard from '../../components/TicketCard';
 import QRCodeSvg from '../../components/ui/QRCodeSvg';
@@ -34,8 +34,12 @@ export default function TicketModalScreen() {
   const [qrZoomed, setQrZoomed] = useState(false);
   const [now, setNow] = useState(new Date());
 
+  // ALL hooks must be unconditional — never call inside ||, ternary, or if-block.
+  // Previously this was: getPlanById(id) || usePlannerStore(s => s.plans[0])
+  // which called usePlannerStore conditionally — a Rules of Hooks violation.
   const getPlanById = usePlannerStore((s) => s.getPlanById);
-  const plan = getPlanById(id) || usePlannerStore((s) => s.plans[0]);
+  const firstPlan = usePlannerStore((s) => s.plans[0]);
+  const plan = getPlanById(id) || firstPlan;
   const isPlan = !plan || !plan.bookingRef || plan.bookingStatus === 'plan';
   const isOffline = Boolean(plan && plan._id && String(plan._id).startsWith('plan-local-'));
 
@@ -46,7 +50,7 @@ export default function TicketModalScreen() {
     return () => clearInterval(t);
   }, [plan]);
 
-  const styles = createStyles(colors);
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (!plan || !plan.movie) {
     return (
@@ -77,9 +81,29 @@ export default function TicketModalScreen() {
 
   const movie = plan.movie || {};
   const cinema = plan.cinema || {};
-  const qrValue = isConfirmedPass(plan)
-    ? ['CINETRIP', plan.bookingRef || plan.id, plan.id || ''].filter(Boolean).join('|')
-    : ['CINETRIP', plan.id || ''].filter(Boolean).join('|');
+  // QR payload: honest structured JSON. If a confirmed booking with a real ref,
+  // encode it. If a personal plan, explicitly say so — no fake booking IDs.
+  const qrValue = JSON.stringify(
+    isConfirmedPass(plan)
+      ? {
+          app: 'CineTrip',
+          type: 'BOOKING',
+          id: plan._id || plan.id,
+          ref: plan.bookingRef,
+          movie: movie.title,
+          date: plan.date,
+          cinema: cinema.name || null,
+        }
+      : {
+          app: 'CineTrip',
+          type: 'PLAN',
+          id: plan._id || plan.id,
+          movie: movie.title,
+          date: plan.date,
+          cinema: cinema.name || null,
+          note: 'Personal movie night plan \u2014 not a cinema booking',
+        }
+  );
 
   const handleCopyRef = async () => {
     if (!plan.bookingRef) {

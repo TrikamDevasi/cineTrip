@@ -5,6 +5,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../store/useAuthStore';
+import { configureNotifications } from '../services/notifications';
+
+// Configure notification presentation on app startup
+configureNotifications();
 
 /**
  * Root layout. The navigator (`<Stack>`) is always mounted on the first render,

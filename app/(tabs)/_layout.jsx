@@ -1,8 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, View, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 import { House, Compass, Ticket, Bookmark, Camera, User } from 'lucide-react-native';
-import { TYPOGRAPHY } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 
 export default function TabLayout() {

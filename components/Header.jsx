@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { MapPin, Search, User } from 'lucide-react-native';
+import { MapPin } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from './ui/IconButton';
 import { usePreferencesStore } from '../store/usePreferencesStore';

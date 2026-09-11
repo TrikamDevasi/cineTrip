@@ -1,4 +1,4 @@
-import { Linking, Platform } from 'react-native';
+import { Linking } from 'react-native';
 
 /**
  * Generates an RFC-compliant iCal date string (YYYYMMDDTHHmmssZ)

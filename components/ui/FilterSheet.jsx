@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, RotateCcw, Check } from 'lucide-react-native';
+import { RotateCcw, Check } from 'lucide-react-native';
 import Chip from './Chip';
 import IconButton from './IconButton';
 import { useTheme } from '../../hooks/useTheme';

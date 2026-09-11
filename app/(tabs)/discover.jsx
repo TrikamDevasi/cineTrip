@@ -21,9 +21,7 @@ import {
   TrendingUp,
   SlidersHorizontal,
   Clock,
-  Flame,
   Layers,
-  Filter,
 } from 'lucide-react-native';
 import Header from '../../components/Header';
 import MovieCard from '../../components/MovieCard';

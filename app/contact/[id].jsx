@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '../../lib/alert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Mail, Pencil, Phone, Trash2, UserPlus } from 'lucide-react-native';
+import { Mail, Phone } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
 import EmptyState from '../../components/ui/EmptyState';

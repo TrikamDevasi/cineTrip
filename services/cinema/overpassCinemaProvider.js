@@ -62,7 +62,12 @@ function normalizeElement(el, index) {
 
   const name = tags.name || tags['name:en'] || `Cinema ${index + 1}`;
   const address = buildAddress(tags) || tags.description || 'Address not listed';
-  const screenType = tags['cinema:type'] || tags['screen_type'] || tags['imax'] === 'yes' ? 'IMAX' : '4DX' === tags['screen:4dx'] ? '4DX' : 'Standard';
+  const screenType =
+    tags['cinema:type'] ||
+    tags['screen_type'] ||
+    (tags['imax'] === 'yes' ? 'IMAX' : null) ||
+    (tags['screen:4dx'] === 'yes' ? '4DX' : null) ||
+    'Standard';
   const website = tags.website || tags['contact:website'] || null;
   const phone = tags.phone || tags['contact:phone'] || null;
   const openingHours = tags.opening_hours || null;

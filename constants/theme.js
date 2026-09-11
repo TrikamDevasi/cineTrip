@@ -3,6 +3,8 @@
  * Luxury Entertainment + Theatrical Ambiance + Modern Mobile Usability
  */
 
+import { Platform } from 'react-native';
+
 export const COLORS = {
   // Brand Accents (Warm Cinematic Amber & Gold + Refined Accents)
   primary: '#E5A93C',           // Warm Cinematic Amber / Marquee Gold
@@ -151,8 +153,6 @@ export const ICON_SIZES = {
 };
 
 export const ICON_STROKE_WIDTH = 2;
-
-import { Platform } from 'react-native';
 
 export const SHADOWS = {
   card: Platform.select({

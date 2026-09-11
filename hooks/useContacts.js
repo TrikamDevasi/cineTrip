@@ -1,29 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Contacts from 'expo-contacts';
-import { PRESET_SQUAD, getInitials } from '../services/contacts';
+import { getInitials, openContactsSettings } from '../services/contacts';
 
 /**
- * Reusable contacts hook with permission, fetch, search, and local mutations
+ * Reusable contacts hook with permission, fetch, search, and local mutations.
+ *
+ * Key change: when permission is denied, `contacts` is [] and `permissionDenied`
+ * is true. Callers must show a proper permission UI — never show fake contacts.
  */
-const PRESET_MAPPED = PRESET_SQUAD.map((c) => ({
-  id: c.id,
-  name: c.name,
-  initials: c.initials || getInitials(c.name),
-  phone: '',
-  email: '',
-  imageUri: null,
-  avatar: '🎬',
-}));
-
 export const useContacts = () => {
   const [contacts, setContacts] = useState([]);
   const [permissionStatus, setPermissionStatus] = useState(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const requestPermission = useCallback(async () => {
     const { status } = await Contacts.requestPermissionsAsync();
     setPermissionStatus(status);
+    setPermissionDenied(status !== 'granted');
     return status === 'granted';
   }, []);
 
@@ -31,12 +26,17 @@ export const useContacts = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const granted = await requestPermission();
-      if (!granted) {
-        setError('Contacts permission denied. Please enable in settings.');
+      const { status } = await Contacts.requestPermissionsAsync();
+      setPermissionStatus(status);
+
+      if (status !== 'granted') {
+        setPermissionDenied(true);
+        setContacts([]); // Never silently show fake contacts
         setIsLoading(false);
         return;
       }
+
+      setPermissionDenied(false);
 
       const { data } = await Contacts.getContactsAsync({
         fields: [
@@ -49,7 +49,7 @@ export const useContacts = () => {
         sort: Contacts.SortTypes.FirstName,
       });
 
-      const mapped = data
+      const mapped = (data || [])
         .filter((c) => c.name?.trim())
         .map((c, i) => ({
           id: c.id,
@@ -59,15 +59,16 @@ export const useContacts = () => {
           email: c.emails?.[0]?.email || '',
           imageUri: c.image?.uri || null,
           avatar: ['🍿', '✨', '🎬', '🥤', '🕶️', '🚀', '🔥', '⚡'][i % 8],
+          isDemoContact: false,
         }));
 
-      setContacts(mapped.length > 0 ? mapped : PRESET_MAPPED);
+      setContacts(mapped);
       setIsLoading(false);
     } catch (err) {
       setError(err.message);
       setIsLoading(false);
     }
-  }, [requestPermission]);
+  }, []);
 
   const removeContact = useCallback((id) => {
     setContacts((prev) => prev.filter((c) => c.id !== id));
@@ -93,11 +94,12 @@ export const useContacts = () => {
 
   useEffect(() => {
     fetchContacts();
-  }, []);
+  }, [fetchContacts]);
 
   return {
     contacts,
     permissionStatus,
+    permissionDenied,
     isLoading,
     error,
     fetchContacts,
@@ -105,5 +107,6 @@ export const useContacts = () => {
     removeContact,
     updateContactLocally,
     requestPermission,
+    openSettings: openContactsSettings,
   };
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
+import { TYPOGRAPHY, RADIUS } from '../constants/theme';
 
 const SOURCE_META = (colors) => ({
   LIVE: { color: '#10B981', bg: 'rgba(16, 185, 129, 0.14)' },

@@ -9,6 +9,7 @@ const memoriesRoutes = require('./routes/memories');
 const plannerRoutes = require('./routes/planner');
 const watchlistRoutes = require('./routes/watchlist');
 const profileRoutes = require('./routes/profile');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
@@ -16,23 +17,45 @@ const app = express();
 app.use(helmet());
 
 // CORS
-const allowedOrigins = [
+const PRODUCTION_ALLOWED_ORIGINS = [
+  'https://cine-trip-sigma.vercel.app',
+  'https://cinetrip-dj5w.onrender.com',
+];
+
+const DEV_ALLOWED_ORIGINS = [
   process.env.CLIENT_URL || 'http://localhost:8081',
   'http://localhost:8081',
   'http://localhost:19006',
   'http://localhost:3000',
   'http://127.0.0.1:8081',
-  'exp://',
 ];
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman) or matching allowed origins
-      if (!origin || allowedOrigins.some((o) => origin.startsWith(o)) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        callback(null, true);
+      // Always allow requests with no origin (native mobile apps, curl, Postman)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (isProduction) {
+        // In production: only explicit allowlist is permitted
+        const allowed = PRODUCTION_ALLOWED_ORIGINS.some((o) => origin.startsWith(o));
+        if (allowed) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS: Origin "${origin}" is not allowed.`), false);
       } else {
-        callback(null, true); // Permissive for local dev
+        // In development: allow localhost, LAN IPs (for Expo Go on device), and allowlist
+        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+        const isLAN = /^http:\/\/192\.168\.\d+\.\d+/.test(origin) || /^http:\/\/10\.\d+\.\d+\.\d+/.test(origin);
+        const isAllowed = DEV_ALLOWED_ORIGINS.some((o) => origin.startsWith(o));
+        if (isLocalhost || isLAN || isAllowed) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS: Origin "${origin}" is not allowed in development.`), false);
       }
     },
     credentials: true,

@@ -19,24 +19,18 @@ import {
   Film,
   Calendar,
   Clock,
-  MapPin,
-  Users,
   Check,
   Share2,
-  ArrowLeft,
   Utensils,
   ChevronRight,
-  ShieldCheck,
-  Sparkles,
   UserPlus,
 } from 'lucide-react-native';
 import QRCodeSvg from '../../components/ui/QRCodeSvg';
-import FormatBadge from '../../components/FormatBadge';
 import Button from '../../components/ui/Button';
 import { usePlannerStore } from '../../store/usePlannerStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTheme } from '../../hooks/useTheme';
-import { RADIUS, SHADOWS, SPACING } from '../../constants/theme';
+import { RADIUS } from '../../constants/theme';
 import { getImageUri, FALLBACK_MOVIES } from '../../services/tmdb';
 import { openCalendarEvent } from '../../services/calendar';
 import { showAlert } from '../../lib/alert';

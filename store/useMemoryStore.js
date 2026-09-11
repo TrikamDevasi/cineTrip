@@ -27,7 +27,9 @@ export const useMemoryStore = create(
             _id: m._id || m.id,
           }));
 
-          const localUnsynced = get().memories.filter((m) => m._id && m._id.startsWith('local-'));
+          const localUnsynced = get().memories.filter(
+            (m) => m._id && (m._id.startsWith('mem-local-') || m._id.startsWith('local-'))
+          );
 
           if (pageNum === 1) {
             set({

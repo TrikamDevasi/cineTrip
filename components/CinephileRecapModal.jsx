@@ -16,15 +16,11 @@ import {
   MapPin,
   Users,
   Award,
-  Share2,
-  X,
-  Sparkles,
   Camera,
-  Calendar,
 } from 'lucide-react-native';
 import { useMemoryStore } from '../store/useMemoryStore';
 import { useTheme } from '../hooks/useTheme';
-import { RADIUS, SHADOWS, SPACING } from '../constants/theme';
+import { RADIUS, SHADOWS } from '../constants/theme';
 import Button from './ui/Button';
 import IconButton from './ui/IconButton';
 

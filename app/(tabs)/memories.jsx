@@ -3,12 +3,10 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, Film, MapPin, Sparkles } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Header from '../../components/Header';
 import MemoryCard from '../../components/MemoryCard';
@@ -33,17 +31,19 @@ export default function MemoriesScreen() {
     hasNextPage,
   } = useMemoryStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isGuest = useAuthStore((s) => s.isGuest);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Guests have no JWT; hitting authenticated endpoints returns 401.
+    if (isAuthenticated && !isGuest) {
       fetchMemories(1);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isGuest]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    if (isAuthenticated) {
+    if (isAuthenticated && !isGuest) {
       await fetchMemories(1);
     }
     setRefreshing(false);

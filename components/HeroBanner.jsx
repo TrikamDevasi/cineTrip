@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, Dimensions, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Sparkles, Star, Ticket, Info } from 'lucide-react-native';
+import { Sparkles, Star } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { getImageUri } from '../services/tmdb';
 import { usePlannerStore } from '../store/usePlannerStore';

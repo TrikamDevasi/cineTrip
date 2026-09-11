@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { Mail, KeyRound, ArrowLeft, ExternalLink, CheckCircle2 } from 'lucide-react-native';
+import { Mail, KeyRound, CheckCircle2 } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
 import api from '../../services/api';

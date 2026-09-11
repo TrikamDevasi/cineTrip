@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Pressable, Animated, Platform, StyleSheet } from 'react-native';
+import { Pressable, Animated, Platform } from 'react-native';
 
 /**
  * Animated Pressable Component

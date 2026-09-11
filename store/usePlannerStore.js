@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
+import { schedulePlanReminder, cancelPlanReminder } from '../services/notifications';
+
 
 const DEFAULT_DRAFT = {
   movie: null,
@@ -148,10 +150,28 @@ export const usePlannerStore = create(
           set((state) => ({
             plans: state.plans.map((p) => (p._id === tempId ? savedPlan : p)),
           }));
+          // Schedule local notification reminder (best-effort, silent on failure)
+          const notificationId = await schedulePlanReminder(savedPlan).catch(() => null);
+          if (notificationId) {
+            set((state) => ({
+              plans: state.plans.map((p) =>
+                p._id === savedPlan._id ? { ...p, notificationId } : p
+              ),
+            }));
+          }
           return savedPlan;
         } catch (error) {
           if (error.isNetworkError) {
-            return newPlan; // Offline — keep local version
+            // Offline — schedule reminder for local plan too and persist notificationId
+            const notificationId = await schedulePlanReminder(newPlan).catch(() => null);
+            if (notificationId) {
+              set((state) => ({
+                plans: state.plans.map((p) =>
+                  p._id === tempId ? { ...p, notificationId } : p
+                ),
+              }));
+            }
+            return newPlan;
           }
           set((state) => ({
             plans: state.plans.filter((p) => p._id !== tempId),
@@ -169,13 +189,20 @@ export const usePlannerStore = create(
           try {
             await api.put(`/api/plans/${planId}`, { status });
           } catch (error) {
-            console.warn('Plan status update failed:', error.message);
+            // Silent — local state already updated
           }
         }
       },
 
       deletePlan: async (planId) => {
         const previous = get().plans;
+        const planToDelete = previous.find((p) => p._id === planId);
+
+        // Cancel notification reminder if one was stored
+        if (planToDelete?.notificationId) {
+          cancelPlanReminder(planToDelete.notificationId).catch(() => null);
+        }
+
         set((state) => ({ plans: state.plans.filter((p) => p._id !== planId) }));
 
         if (!planId.startsWith('plan-local-')) {

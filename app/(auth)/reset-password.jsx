@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter, useLocalSearchParams } from 'expo-router';
-import { Lock, Eye, EyeOff, ArrowLeft, KeyRound } from 'lucide-react-native';
+import { Lock, Eye, EyeOff, KeyRound } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
 import api from '../../services/api';

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { Film, Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, Globe } from 'lucide-react-native';
+import { Film, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import Button from '../../components/ui/Button';
 import { useAuthStore } from '../../store/useAuthStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';

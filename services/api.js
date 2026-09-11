@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { getToken } from './auth';
+import { getToken, removeToken } from './auth';
 
 const getBaseUrl = () => {
   // If explicitly configured to a remote/production non-localhost API, use it
@@ -81,6 +81,11 @@ const request = async (method, path, body = null, options = {}) => {
     }
 
     if (!response.ok) {
+      // On an explicit auth rejection, drop the stale token so subsequent
+      // authenticated calls don't keep failing with 401.
+      if (response.status === 401) {
+        await removeToken();
+      }
       const err = new Error(data.message || `HTTP ${response.status}`);
       err.statusCode = response.status;
       err.data = data;

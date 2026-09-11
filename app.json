@@ -54,6 +54,17 @@
           "microphonePermission": "CineTrip uses your microphone to record video memories from movie nights."
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#F59E0B",
+          "sounds": [],
+          "iosDisplayInForeground": true,
+          "androidMode": "default"
+        }
+      ],
+      "expo-av",
       "expo-font",
       "expo-secure-store",
       "expo-web-browser"

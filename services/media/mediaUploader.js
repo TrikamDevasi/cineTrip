@@ -74,7 +74,7 @@ export class MediaUploader {
           success: true,
           url: localUri,
           isCloud: false,
-          warning: 'Stored locally (Cloud service unreachable)',
+          warning: `Stored locally (Cloud upload failed: ${err.message || 'unknown error'})`,
         };
       }
     }

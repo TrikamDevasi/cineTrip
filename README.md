@@ -46,7 +46,7 @@ $$\textbf{DISCOVER} \longrightarrow \textbf{DECIDE} \longrightarrow \textbf{PLAN
 ├───────────────────────────────────┬────────────────────────────────────┤
 │ FRONTEND (CLIENT)                 │ BACKEND (SERVER)                   │
 ├───────────────────────────────────┼────────────────────────────────────┤
-│ • Expo SDK 52 / React Native 0.81 │ • Node.js + Express 4.x            │
+│ • Expo SDK 57 / React Native 0.86 │ • Node.js + Express 4.x            │
 │ • Expo Router v6 (File-Based)     │ • MongoDB Atlas via Mongoose       │
 │ • Zustand State (Local + Cloud)   │ • JWT Bearer Auth (bcrypt 12 rds)  │
 │ • Lucide React Native Icons       │ • Joi & Zod Request Validation     │
