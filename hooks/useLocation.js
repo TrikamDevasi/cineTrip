@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Location from 'expo-location';
+import { reverseGeocode } from '../services/location';
 
 /**
  * Reusable location hook with:
@@ -39,14 +40,13 @@ export const useLocation = () => {
       });
       setLocation(pos.coords);
 
-      // Reverse geocode
+      // Reverse geocode with fallback
       try {
-        const [geo] = await Location.reverseGeocodeAsync(pos.coords);
-        if (geo) {
-          const addr = [geo.street, geo.district || geo.subregion, geo.city]
-            .filter(Boolean)
-            .join(', ');
-          setAddress(addr || geo.name || 'Current Location');
+        const addr = await reverseGeocode(pos.coords);
+        if (addr) {
+          setAddress(addr);
+        } else {
+          setAddress('Current Location');
         }
       } catch {}
 

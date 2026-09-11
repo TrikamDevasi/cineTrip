@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 
 /**
@@ -85,16 +86,36 @@ export async function getCurrentCity() {
     });
 
     let city = null;
-    try {
-      const reverse = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-      if (reverse && reverse.length > 0) {
-        city = reverse[0].city || reverse[0].subregion || reverse[0].name || null;
+    // On native, try expo-location reverse geocoding first
+    if (Platform.OS !== 'web') {
+      try {
+        const reverse = await Location.reverseGeocodeAsync({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        if (reverse && reverse.length > 0) {
+          city = reverse[0].city || reverse[0].subregion || reverse[0].name || null;
+        }
+      } catch (e) {
+        // Fall back to Nominatim below
       }
-    } catch (e) {
-      console.warn('Reverse geocode warning:', e.message);
+    }
+
+    // Fallback: OpenStreetMap Nominatim reverse geocode (works universally including web)
+    if (!city && location.coords) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.coords.latitude}&lon=${location.coords.longitude}`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'CineTrip (React Native Expo app)' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const addr = data.address || {};
+          city = addr.city || addr.town || addr.municipality || addr.village || addr.suburb || addr.state || null;
+        }
+      } catch (e) {
+        // Silent fallback
+      }
     }
 
     return {
@@ -161,18 +182,34 @@ export async function watchLocation(onUpdate) {
  * Reverse geocode coordinates to a human-readable address string.
  */
 export async function reverseGeocode(coords) {
-  try {
-    const results = await Location.reverseGeocodeAsync(coords);
-    if (results && results.length > 0) {
-      const r = results[0];
-      return [r.street, r.district || r.subregion, r.city].filter(Boolean).join(', ')
-        || r.name
-        || 'Unknown Location';
+  if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') return null;
+
+  if (Platform.OS !== 'web') {
+    try {
+      const results = await Location.reverseGeocodeAsync(coords);
+      if (results && results.length > 0) {
+        const r = results[0];
+        const formatted = [r.street, r.district || r.subregion, r.city].filter(Boolean).join(', ');
+        if (formatted || r.name) return formatted || r.name;
+      }
+    } catch {
+      // Fallback to OSM Nominatim
     }
-    return null;
-  } catch {
-    return null;
   }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'CineTrip (React Native Expo app)' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.display_name || null;
+    }
+  } catch {
+    // Silent fail
+  }
+  return null;
 }
 
 /**

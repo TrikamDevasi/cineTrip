@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
-  Dimensions,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
@@ -23,8 +24,6 @@ import { useWatchlistStore } from '../../store/useWatchlistStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function WatchlistScreen() {
   const { colors } = useTheme();
@@ -84,7 +83,20 @@ export default function WatchlistScreen() {
     return true;
   });
 
-  const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
+  const { width } = useWindowDimensions();
+  const numColumns = useMemo(() => {
+    if (width >= 1440) return 5;
+    if (width >= 1024) return 4;
+    if (width >= 720) return 3;
+    return 2;
+  }, [width]);
+
+  const columnWidth = useMemo(() => {
+    const maxContentWidth = Math.min(width, 1280);
+    const padding = SPACING.lg * 2;
+    const gap = SPACING.md;
+    return Math.floor((maxContentWidth - padding - gap * (numColumns - 1)) / numColumns);
+  }, [width, numColumns]);
 
   const stateCounts = {
     all: watchlist.length,
@@ -210,11 +222,12 @@ export default function WatchlistScreen() {
         />
       ) : (
         <FlatList
+          key={`watchlist-grid-${numColumns}`}
           data={filteredList}
-          keyExtractor={(item) => (item.id || item.movieId || Math.random()).toString()}
-          numColumns={2}
+          keyExtractor={(item, index) => (item.id || item.movieId || item._id || `watch-${index}`).toString()}
+          numColumns={numColumns}
           columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={[styles.listContainer, { maxWidth: 1280, width: '100%', alignSelf: 'center' }]}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -244,6 +257,13 @@ const createStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
+    ...Platform.select({
+      web: {
+        maxWidth: 1280,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   headerLeft: {
     flex: 1,
@@ -268,6 +288,13 @@ const createStyles = (colors) => StyleSheet.create({
     borderColor: colors.cardBorder,
     paddingVertical: SPACING.sm,
     ...SHADOWS.card,
+    ...Platform.select({
+      web: {
+        maxWidth: 1280,
+        width: 'calc(100% - 32px)',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   summaryItem: {
     flex: 1,
@@ -290,6 +317,13 @@ const createStyles = (colors) => StyleSheet.create({
   },
   filterSection: {
     marginBottom: SPACING.xs,
+    ...Platform.select({
+      web: {
+        maxWidth: 1280,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   filterRow: {
     paddingHorizontal: SPACING.lg,
@@ -306,6 +340,13 @@ const createStyles = (colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     minHeight: 42,
+    ...Platform.select({
+      web: {
+        maxWidth: 1280,
+        width: 'calc(100% - 32px)',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   searchInput: {
     flex: 1,

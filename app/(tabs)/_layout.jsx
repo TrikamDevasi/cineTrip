@@ -20,6 +20,19 @@ export default function TabLayout() {
           height: Platform.OS === 'ios' ? 84 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 6,
           paddingTop: 6,
+          ...Platform.select({
+            web: {
+              maxWidth: 720,
+              width: '100%',
+              marginHorizontal: 'auto',
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderLeftColor: 'rgba(255, 255, 255, 0.07)',
+              borderRightColor: 'rgba(255, 255, 255, 0.07)',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+            },
+          }),
         },
         tabBarLabelStyle: {
           fontSize: 10,

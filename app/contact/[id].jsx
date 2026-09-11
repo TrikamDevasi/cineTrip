@@ -90,7 +90,7 @@ export default function ContactDetailScreen() {
       phone: contact.phone,
     });
     showAlert(
-      'Added to Plan! ðŸŽ¬',
+      'Added to Plan! 🎬',
       `${contact.name} added to your movie night draft.`,
       [
         { text: 'Go to Planner', onPress: () => router.push('/(tabs)/planner') },

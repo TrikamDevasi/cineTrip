@@ -1,18 +1,32 @@
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 /**
  * Configure how notifications appear when app is in foreground.
  * Call once at app startup in _layout.jsx.
  */
-export function configureNotifications() {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
-  });
+export async function configureNotifications() {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('movie-night-reminders', {
+        name: 'Movie Night Reminders',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#E5A93C',
+      });
+    }
+  } catch (err) {
+    console.warn('Failed to configure notifications:', err.message);
+  }
 }
 
 /**
@@ -69,6 +83,7 @@ export async function schedulePlanReminder(plan) {
         title: 'Movie Night Tonight',
         body,
         data: { planId: plan._id || plan.id, type: 'plan_reminder' },
+        ...(Platform.OS === 'android' ? { channelId: 'movie-night-reminders' } : {}),
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,

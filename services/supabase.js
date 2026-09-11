@@ -35,10 +35,9 @@ const customStorage = {
   },
 };
 
-// Publishable (anon) Supabase credentials — safe for client bundles by design.
-// Env vars are preferred; these defaults keep the client importable without a local .env.
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://hkavfvkzjerbmyikphfy.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Tx0UXksdv9SvrVPZX9wbkQ_cQ6oSw9Q';
+// Publishable (anon) Supabase credentials — read from environment variables.
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

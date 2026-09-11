@@ -9,7 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -44,7 +44,6 @@ import { useActivityStore } from '../../store/useActivityStore';
 import { useTheme } from '../../hooks/useTheme';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FORMAT_FILTERS = ['All Formats', 'IMAX Laser', 'Dolby Cinema', '4DX', 'RealD 3D'];
 const CATEGORY_TABS = [
   { id: 'in_theaters', label: 'Now in Theaters', icon: Film },
@@ -72,6 +71,21 @@ export default function DiscoverScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const debouncedSearch = useDebounce(searchQuery, 400);
+
+  const { width } = useWindowDimensions();
+  const numColumns = useMemo(() => {
+    if (width >= 1440) return 5;
+    if (width >= 1024) return 4;
+    if (width >= 720) return 3;
+    return 2;
+  }, [width]);
+
+  const columnWidth = useMemo(() => {
+    const maxContentWidth = Math.min(width, 1280);
+    const padding = SPACING.lg * 2;
+    const gap = SPACING.md;
+    return Math.floor((maxContentWidth - padding - gap * (numColumns - 1)) / numColumns);
+  }, [width, numColumns]);
 
   const { snapshot: catalog, refresh: refreshCatalog } = useMovieCatalog();
   const recentSearches = useActivityStore((s) => s.recentSearches);
@@ -238,7 +252,6 @@ export default function DiscoverScreen() {
   });
 
   const showSuggestions = searchFocused && searchQuery.trim().length === 0;
-  const columnWidth = (SCREEN_WIDTH - SPACING.lg * 2 - SPACING.md) / 2;
 
   // Title label for the current section
   const sectionTitle = useMemo(() => {
@@ -447,11 +460,12 @@ export default function DiscoverScreen() {
 
       {/* UNIFIED SCROLLABLE MOVIE GRID & HEADER */}
       <FlatList
+        key={`discover-grid-${numColumns}`}
         data={filteredMovies}
         keyExtractor={(item, index) => `${item.id}-${index}`}
-        numColumns={2}
+        numColumns={numColumns}
         columnWrapperStyle={styles.gridRow}
-        contentContainerStyle={styles.gridContent}
+        contentContainerStyle={[styles.gridContent, { maxWidth: 1280, width: '100%', alignSelf: 'center' }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={renderListHeader}
         refreshControl={

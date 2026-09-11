@@ -18,55 +18,57 @@ export default function Header({ showSearch = true, onSearchPress }) {
 
   return (
     <View style={styles.header}>
-      <View style={styles.left}>
-        <TouchableOpacity
-          style={styles.brandRow}
-          onPress={() => router.push('/landing')}
-          activeOpacity={0.8}
-          accessibilityLabel="CineTrip Home & Story"
-        >
-          <View style={styles.brandIconWrapper}>
-            <Image source={logoImg} style={styles.brandLogoImg} resizeMode="contain" />
-          </View>
-          <Text style={styles.brandText}>
-            Cine<Text style={styles.brandAccent}>Trip</Text>
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.headerInner}>
+        <View style={styles.left}>
+          <TouchableOpacity
+            style={styles.brandRow}
+            onPress={() => router.push('/landing')}
+            activeOpacity={0.8}
+            accessibilityLabel="CineTrip Home & Story"
+          >
+            <View style={styles.brandIconWrapper}>
+              <Image source={logoImg} style={styles.brandLogoImg} resizeMode="contain" />
+            </View>
+            <Text style={styles.brandText}>
+              Cine<Text style={styles.brandAccent}>Trip</Text>
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.locationRow}
-          onPress={() => router.push('/map')}
-          accessibilityRole="button"
-          accessibilityLabel={`Current location: ${city || 'Select city'}. Tap to view cinema map.`}
-          activeOpacity={0.75}
-        >
-          <MapPin size={12} color={colors.primary} strokeWidth={2} />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {city || 'Local Metro'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.locationRow}
+            onPress={() => router.push('/map')}
+            accessibilityRole="button"
+            accessibilityLabel={`Current location: ${city || 'Select city'}. Tap to view cinema map.`}
+            activeOpacity={0.75}
+          >
+            <MapPin size={12} color={colors.primary} strokeWidth={2} />
+            <Text style={styles.locationText} numberOfLines={1}>
+              {city || 'Local Metro'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.right}>
-        {showSearch && (
+        <View style={styles.right}>
+          {showSearch && (
+            <IconButton
+              icon="Search"
+              variant="surface"
+              size={18}
+              onPress={onSearchPress || (() => router.push('/(tabs)/discover'))}
+              accessibilityLabel="Search movies and cinemas"
+              style={{ marginRight: SPACING.sm }}
+            />
+          )}
+
           <IconButton
-            icon="Search"
+            icon="User"
             variant="surface"
             size={18}
-            onPress={onSearchPress || (() => router.push('/(tabs)/discover'))}
-            accessibilityLabel="Search movies and cinemas"
-            style={{ marginRight: SPACING.sm }}
+            color={colors.primary}
+            onPress={() => router.push('/(tabs)/profile')}
+            accessibilityLabel={userName ? `Profile for ${userName}` : 'View profile and settings'}
           />
-        )}
-
-        <IconButton
-          icon="User"
-          variant="surface"
-          size={18}
-          color={colors.primary}
-          onPress={() => router.push('/(tabs)/profile')}
-          accessibilityLabel={userName ? `Profile for ${userName}` : 'View profile and settings'}
-        />
+        </View>
       </View>
     </View>
   );
@@ -83,6 +85,15 @@ const createStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  headerInner: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    maxWidth: 1280,
+    width: '100%',
+    marginHorizontal: 'auto',
   },
   left: {
     flexDirection: 'column',

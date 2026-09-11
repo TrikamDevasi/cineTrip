@@ -17,52 +17,61 @@ const app = express();
 app.use(helmet());
 
 // CORS
-const PRODUCTION_ALLOWED_ORIGINS = [
+const ALLOWED_ORIGINS = [
   'https://cine-trip-sigma.vercel.app',
   'https://cinetrip-dj5w.onrender.com',
-];
-
-const DEV_ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL || 'http://localhost:8081',
   'http://localhost:8081',
+  'http://localhost:8082',
   'http://localhost:19006',
   'http://localhost:3000',
+  'http://localhost:5173',
   'http://127.0.0.1:8081',
+  'http://127.0.0.1:8082',
+  'http://127.0.0.1:19006',
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map((o) => o.trim()) : []),
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()) : []),
 ];
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Always allow requests with no origin (native mobile apps, curl, Postman)
-      if (!origin) {
-        return callback(null, true);
-      }
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Always allow requests with no origin (native mobile apps, curl, Postman)
+    if (!origin) {
+      return callback(null, true);
+    }
 
-      if (isProduction) {
-        // In production: only explicit allowlist is permitted
-        const allowed = PRODUCTION_ALLOWED_ORIGINS.some((o) => origin.startsWith(o));
-        if (allowed) {
-          return callback(null, true);
-        }
-        return callback(new Error(`CORS: Origin "${origin}" is not allowed.`), false);
-      } else {
-        // In development: allow localhost, LAN IPs (for Expo Go on device), and allowlist
-        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
-        const isLAN = /^http:\/\/192\.168\.\d+\.\d+/.test(origin) || /^http:\/\/10\.\d+\.\d+\.\d+/.test(origin);
-        const isAllowed = DEV_ALLOWED_ORIGINS.some((o) => origin.startsWith(o));
-        if (isLocalhost || isLAN || isAllowed) {
-          return callback(null, true);
-        }
-        return callback(new Error(`CORS: Origin "${origin}" is not allowed in development.`), false);
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+    const isExplicitlyAllowed = ALLOWED_ORIGINS.some((allowed) =>
+      origin === allowed || origin.startsWith(allowed)
+    );
+
+    if (isExplicitlyAllowed) {
+      return callback(null, true);
+    }
+
+    // In development or local testing: allow localhost, 127.0.0.1, and private LAN IPs (Expo Go)
+    const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+    const isLAN =
+      /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin) ||
+      /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
+      /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/.test(origin);
+
+    if (isLocalhost || isLAN) {
+      return callback(null, true);
+    }
+
+    // Reject without throwing a 500 error to prevent crashing the response without headers
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'apikey'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Body parser
 app.use(express.json({ limit: '10mb' }));
@@ -92,6 +101,7 @@ app.use('/api/memories', memoriesRoutes);
 app.use('/api/plans', plannerRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

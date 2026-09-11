@@ -304,7 +304,9 @@ export default function PlannerScreen() {
     let bookingStatus = 'plan';
     let bookingRef = '';
 
-    if (providerAvailable) {
+    const hasLiveBooking = providerAvailable && Boolean(cinemaService.capabilities?.booking);
+
+    if (hasLiveBooking) {
       if (!draft.cinema) {
         showAlert('Select a Theatre', 'Pick a theatre for your screening.');
         return;
@@ -313,31 +315,37 @@ export default function PlannerScreen() {
         showAlert('Select a Showtime', `Pick a showtime for ${draft.movie.title} on ${draft.date}.`);
         return;
       }
-      const booking = await cinemaService.createBooking({
-        movieId: draft.movie.id,
-        cinemaId: draft.cinema.id,
-        showtimeId: draft.showtimeId,
-        seats: draft.seats || '',
-        date: draft.date,
-        time: draft.time,
-      });
-      if (!booking || !booking.success) {
-        showAlert('Booking Unavailable', 'The showtime provider could not confirm this booking right now.');
-        return;
+      try {
+        const booking = await cinemaService.createBooking({
+          movieId: draft.movie.id,
+          cinemaId: draft.cinema.id,
+          showtimeId: draft.showtimeId,
+          seats: draft.seats || '',
+          date: draft.date,
+          time: draft.time,
+        });
+        if (booking && booking.success) {
+          bookingStatus = 'confirmed';
+          bookingRef = booking.bookingRef || '';
+        }
+      } catch (e) {
+        console.warn('Live booking unavailable, saving as local plan:', e.message);
       }
-      bookingStatus = 'confirmed';
-      bookingRef = booking.bookingRef || '';
+    }
+
+    if (!bookingRef) {
+      bookingRef = `PLAN-${Date.now().toString().slice(-6)}`;
     }
 
     setIsSaving(true);
     try {
       const newPlan = await addPlan({
         movie: draft.movie,
-        cinema: providerAvailable ? draft.cinema : null,
+        cinema: draft.cinema || null,
         date: draft.date || DATE_OPTIONS[0].iso,
-        time: providerAvailable && draft.time ? draft.time : '',
-        slotName: providerAvailable ? draft.slotName || '' : '',
-        showtimeId: providerAvailable ? draft.showtimeId || '' : '',
+        time: draft.time || '20:00',
+        slotName: draft.slotName || '',
+        showtimeId: draft.showtimeId || '',
         friends: draft.friends || [],
         notes: draft.notes || '',
         seats: draft.seats || '',
@@ -349,7 +357,7 @@ export default function PlannerScreen() {
       setIsSaving(false);
 
       if (bookingStatus === 'confirmed') {
-        showAlert('Movie Night Locked In! ðŸŽ¬', `Your trip for "${draft.movie.title}" is confirmed.`, [
+        showAlert('Movie Night Locked In! 🎬', `Your trip for "${draft.movie.title}" is confirmed.`, [
           {
             text: 'View Pass',
             onPress: () => router.push(`/ticket/${newPlan._id || newPlan.id}`),
@@ -361,11 +369,11 @@ export default function PlannerScreen() {
         ]);
       } else {
         showAlert(
-          'Movie Night Plan Saved ðŸŽ¬',
-          'Saved as a personal plan. Live ticketing will be enabled once a showtime provider is connected â€” this is not a confirmed booking yet.',
+          'Movie Night Plan Saved 🎬',
+          'Saved as a personal movie night plan. Your itinerary and digital ticket pass have been generated.',
           [
             {
-              text: 'View Plan',
+              text: 'View Pass',
               onPress: () => router.push(`/ticket/${newPlan._id || newPlan.id}`),
             },
             {
@@ -520,12 +528,12 @@ export default function PlannerScreen() {
               </View>
               <Text style={styles.progressSummary}>
                 {stepsDone === 3
-                  ? 'All set â€” ready to lock in!'
+                  ? 'All set — ready to lock in!'
                   : `${stepsDone} of 3 steps complete`}
               </Text>
             </View>
 
-            {/* â•â•â•â•â•â•â•â•â• STEP 1: CHOOSE MOVIE â•â•â•â•â•â•â•â•â• */}
+            {/* ========== STEP 1: CHOOSE MOVIE ========== */}
             <View style={styles.stepCard} onLayout={(e) => { stepY.current[1] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
@@ -588,7 +596,7 @@ export default function PlannerScreen() {
               )}
             </View>
 
-            {/* â•â•â•â•â•â•â•â•â• STEP 2: CINEMA & SHOWTIME â•â•â•â•â•â•â•â•â• */}
+            {/* ========== STEP 2: CINEMA & SHOWTIME ========== */}
             <View style={styles.stepCard} onLayout={(e) => { stepY.current[2] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
@@ -676,7 +684,7 @@ export default function PlannerScreen() {
                   {draft.movie && draft.cinema && (
                     <>
                       <Text style={[styles.subStepLabel, styles.cinemasLabel]}>
-                        AVAILABLE SHOWTIMES â€” {draft.date}
+                        AVAILABLE SHOWTIMES — {draft.date}
                       </Text>
                       {showtimesLoading ? (
                         <ActivityIndicator size="small" color={colors.primary} />
@@ -727,14 +735,14 @@ export default function PlannerScreen() {
                   <Text style={styles.unavailableTitle}>Live showtimes aren't available for this location yet</Text>
                   <Text style={styles.unavailableText}>
                     CineTrip needs a ticketing provider for your area to show real cinemas, showtimes
-                    and seats. Until then you can still plan your movie night â€” it will be saved as a
+                    and seats. Until then you can still plan your movie night — it will be saved as a
                     personal plan, not a confirmed booking.
                   </Text>
                 </View>
               )}
             </View>
 
-            {/* â•â•â•â•â•â•â•â•â• STEP 3: SEATS, SNACKS & SQUAD â•â•â•â•â•â•â•â•â• */}
+            {/* ========== STEP 3: SEATS, SNACKS & SQUAD ========== */}
             <View style={styles.stepCard} onLayout={(e) => { stepY.current[3] = e.nativeEvent.layout.y; }}>
               <View style={styles.stepHeader}>
                 <View style={styles.stepBadge}>
@@ -750,7 +758,7 @@ export default function PlannerScreen() {
               <Text style={styles.subStepLabel}>AUDITORIUM SEAT SELECTION</Text>
               {(!providerAvailable || !cinemaService.capabilities?.seats) && (
                 <Text style={styles.demoNote}>
-                  PREVIEW SEAT LAYOUT â€” Seat inventory is illustrative only. Real-time seat availability
+                  PREVIEW SEAT LAYOUT — Seat inventory is illustrative only. Real-time seat availability
                   will appear once a verified ticketing provider is connected for this theatre.
                 </Text>
               )}
@@ -855,7 +863,7 @@ export default function PlannerScreen() {
                       ? 'Locking In Movie Night...'
                       : 'Saving Movie Night Plan...'
                     : providerAvailable
-                    ? 'Lock In Movie Night ðŸŽ¬'
+                    ? 'Lock In Movie Night 🎬'
                     : 'Save Movie Night Plan'
                 }
                 variant="primary"
@@ -870,7 +878,7 @@ export default function PlannerScreen() {
               />
               {!providerAvailable && (
                 <Text style={styles.ctaNote}>
-                  Personal plan only â€” no live booking until a showtime provider is connected.
+                  Personal plan only — no live booking until a showtime provider is connected.
                 </Text>
               )}
             </View>
@@ -1045,6 +1053,13 @@ const createStyles = (colors) => StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     marginTop: SPACING.sm,
     marginBottom: SPACING.md,
+    ...Platform.select({
+      web: {
+        maxWidth: 840,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   modeTabs: {
     flexDirection: 'row',
@@ -1079,6 +1094,13 @@ const createStyles = (colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: SPACING.xxl * 2,
+    ...Platform.select({
+      web: {
+        maxWidth: 840,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   progressWrap: {
     backgroundColor: colors.card,

@@ -208,6 +208,13 @@ const createStyles = (colors) => StyleSheet.create({
     paddingVertical: SPACING.lg,
     justifyContent: 'center',
     minHeight: '100%',
+    ...Platform.select({
+      web: {
+        maxWidth: 460,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   topNav: {
     marginBottom: SPACING.sm,

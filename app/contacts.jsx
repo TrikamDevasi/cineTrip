@@ -66,7 +66,7 @@ export default function ContactsScreen() {
       });
     });
     showAlert(
-      'Added to Plan! ðŸŽ¬',
+      'Added to Plan! 🎬',
       `${selectedContacts.length} companion(s) added to your movie night draft.`,
       [{ text: 'Go to Planner', onPress: () => router.push('/(tabs)/planner') }]
     );

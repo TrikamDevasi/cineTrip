@@ -176,7 +176,7 @@ export default function TicketModalScreen() {
           <View style={styles.offlineNote}>
             <WifiOff size={16} color={colors.warning} strokeWidth={2} />
             <Text style={styles.offlineText}>
-              Offline â€” showing your saved pass. Everything here works without a connection.
+              Offline — showing your saved pass. Everything here works without a connection.
             </Text>
           </View>
         )}
@@ -214,7 +214,7 @@ export default function TicketModalScreen() {
                 {isPlan ? 'BOOKING STATUS' : 'BOOKING REFERENCE'}
               </Text>
               <Text style={styles.bookingRef}>
-                {isPlan ? 'PLAN â€” NOT BOOKED YET' : plan.bookingRef}
+                {isPlan ? 'PLAN — NOT BOOKED YET' : plan.bookingRef}
               </Text>
               {isPlan ? (
                 <Text style={styles.refNote}>

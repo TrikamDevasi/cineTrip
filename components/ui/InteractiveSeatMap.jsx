@@ -259,10 +259,18 @@ const createStyles = (colors) => StyleSheet.create({
   seatSelected: {
     backgroundColor: colors.primary,
     borderColor: '#FFFFFF',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
+    ...Platform.select({
+      web: {
+        boxShadow: `0px 0px 8px ${colors.primary}`,
+      },
+      default: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 6,
+        elevation: 4,
+      },
+    }),
   },
   seatOccupied: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',

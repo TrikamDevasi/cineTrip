@@ -280,6 +280,13 @@ const createStyles = (colors) => StyleSheet.create({
   scroll: {
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
+    ...Platform.select({
+      web: {
+        maxWidth: 460,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   topNav: {
     marginBottom: SPACING.sm,

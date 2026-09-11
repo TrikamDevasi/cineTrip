@@ -170,7 +170,7 @@ export default function ProfileScreen() {
               <View style={styles.profileInfo}>
                 <Text style={styles.userName}>{userName || 'Cinephile Enthusiast'}</Text>
                 <Text style={styles.userHandle}>
-                  {userHandle ? `${userHandle} â€¢ ` : ''}{city || 'Mumbai Metro'}
+                  {userHandle ? `${userHandle} • ` : ''}{city || 'Mumbai Metro'}
                 </Text>
 
                 <View style={styles.editTriggerRow}>
@@ -415,6 +415,13 @@ const createStyles = (colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: SPACING.xxl * 2,
+    ...Platform.select({
+      web: {
+        maxWidth: 720,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   profileCard: {
     backgroundColor: colors.card,

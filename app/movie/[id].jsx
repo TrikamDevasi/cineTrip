@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Share,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -424,7 +425,13 @@ const createStyles = (colors) => StyleSheet.create({
     paddingVertical: SPACING.sm,
   },
   navActions: { flexDirection: 'row' },
-  mainInfoSection: { paddingHorizontal: SPACING.lg, marginTop: -SPACING.xxl },
+  mainInfoSection: {
+    paddingHorizontal: SPACING.lg,
+    marginTop: -SPACING.xxl,
+    maxWidth: 960,
+    width: '100%',
+    alignSelf: 'center',
+  },
   posterAndHeaderRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: SPACING.lg },
   posterImage: {
     width: 115,
@@ -575,6 +582,19 @@ const createStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    ...Platform.select({
+      web: {
+        maxWidth: 720,
+        width: '100%',
+        marginHorizontal: 'auto',
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderLeftColor: colors.cardBorder,
+        borderRightColor: colors.cardBorder,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+      },
+    }),
   },
   bottomPlanBtn: { flex: 1 },
   bottomSaveBtn: { minWidth: 120 },

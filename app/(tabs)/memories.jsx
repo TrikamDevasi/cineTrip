@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -143,8 +144,8 @@ export default function MemoriesScreen() {
           />
         ) : (
           <View style={styles.feedWrapper}>
-            {memories.map((m) => (
-              <MemoryCard key={m._id || m.id || Math.random().toString()} memory={m} />
+            {memories.map((m, idx) => (
+              <MemoryCard key={m._id || m.id || `mem-${idx}`} memory={m} />
             ))}
 
             {hasNextPage && (
@@ -175,6 +176,13 @@ const createStyles = (colors) => StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: SPACING.xxl * 2,
+    ...Platform.select({
+      web: {
+        maxWidth: 720,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
   },
   topHeader: {
     flexDirection: 'row',

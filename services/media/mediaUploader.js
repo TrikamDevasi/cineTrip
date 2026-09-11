@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 /**
  * Cloud Media Uploader Abstraction
  * Handles image/video upload to cloud providers (Cloudinary / S3 / Supabase Storage)
@@ -30,8 +32,8 @@ export class MediaUploader {
     }
 
     const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'mp4', 'mov'];
-    const fileExt = (localUri.split('.').pop() || '').toLowerCase();
-    if (fileExt && !ALLOWED_EXTS.includes(fileExt)) {
+    const fileExt = (localUri.split('.').pop() || '').split('?')[0].toLowerCase();
+    if (fileExt && !localUri.startsWith('data:') && !localUri.startsWith('blob:') && !ALLOWED_EXTS.includes(fileExt)) {
       return { success: false, error: `Unsupported media format .${fileExt}. Allowed formats: ${ALLOWED_EXTS.join(', ')}` };
     }
 
@@ -42,11 +44,18 @@ export class MediaUploader {
         const effectiveExt = fileExt || (mediaType === 'video' ? 'mp4' : 'jpg');
         const filename = `cinetrip_${Date.now()}.${effectiveExt}`;
 
-        formData.append('file', {
-          uri: localUri,
-          type: mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
-          name: filename,
-        });
+        if (Platform.OS === 'web' && (localUri.startsWith('blob:') || localUri.startsWith('data:'))) {
+          const blobRes = await fetch(localUri);
+          const blob = await blobRes.blob();
+          const file = new File([blob], filename, { type: blob.type || (mediaType === 'video' ? 'video/mp4' : 'image/jpeg') });
+          formData.append('file', file);
+        } else {
+          formData.append('file', {
+            uri: localUri,
+            type: mediaType === 'video' ? 'video/mp4' : 'image/jpeg',
+            name: filename,
+          });
+        }
         formData.append('upload_preset', this.cloudinaryUploadPreset);
 
         const response = await fetch(

@@ -149,18 +149,36 @@ export class OverpassCinemaProvider extends CinemaProvider {
         }
 
         const data = await response.json();
-        const elements = data.elements || [];
-
-        const cinemas = elements
+        const rawCinemas = elements
           .map((el, idx) => normalizeElement(el, idx))
           .filter(Boolean);
 
+        // Deduplicate cinemas: OSM often has both node & way/polygon for the same venue, or duplicate points
+        const deduplicated = [];
+        for (const cinema of rawCinemas) {
+          const isDup = deduplicated.some((existing) => {
+            const latDiff = Math.abs(cinema.latitude - existing.latitude);
+            const lonDiff = Math.abs(cinema.longitude - existing.longitude);
+            // Proximity < ~50m
+            const isVeryClose = latDiff < 0.0005 && lonDiff < 0.0005;
+            // Similar name within ~500m
+            const normName1 = (cinema.name || '').toLowerCase().trim();
+            const normName2 = (existing.name || '').toLowerCase().trim();
+            const isSameNameClose = normName1 === normName2 && latDiff < 0.005 && lonDiff < 0.005;
+            return isVeryClose || isSameNameClose;
+          });
+
+          if (!isDup) {
+            deduplicated.push(cinema);
+          }
+        }
+
         // Cache the result
-        this._cache = cinemas;
+        this._cache = deduplicated;
         this._cacheKey = cacheKey;
         this._cacheTs = Date.now();
 
-        return cinemas;
+        return deduplicated;
       } catch (err) {
         lastError = err;
         console.warn(`[Overpass] Endpoint ${endpoint} failed:`, err.message);

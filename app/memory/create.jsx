@@ -372,7 +372,7 @@ export default function CreateMemoryScreen() {
       });
 
       setIsSaving(false);
-      showAlert('Memory Logged! ðŸŽ¬', 'Your theatrical experience has been saved to your Journal.', [
+      showAlert('Memory Logged! 🎬', 'Your theatrical experience has been saved to your Journal.', [
         { text: 'View Journal', onPress: () => goBack(router, '/(tabs)/memories') },
       ]);
     } catch (err) {
@@ -397,7 +397,7 @@ export default function CreateMemoryScreen() {
           autofocus="on"
           mode={mediaMode === 'video' ? 'video' : 'picture'}
         />
-        <View style={styles.cameraOverlay} pointerEvents="box-none">
+        <View style={[styles.cameraOverlay, { pointerEvents: 'box-none' }]}>
           <TouchableOpacity
             style={styles.cameraTouchSurface}
             activeOpacity={1}
@@ -487,9 +487,9 @@ export default function CreateMemoryScreen() {
           {/* Focus Reticle + Hint */}
           {focusPoint ? (
             <Animated.View
-              pointerEvents="none"
               style={[
                 styles.focusReticle,
+                { pointerEvents: 'none' },
                 {
                   left: focusPoint.x - FOCUS_RETICLE_SIZE / 2,
                   top: focusPoint.y - FOCUS_RETICLE_SIZE / 2,
@@ -511,7 +511,7 @@ export default function CreateMemoryScreen() {
           ) : null}
 
           {focusHintVisible ? (
-            <View style={styles.focusHint} pointerEvents="none">
+            <View style={[styles.focusHint, { pointerEvents: 'none' }]}>
               <Text style={styles.focusHintText}>Tap to focus</Text>
             </View>
           ) : null}
@@ -723,7 +723,7 @@ export default function CreateMemoryScreen() {
           {/* 7. DOMINANT SAVE BUTTON */}
           <View style={styles.saveBtnWrap}>
             <Button
-              title={isSaving ? "Saving Memory..." : "Save to Journal ðŸŽ¬"}
+              title={isSaving ? "Saving Memory..." : "Save to Journal 🎬"}
               variant="primary"
               size="lg"
               loading={isSaving}

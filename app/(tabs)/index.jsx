@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -514,7 +515,16 @@ export default function HomeScreen() {
 const createStyles = (colors) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: SPACING.xxl * 2 },
+  scrollContent: {
+    paddingBottom: SPACING.xxl * 2,
+    ...Platform.select({
+      web: {
+        maxWidth: 1280,
+        width: '100%',
+        marginHorizontal: 'auto',
+      },
+    }),
+  },
   heroSkeletonWrap: { paddingHorizontal: SPACING.lg, marginVertical: SPACING.sm },
 
   greetingBlock: {

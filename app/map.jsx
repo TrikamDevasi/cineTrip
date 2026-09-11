@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { showAlert } from '../lib/alert';
@@ -37,6 +38,8 @@ import { goBack } from '../lib/navigation';
 export default function MapScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
   const setDraftCinema = usePlannerStore((s) => s.setDraftCinema);
   const { location: deviceCoords, getCurrentLocation, getLastKnownLocation, permissionStatus } = useLocation();
 
@@ -269,7 +272,7 @@ export default function MapScreen() {
       </View>
 
       {/* Address Search Bar */}
-      <View style={styles.searchBar}>
+      <View style={[styles.searchBar, isDesktop && styles.desktopSearchBar]}>
         <Search size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
@@ -287,141 +290,148 @@ export default function MapScreen() {
         )}
       </View>
 
-      {/* Map / List Toggle */}
-      <View style={styles.viewToggleRow}>
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            style={[styles.viewToggleBtn, viewMode === 'map' && styles.viewToggleBtnActive]}
-            onPress={() => setViewMode('map')}
-            activeOpacity={0.8}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: viewMode === 'map' }}
-            accessibilityLabel="Show map view"
-          >
-            <Map size={15} color={viewMode === 'map' ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
-            <Text style={[styles.viewToggleText, viewMode === 'map' && styles.viewToggleTextActive]}>Map</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.viewToggleBtn, viewMode === 'list' && styles.viewToggleBtnActive]}
-            onPress={() => setViewMode('list')}
-            activeOpacity={0.8}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: viewMode === 'list' }}
-            accessibilityLabel="Show list view"
-          >
-            <List size={15} color={viewMode === 'list' ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
-            <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>List</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Map Split Layout */}
-      {viewMode === 'map' && (
-        <View style={styles.mapContainer}>
-          {Platform.OS === 'web' ? (
-            <iframe
-              srcDoc={leafletHtml}
-              style={styles.webMapFrame}
-              title="Interactive Map Display"
-            />
-          ) : (
-            <WebView
-              ref={mapRef}
-              style={styles.nativeMap}
-              originWhitelist={['*']}
-              source={{ html: leafletHtml }}
-              onMessage={handleWebViewMessage}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              startInLoadingState={true}
-              renderLoading={() => (
-                <View style={styles.radarFallback}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.radarText}>Loading interactive map...</Text>
-                </View>
-              )}
-            />
-          )}
+      {/* Map / List Toggle (Mobile Only) */}
+      {!isDesktop && (
+        <View style={styles.viewToggleRow}>
+          <View style={styles.viewToggle}>
+            <TouchableOpacity
+              style={[styles.viewToggleBtn, viewMode === 'map' && styles.viewToggleBtnActive]}
+              onPress={() => setViewMode('map')}
+              activeOpacity={0.8}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: viewMode === 'map' }}
+              accessibilityLabel="Show map view"
+            >
+              <Map size={15} color={viewMode === 'map' ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
+              <Text style={[styles.viewToggleText, viewMode === 'map' && styles.viewToggleTextActive]}>Map</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.viewToggleBtn, viewMode === 'list' && styles.viewToggleBtnActive]}
+              onPress={() => setViewMode('list')}
+              activeOpacity={0.8}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: viewMode === 'list' }}
+              accessibilityLabel="Show list view"
+            >
+              <List size={15} color={viewMode === 'list' ? '#07090E' : colors.textSecondary} strokeWidth={2.2} />
+              <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>List</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
-      {/* Bottom Sheet Cinema List */}
-      <ScrollView
-        style={styles.sheetScroll}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.sheetContent}
-      >
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetHeading}>
-            {isDemo ? 'SAMPLE THEATRES (DEMO MODE)' : 'VERIFIED THEATRES NEARBY'}
-          </Text>
-          {isDemo && (
-            <View style={styles.demoBadge}>
-              <Text style={styles.demoBadgeText}>DEMO</Text>
-            </View>
-          )}
-        </View>
-
-        {cinemaLoading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator color={colors.primary} size="large" />
-            <Text style={styles.loadingText}>Fetching theater metadata...</Text>
-          </View>
-        ) : cinemas.length === 0 ? (
-          <EmptyState
-            icon="MapPin"
-            title="No verified cinemas found nearby"
-            description="We couldn't locate any active partner cinemas in this area. Switch to Demo Mode or search another location."
-            actionLabel="Try Again"
-            actionIcon="RefreshCw"
-            onAction={initLocation}
-          />
-        ) : (
-          cinemas.map((cinema) => {
-            const isHighlighted = highlightedCinema?.id === cinema.id;
-            return (
-              <TouchableOpacity
-                key={cinema.id}
-                style={[
-                  styles.cinemaCard,
-                  isHighlighted && styles.highlightedCard,
-                ]}
-                activeOpacity={0.9}
-                onPress={() => handleFocusCinemaOnMap(cinema)}
-              >
-                <View style={styles.cardTop}>
-                  <View style={styles.titleCol}>
-                    <Text style={styles.cinemaName}>{cinema.name}</Text>
-                    <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+      {/* Main Content: Desktop Split or Mobile Stacked */}
+      <View style={isDesktop ? styles.desktopBody : styles.mobileBody}>
+        {/* Map View Pane */}
+        {(isDesktop || viewMode === 'map') && (
+          <View style={isDesktop ? styles.desktopMapPane : styles.mapContainer}>
+            {Platform.OS === 'web' ? (
+              <iframe
+                srcDoc={leafletHtml}
+                style={styles.webMapFrame}
+                title="Interactive Map Display"
+              />
+            ) : (
+              <WebView
+                ref={mapRef}
+                style={styles.nativeMap}
+                originWhitelist={['*']}
+                source={{ html: leafletHtml }}
+                onMessage={handleWebViewMessage}
+                javaScriptEnabled={true}
+                domStorageEnabled={true}
+                startInLoadingState={true}
+                renderLoading={() => (
+                  <View style={styles.radarFallback}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={styles.radarText}>Loading interactive map...</Text>
                   </View>
-                  {cinema.distanceKm != null && (
-                    <Text style={styles.distanceBadge}>{cinema.distanceKm.toFixed(1)} km</Text>
-                  )}
-                </View>
-
-                <View style={styles.formatRow}>
-                  {cinema.screenType ? (
-                    <FormatBadge format={cinema.screenType} size="small" />
-                  ) : null}
-                  {cinema.features && cinema.features[0] ? (
-                    <FormatBadge format={cinema.features[0]} size="small" />
-                  ) : null}
-                </View>
-
-                <View style={styles.actionRow}>
-                  <Button
-                    title="Plan Movie Night Here"
-                    icon="Ticket"
-                    variant={isHighlighted ? 'primary' : 'surface'}
-                    size="sm"
-                    onPress={() => handleSelectCinemaForTrip(cinema)}
-                  />
-                </View>
-              </TouchableOpacity>
-            );
-          })
+                )}
+              />
+            )}
+          </View>
         )}
-      </ScrollView>
+
+        {/* Cinema List Pane */}
+        {(isDesktop || viewMode === 'list' || viewMode === 'map') && (
+          <ScrollView
+            style={isDesktop ? styles.desktopListPane : styles.sheetScroll}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.sheetContent}
+          >
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetHeading}>
+                {isDemo ? 'SAMPLE THEATRES (DEMO MODE)' : 'VERIFIED THEATRES NEARBY'}
+              </Text>
+              {isDemo && (
+                <View style={styles.demoBadge}>
+                  <Text style={styles.demoBadgeText}>DEMO</Text>
+                </View>
+              )}
+            </View>
+
+            {cinemaLoading ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator color={colors.primary} size="large" />
+                <Text style={styles.loadingText}>Fetching theater metadata...</Text>
+              </View>
+            ) : cinemas.length === 0 ? (
+              <EmptyState
+                icon="MapPin"
+                title="No verified cinemas found nearby"
+                description="We couldn't locate any active partner cinemas in this area. Switch to Demo Mode or search another location."
+                actionLabel="Try Again"
+                actionIcon="RefreshCw"
+                onAction={initLocation}
+              />
+            ) : (
+              cinemas.map((cinema) => {
+                const isHighlighted = highlightedCinema?.id === cinema.id;
+                return (
+                  <TouchableOpacity
+                    key={cinema.id}
+                    style={[
+                      styles.cinemaCard,
+                      isHighlighted && styles.highlightedCard,
+                    ]}
+                    activeOpacity={0.9}
+                    onPress={() => handleFocusCinemaOnMap(cinema)}
+                  >
+                    <View style={styles.cardTop}>
+                      <View style={styles.titleCol}>
+                        <Text style={styles.cinemaName}>{cinema.name}</Text>
+                        <Text style={styles.cinemaAddress}>{cinema.address}</Text>
+                      </View>
+                      {cinema.distanceKm != null && (
+                        <Text style={styles.distanceBadge}>{cinema.distanceKm.toFixed(1)} km</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.formatRow}>
+                      {cinema.screenType ? (
+                        <FormatBadge format={cinema.screenType} size="small" />
+                      ) : null}
+                      {cinema.features && cinema.features[0] ? (
+                        <FormatBadge format={cinema.features[0]} size="small" />
+                      ) : null}
+                    </View>
+
+                    <View style={styles.actionRow}>
+                      <Button
+                        title="Plan Movie Night Here"
+                        icon="Ticket"
+                        variant={isHighlighted ? 'primary' : 'surface'}
+                        size="sm"
+                        onPress={() => handleSelectCinemaForTrip(cinema)}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </ScrollView>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -477,10 +487,36 @@ const createStyles = (colors) => StyleSheet.create({
     maxWidth: 320,
   },
   mapContainer: {
-    height: 250,
+    height: 280,
     backgroundColor: '#07090e',
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+  },
+  desktopBody: {
+    flex: 1,
+    flexDirection: 'row',
+    maxWidth: 1440,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  mobileBody: {
+    flex: 1,
+  },
+  desktopMapPane: {
+    flex: 1.3,
+    height: '100%',
+    backgroundColor: '#07090e',
+    borderRightWidth: 1,
+    borderRightColor: colors.cardBorder,
+  },
+  desktopListPane: {
+    flex: 1,
+    height: '100%',
+  },
+  desktopSearchBar: {
+    maxWidth: 720,
+    width: '100%',
+    alignSelf: 'center',
   },
   searchBar: {
     flexDirection: 'row',
@@ -713,13 +749,22 @@ function generateLeafletHtml(lat, lon, cinemaList, selectedCinemaId) {
 
     var cinemas = ${safeCinemaData};
     var markers = {};
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
     cinemas.forEach(function(c) {
       if (!c.lat || !c.lon) return;
       var isSel = c.id === '${selectedCinemaId || ''}';
       var pinHtml = '<div class="cinema-pin' + (isSel ? ' selected' : '') + '">🎬</div>';
       var icon = L.divIcon({ className: 'custom-cinema-icon', html: pinHtml, iconSize: [28, 28], iconAnchor: [14, 14] });
       var marker = L.marker([c.lat, c.lon], { icon: icon }).addTo(map);
-      marker.bindPopup('<div class="popup-title">' + c.name + '</div><div class="popup-addr">' + c.address + '</div>');
+      marker.bindPopup('<div class="popup-title">' + escapeHtml(c.name) + '</div><div class="popup-addr">' + escapeHtml(c.address) + '</div>');
       marker.on('click', function() {
         var payload = JSON.stringify({ type: 'SELECT_CINEMA', id: c.id });
         if (window.ReactNativeWebView) {
