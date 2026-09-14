@@ -30,6 +30,7 @@ export default function MemoriesScreen() {
     fetchMemories,
     loadNextPage,
     hasNextPage,
+    deleteMemory,
   } = useMemoryStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isGuest = useAuthStore((s) => s.isGuest);
@@ -145,7 +146,11 @@ export default function MemoriesScreen() {
         ) : (
           <View style={styles.feedWrapper}>
             {memories.map((m, idx) => (
-              <MemoryCard key={m._id || m.id || `mem-${idx}`} memory={m} />
+              <MemoryCard
+                key={m._id || m.id || `mem-${idx}`}
+                memory={m}
+                onDelete={deleteMemory}
+              />
             ))}
 
             {hasNextPage && (

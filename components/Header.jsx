@@ -4,6 +4,7 @@ import { MapPin } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import IconButton from './ui/IconButton';
 import { usePreferencesStore } from '../store/usePreferencesStore';
+import { useDrawerStore } from '../store/useDrawerStore';
 import { useTheme } from '../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SPACING } from '../constants/theme';
 
@@ -15,6 +16,7 @@ export default function Header({ showSearch = true, onSearchPress }) {
   const router = useRouter();
   const city = usePreferencesStore((s) => s.city);
   const userName = usePreferencesStore((s) => s.userName);
+  const openDrawer = useDrawerStore((s) => s.openDrawer);
 
   return (
     <View style={styles.header}>
@@ -61,12 +63,12 @@ export default function Header({ showSearch = true, onSearchPress }) {
           )}
 
           <IconButton
-            icon="User"
+            icon="Menu"
             variant="surface"
             size={18}
             color={colors.primary}
-            onPress={() => router.push('/(tabs)/profile')}
-            accessibilityLabel={userName ? `Profile for ${userName}` : 'View profile and settings'}
+            onPress={openDrawer}
+            accessibilityLabel="Open navigation drawer menu"
           />
         </View>
       </View>

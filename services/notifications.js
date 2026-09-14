@@ -1,13 +1,37 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+
+/**
+ * expo-notifications is NOT available in the Expo Go client (SDK 50+).
+ * We lazy-import and guard every call so the app never crashes in Expo Go,
+ * while still working correctly in production development builds & EAS builds.
+ */
+
+let Notifications = null;
+
+function getNotifications() {
+  if (Notifications) return Notifications;
+  try {
+    // Will throw "Cannot find native module 'ExponentNotifications'" in Expo Go
+    Notifications = require('expo-notifications');
+  } catch {
+    Notifications = null;
+  }
+  return Notifications;
+}
+
+function isAvailable() {
+  return Boolean(getNotifications());
+}
 
 /**
  * Configure how notifications appear when app is in foreground.
  * Call once at app startup in _layout.jsx.
  */
 export async function configureNotifications() {
+  const N = getNotifications();
+  if (!N) return; // Expo Go — silently skip
   try {
-    Notifications.setNotificationHandler({
+    N.setNotificationHandler({
       handleNotification: async () => ({
         shouldShowBanner: true,
         shouldShowList: true,
@@ -17,9 +41,9 @@ export async function configureNotifications() {
     });
 
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('movie-night-reminders', {
+      await N.setNotificationChannelAsync('movie-night-reminders', {
         name: 'Movie Night Reminders',
-        importance: Notifications.AndroidImportance.HIGH,
+        importance: N.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#E5A93C',
       });
@@ -34,14 +58,16 @@ export async function configureNotifications() {
  * Returns 'granted' | 'denied' | 'undetermined'.
  */
 export async function requestNotificationPermission() {
+  const N = getNotifications();
+  if (!N) return 'denied';
   try {
-    const { status: existing } = await Notifications.getPermissionsAsync();
+    const { status: existing } = await N.getPermissionsAsync();
     if (existing === 'granted') return 'granted';
-    const { status } = await Notifications.requestPermissionsAsync({
+    const { status } = await N.requestPermissionsAsync({
       ios: { allowAlert: true, allowSound: false, allowBadge: false },
     });
     return status;
-  } catch (err) {
+  } catch {
     return 'denied';
   }
 }
@@ -50,8 +76,10 @@ export async function requestNotificationPermission() {
  * Get current permission status without prompting.
  */
 export async function getNotificationPermission() {
+  const N = getNotifications();
+  if (!N) return 'undetermined';
   try {
-    const { status } = await Notifications.getPermissionsAsync();
+    const { status } = await N.getPermissionsAsync();
     return status;
   } catch {
     return 'undetermined';
@@ -64,8 +92,10 @@ export async function getNotificationPermission() {
  */
 export async function schedulePlanReminder(plan) {
   if (!plan || !plan.date || !plan.movie?.title) return null;
+  const N = getNotifications();
+  if (!N) return null;
   try {
-    const { status } = await Notifications.getPermissionsAsync();
+    const { status } = await N.getPermissionsAsync();
     if (status !== 'granted') return null;
 
     const triggerDate = buildTriggerDate(plan.date, plan.time);
@@ -78,7 +108,7 @@ export async function schedulePlanReminder(plan) {
       ? `"${plan.movie.title}" at ${plan.cinema.name} — in 1 hour`
       : `"${plan.movie.title}" — your movie night is in 1 hour`;
 
-    const notificationId = await Notifications.scheduleNotificationAsync({
+    const notificationId = await N.scheduleNotificationAsync({
       content: {
         title: 'Movie Night Tonight',
         body,
@@ -86,12 +116,12 @@ export async function schedulePlanReminder(plan) {
         ...(Platform.OS === 'android' ? { channelId: 'movie-night-reminders' } : {}),
       },
       trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        type: N.SchedulableTriggerInputTypes.DATE,
         date: oneHourBefore,
       },
     });
     return notificationId;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -101,8 +131,10 @@ export async function schedulePlanReminder(plan) {
  */
 export async function cancelPlanReminder(notificationId) {
   if (!notificationId) return;
+  const N = getNotifications();
+  if (!N) return;
   try {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
+    await N.cancelScheduledNotificationAsync(notificationId);
   } catch {}
 }
 
@@ -110,8 +142,10 @@ export async function cancelPlanReminder(notificationId) {
  * Cancel ALL scheduled notifications (call on logout).
  */
 export async function cancelAllReminders() {
+  const N = getNotifications();
+  if (!N) return;
   try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    await N.cancelAllScheduledNotificationsAsync();
   } catch {}
 }
 

@@ -189,7 +189,10 @@ export default function LandingScreen() {
 
   const { colors } = useTheme();
   const router = useRouter();
-  const enterGuestMode = useAuthStore((s) => s.enterGuestMode);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isGuest = useAuthStore((s) => s.isGuest);
+  const user = useAuthStore((s) => s.user);
+  const isSignedIn = isAuthenticated && !isGuest && Boolean(user);
   const setDraftMovie = usePlannerStore((s) => s.setDraftMovie);
 
   const scrollRef = useRef(null);
@@ -226,14 +229,20 @@ export default function LandingScreen() {
   };
 
   const handleLaunchApp = (destination = '/(tabs)') => {
-    enterGuestMode();
-    router.replace(destination);
+    if (isSignedIn) {
+      router.push(destination);
+    } else {
+      router.push('/(auth)/login');
+    }
   };
 
   const handlePlanSpecificMovie = (movie) => {
     setDraftMovie(movie);
-    enterGuestMode();
-    router.replace('/(tabs)/planner');
+    if (isSignedIn) {
+      router.push('/(tabs)/planner');
+    } else {
+      router.push('/(auth)/login');
+    }
   };
 
   const handleCopyRefCode = async (refCode) => {
@@ -271,14 +280,18 @@ export default function LandingScreen() {
     }
   };
 
-  // Filtered movies based on category and mood
+  // Filtered movies based on category and mood (exclusively in theatres)
   const filteredCatalogMovies = useMemo(() => {
-    let list = [...FALLBACK_MOVIES];
+    let list = [...FALLBACK_MOVIES].filter(
+      (m) => m.status === 'Now Playing' || (m.formats && m.formats.length > 0)
+    );
 
     if (selectedCategoryTab === 'trending') {
       list = [...list].sort((a, b) => b.vote_count - a.vote_count);
-    } else if (selectedCategoryTab === 'upcoming') {
-      list = list.filter((m) => m.status?.toLowerCase().includes('upcoming') || m.release_date >= '2024-05-01');
+    } else if (selectedCategoryTab === 'imax') {
+      list = list.filter((m) =>
+        m.formats && m.formats.some((f) => f.toLowerCase().includes('imax') || f.toLowerCase().includes('dolby'))
+      );
       if (list.length === 0) list = FALLBACK_MOVIES.slice(0, 3);
     }
 
@@ -789,11 +802,11 @@ export default function LandingScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.categoryTabPill, selectedCategoryTab === 'upcoming' && styles.categoryTabPillActive]}
-              onPress={() => setSelectedCategoryTab('upcoming')}
+              style={[styles.categoryTabPill, selectedCategoryTab === 'imax' && styles.categoryTabPillActive]}
+              onPress={() => setSelectedCategoryTab('imax')}
             >
-              <Text style={[styles.categoryTabText, selectedCategoryTab === 'upcoming' && styles.categoryTabTextActive]}>
-                Upcoming & Presales
+              <Text style={[styles.categoryTabText, selectedCategoryTab === 'imax' && styles.categoryTabTextActive]}>
+                IMAX & Premium
               </Text>
             </TouchableOpacity>
           </View>

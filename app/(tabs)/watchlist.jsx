@@ -28,7 +28,7 @@ import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 export default function WatchlistScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const [filterType, setFilterType] = useState('all');
+  const [filterType, setFilterType] = useState('now_playing');
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -157,16 +157,16 @@ export default function WatchlistScreen() {
       <View style={styles.filterSection}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           <Chip
-            label={`All (${stateCounts.all})`}
-            selected={filterType === 'all'}
-            onPress={() => setFilterType('all')}
-            accessibilityLabel="Show all queued films"
-          />
-          <Chip
             label={`Now in Theaters (${stateCounts.now_playing})`}
             selected={filterType === 'now_playing'}
             onPress={() => setFilterType('now_playing')}
             accessibilityLabel="Show movies currently in theaters"
+          />
+          <Chip
+            label={`All (${stateCounts.all})`}
+            selected={filterType === 'all'}
+            onPress={() => setFilterType('all')}
+            accessibilityLabel="Show all queued films"
           />
           <Chip
             label={`Coming Soon (${stateCounts.coming_soon})`}

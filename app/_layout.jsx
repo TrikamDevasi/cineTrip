@@ -1,11 +1,16 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import * as Font from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../store/useAuthStore';
 import { configureNotifications } from '../services/notifications';
+
+// Prevent splash screen from auto-hiding before assets & auth are initialized
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Configure notification presentation on app startup
 configureNotifications();
@@ -20,7 +25,22 @@ export default function RootLayout() {
   const { colors, isDark } = useTheme();
 
   useEffect(() => {
-    initialize();
+    async function prepare() {
+      const initPromise = Promise.allSettled([
+        initialize(),
+        Font.loadAsync({}),
+      ]);
+      const safetyTimeout = new Promise((resolve) => setTimeout(resolve, 3500));
+
+      try {
+        await Promise.race([initPromise, safetyTimeout]);
+      } catch (e) {
+        console.warn('Startup initialization warning:', e);
+      } finally {
+        await SplashScreen.hideAsync().catch(() => {});
+      }
+    }
+    prepare();
   }, [initialize]);
 
   return (
@@ -35,7 +55,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const initialized = useAuthStore((s) => s.initialized);
-  const canAccessApp = useAuthStore((s) => s.isAuthenticated || s.isGuest);
+  const isSignedIn = useAuthStore((s) => s.isAuthenticated && !s.isGuest && Boolean(s.user));
   const { colors } = useTheme();
 
   return (
@@ -113,10 +133,10 @@ function RootNavigator() {
           animation: 'slide_from_bottom',
         }}
       />
-      <Stack.Protected guard={initialized && canAccessApp}>
+      <Stack.Protected guard={initialized && isSignedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={initialized && !canAccessApp}>
+      <Stack.Protected guard={initialized && !isSignedIn}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>

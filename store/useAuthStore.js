@@ -7,6 +7,7 @@ import { usePlannerStore } from './usePlannerStore';
 import { useMemoryStore } from './useMemoryStore';
 import { useWatchlistStore } from './useWatchlistStore';
 import { usePreferencesStore } from './usePreferencesStore';
+import { cancelAllReminders } from '../services/notifications';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -368,6 +369,7 @@ export const useAuthStore = create((set, get) => ({
       useMemoryStore.getState().clearMemories();
       useWatchlistStore.getState().clearWatchlist();
       usePreferencesStore.getState().clearProfile();
+      await cancelAllReminders();
     } catch {}
 
     set({

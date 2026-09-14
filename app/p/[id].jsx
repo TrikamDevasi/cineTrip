@@ -9,10 +9,10 @@ import {
   Image,
   useWindowDimensions,
   Share,
-  Linking,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -46,7 +46,10 @@ export default function SharedPlanPreviewScreen() {
 
   const { colors } = useTheme();
   const router = useRouter();
-  const enterGuestMode = useAuthStore((s) => s.enterGuestMode);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isGuest = useAuthStore((s) => s.isGuest);
+  const user = useAuthStore((s) => s.user);
+  const isSignedIn = isAuthenticated && !isGuest && Boolean(user);
 
   const getPlanById = usePlannerStore((s) => s.getPlanById);
   const existingLocalPlan = getPlanById(id);
@@ -392,8 +395,11 @@ export default function SharedPlanPreviewScreen() {
             <TouchableOpacity
               style={styles.openAppBanner}
               onPress={() => {
-                enterGuestMode();
-                router.replace('/(tabs)');
+                if (isSignedIn) {
+                  router.push('/(tabs)');
+                } else {
+                  router.push('/(auth)/login');
+                }
               }}
             >
               <Text style={styles.openAppTitle}>Plan your own movie night</Text>

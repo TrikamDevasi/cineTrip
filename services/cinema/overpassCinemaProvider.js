@@ -132,23 +132,27 @@ export class OverpassCinemaProvider extends CinemaProvider {
 
     let lastError = null;
     for (const endpoint of OVERPASS_ENDPOINTS) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'User-Agent': 'CineTripApp/1.0',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
           },
           body,
-          signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined,
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`Overpass HTTP ${response.status}`);
         }
 
         const data = await response.json();
+        const elements = Array.isArray(data.elements) ? data.elements : [];
         const rawCinemas = elements
           .map((el, idx) => normalizeElement(el, idx))
           .filter(Boolean);
@@ -180,6 +184,7 @@ export class OverpassCinemaProvider extends CinemaProvider {
 
         return deduplicated;
       } catch (err) {
+        clearTimeout(timeoutId);
         lastError = err;
         console.warn(`[Overpass] Endpoint ${endpoint} failed:`, err.message);
       }

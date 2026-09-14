@@ -31,7 +31,6 @@ import DataSourceBadge from '../../components/DataSourceBadge';
 import Button from '../../components/ui/Button';
 import { MovieCardSkeleton, CinemaCardSkeleton } from '../../components/ui/Skeleton';
 import { useMovieCatalog } from '../../hooks/useMovieCatalog';
-import { getUpcomingMovies } from '../../services/tmdb';
 import { cinemaService } from '../../services/cinema';
 import { getCurrentCity } from '../../services/location';
 import { usePlannerStore } from '../../store/usePlannerStore';
@@ -56,8 +55,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const [cinemas, setCinemas] = useState([]);
   const [cinemaLoading, setCinemaLoading] = useState(true);
-  const [upcoming, setUpcoming] = useState([]);
-  const [upcomingLoading, setUpcomingLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(new Date());
 
@@ -76,6 +73,12 @@ export default function HomeScreen() {
 
   const nowPlaying = catalog.movies;
   const loading = catalog.loading || cinemaLoading;
+
+  // Filter recently viewed movies to only those available in theatres
+  const inTheatreRecent = useMemo(() => {
+    if (!catalog.ids || catalog.ids.size === 0) return [];
+    return recentMovies.filter((m) => catalog.ids.has(Number(m.id)));
+  }, [recentMovies, catalog.ids]);
 
   // Derived stats — only from real stored user data
   const stats = useMemo(() => {
@@ -122,18 +125,6 @@ export default function HomeScreen() {
     }
   };
 
-  const loadUpcoming = async () => {
-    setUpcomingLoading(true);
-    try {
-      const list = await getUpcomingMovies(1);
-      setUpcoming(Array.isArray(list) ? list.slice(0, 10) : []);
-    } catch {
-      setUpcoming([]);
-    } finally {
-      setUpcomingLoading(false);
-    }
-  };
-
   // Live clock tick for countdown/movie-day sections
   useEffect(() => {
     if (!nextPlan) return;
@@ -143,12 +134,11 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadCinemas();
-    loadUpcoming();
   }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refreshCatalog(), loadCinemas(), loadUpcoming()]);
+    await Promise.all([refreshCatalog(), loadCinemas()]);
     setRefreshing(false);
   };
 
@@ -293,15 +283,15 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {/* NOW PLAYING */}
+        {/* NOW IN THEATRES */}
         <SectionHeader
-          title="Now Playing"
+          title="Now in Theatres"
           subtitle={
             !catalog.hasData
               ? 'Connect TMDB for live theatrical catalog'
               : catalog.isCached
               ? 'Cached snapshot — pull down to refresh'
-              : 'Verified theatrical discovery'
+              : 'Showing exclusively movies currently available in theatres'
           }
           icon="Film"
           actionText={catalog.hasData ? 'See All' : undefined}
@@ -313,7 +303,7 @@ export default function HomeScreen() {
             source={catalog.dataSource || 'UNAVAILABLE'}
             label={
               catalog.dataSource
-                ? `${catalog.dataSource} — movie catalog`
+                ? `${catalog.dataSource} — in theatres now`
                 : 'Live movie metadata unconfigured'
             }
           />
@@ -356,39 +346,18 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* COMING SOON */}
-        {upcoming.length > 0 && (
-          <>
-            <SectionHeader
-              title="Coming Soon"
-              subtitle="Upcoming theatrical releases"
-              icon="Calendar"
-              actionText="Discover"
-              onAction={() => router.push('/(tabs)/discover')}
-            />
-            <FlatList
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              data={upcoming}
-              keyExtractor={(item) => `up-${item.id}`}
-              contentContainerStyle={styles.horizontalList}
-              renderItem={({ item }) => <MovieCard movie={item} />}
-            />
-          </>
-        )}
-
-        {/* CONTINUE EXPLORING — recently viewed */}
-        {recentMovies.length > 0 && (
+        {/* CONTINUE EXPLORING — in-theatre recent movies */}
+        {inTheatreRecent.length > 0 && (
           <>
             <SectionHeader
               title="Continue Exploring"
-              subtitle="Pick up where you left off"
+              subtitle="Recently viewed in-theatre movies"
               icon="Clock"
             />
             <FlatList
               horizontal
               showsHorizontalScrollIndicator={false}
-              data={recentMovies}
+              data={inTheatreRecent}
               keyExtractor={(item) => `recent-${item.id}`}
               contentContainerStyle={styles.horizontalList}
               renderItem={({ item }) => <MovieCard movie={item} />}

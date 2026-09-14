@@ -81,9 +81,24 @@ export async function getCurrentCity() {
       return { city: null, coordinates: null, permissionGranted: false };
     }
 
-    const location = await Location.getCurrentPositionAsync({
+    const positionPromise = Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,
     });
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('GPS acquisition timeout')), 4000)
+    );
+
+    let location;
+    try {
+      location = await Promise.race([positionPromise, timeoutPromise]);
+    } catch {
+      const lastKnown = await Location.getLastKnownPositionAsync({});
+      if (lastKnown) {
+        location = lastKnown;
+      } else {
+        return { city: null, coordinates: null, permissionGranted: true };
+      }
+    }
 
     let city = null;
     // On native, try expo-location reverse geocoding first

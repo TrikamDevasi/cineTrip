@@ -17,8 +17,15 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   Camera,
 } from 'lucide-react-native';
-import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { Video, ResizeMode } from 'expo-av';
+import { CameraView } from 'expo-camera';
+// expo-av may be unavailable in Expo Go — lazy-require guards the import
+let Video = null;
+let ResizeMode = null;
+try {
+  const av = require('expo-av');
+  Video = av.Video;
+  ResizeMode = av.ResizeMode;
+} catch {}
 import * as ImagePicker from 'expo-image-picker';
 import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
@@ -30,6 +37,7 @@ import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import APP_CONFIG from '../../constants/config';
 import { useMemoryStore } from '../../store/useMemoryStore';
 import { useContacts } from '../../hooks/useContacts';
+import { useCamera } from '../../hooks/useCamera';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 import { goBack } from '../../lib/navigation';
@@ -60,7 +68,15 @@ function VideoPreview({ uri }) {
   if (Platform.OS === 'web') {
     return <video src={uri} controls playsInline style={styles.previewWebVideo} />;
   }
-  // Real video player using expo-av — not a static image with a fake play button
+  if (!Video || !ResizeMode) {
+    // expo-av not available (Expo Go) — show a static placeholder
+    return (
+      <View style={[styles.previewMedia, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: '#aaa', fontSize: 13 }}>Video preview unavailable in Expo Go</Text>
+      </View>
+    );
+  }
+  // Real video player using expo-av
   return (
     <Video
       source={{ uri }}
@@ -78,23 +94,35 @@ export default function CreateMemoryScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [micPermission, requestMicPermission] = useMicrophonePermissions();
+  const {
+    cameraRef,
+    facing: cameraFacing,
+    flash: flashMode,
+    zoom,
+    setZoom,
+    zoomIn: handleZoomIn,
+    zoomOut: handleZoomOut,
+    torchActive,
+    toggleTorch: handleToggleTorch,
+    isRecording,
+    recordingDuration: recordingSeconds,
+    cameraPermission,
+    micPermission,
+    requestCameraPermission,
+    requestMicPermission,
+    flip: flipCamera,
+    cycleFlash,
+    takePhoto,
+    startRecording,
+    stopRecording,
+  } = useCamera();
 
-  // Camera state
+  // Camera UI state
   const [cameraActive, setCameraActive] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState('back');
-  const [flashMode, setFlashMode] = useState('off');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [mediaMode, setMediaMode] = useState('photo');
-  const cameraRef = useRef(null);
-  const recordingTimerRef = useRef(null);
   const hintTimerRef = useRef(null);
   const cameraSurfaceDims = useRef(null);
   const focusReticleAnim = useRef(new Animated.Value(0));
-  const [zoom, setZoom] = useState(0);
-  const [torchActive, setTorchActive] = useState(false);
   const [focusPoint, setFocusPoint] = useState(null);
   const [focusHintVisible, setFocusHintVisible] = useState(false);
 
@@ -151,48 +179,19 @@ export default function CreateMemoryScreen() {
 
   useEffect(() => {
     return () => {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
       if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     };
   }, []);
 
-  const cycleFlash = () => {
-    const idx = FLASH_MODES.indexOf(flashMode);
-    setFlashMode(FLASH_MODES[(idx + 1) % FLASH_MODES.length]);
-  };
-
-  const flipCamera = () => {
-    setCameraFacing((prev) => (prev === 'back' ? 'front' : 'back'));
-  };
-
   const closeCamera = () => {
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
     if (hintTimerRef.current) {
       clearTimeout(hintTimerRef.current);
       hintTimerRef.current = null;
     }
-    setIsRecording(false);
-    setRecordingSeconds(0);
+    stopRecording();
     setCameraActive(false);
-    setZoom(0);
-    setTorchActive(false);
     setFocusPoint(null);
     setFocusHintVisible(false);
-  };
-
-  const handleZoomIn = () => {
-    setZoom((z) => Math.min(1, Math.round((z + ZOOM_STEP) * 10) / 10));
-  };
-
-  const handleZoomOut = () => {
-    setZoom((z) => Math.max(0, Math.round((z - ZOOM_STEP) * 10) / 10));
-  };
-
-  const handleToggleTorch = () => {
-    setTorchActive((prev) => !prev);
   };
 
   const handleTapToFocus = (e) => {
@@ -251,9 +250,8 @@ export default function CreateMemoryScreen() {
   };
 
   const handleTakePhoto = async () => {
-    if (!cameraRef.current) return;
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.85 });
+      const photo = await takePhoto({ quality: 0.85 });
       if (photo?.uri) {
         setPhotoUri(photo.uri);
         setVideoUri(null);
@@ -265,15 +263,8 @@ export default function CreateMemoryScreen() {
   };
 
   const handleStartRecording = async () => {
-    if (!cameraRef.current) return;
     try {
-      setIsRecording(true);
-      setRecordingSeconds(0);
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingSeconds((s) => s + 1);
-      }, 1000);
-
-      const video = await cameraRef.current.recordAsync({ maxDuration: 60 });
+      const video = await startRecording({ maxDuration: 60 });
       if (video?.uri) {
         setVideoUri(video.uri);
         setPhotoUri(null);
@@ -281,16 +272,11 @@ export default function CreateMemoryScreen() {
       }
     } catch {
       showAlert('Recording Error', 'Failed to record video.');
-    } finally {
-      setIsRecording(false);
-      clearInterval(recordingTimerRef.current);
     }
   };
 
   const handleStopRecording = () => {
-    if (cameraRef.current) {
-      cameraRef.current.stopRecording();
-    }
+    stopRecording();
   };
 
   const handleOpenCamera = async () => {
@@ -309,6 +295,12 @@ export default function CreateMemoryScreen() {
 
   const handlePickFromGallery = async () => {
     try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showAlert('Photos Permission Needed', 'Please allow photo gallery access to choose your theater memories.');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsEditing: true,

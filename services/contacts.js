@@ -1,5 +1,5 @@
 import * as Contacts from 'expo-contacts';
-import { Linking } from 'react-native';
+import * as Linking from 'expo-linking';
 
 /**
  * Demo squad used only when explicitly requested (e.g. for first-run onboarding).
@@ -75,21 +75,30 @@ export async function getDeviceContacts() {
 
 
 /**
- * Add a new contact to device address book
+ * Add a new contact to device address book with strict input validation
  */
 export async function createDeviceContact({ firstName, lastName, phone, email }) {
+  const cleanFirst = String(firstName || '').trim();
+  const cleanLast = String(lastName || '').trim();
+  const cleanPhone = String(phone || '').trim();
+  const cleanEmail = String(email || '').trim();
+
+  if (!cleanFirst && !cleanLast) {
+    return null;
+  }
+
   try {
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') return null;
 
     const contact = {
-      [Contacts.Fields.FirstName]: firstName,
-      [Contacts.Fields.LastName]: lastName || '',
-      [Contacts.Fields.PhoneNumbers]: phone
-        ? [{ label: 'mobile', number: phone }]
+      [Contacts.Fields.FirstName]: cleanFirst || cleanLast,
+      [Contacts.Fields.LastName]: cleanFirst ? cleanLast : '',
+      [Contacts.Fields.PhoneNumbers]: cleanPhone
+        ? [{ label: 'mobile', number: cleanPhone }]
         : [],
-      [Contacts.Fields.Emails]: email
-        ? [{ label: 'work', email }]
+      [Contacts.Fields.Emails]: cleanEmail
+        ? [{ label: 'work', email: cleanEmail }]
         : [],
     };
 
@@ -125,19 +134,27 @@ export async function deleteDeviceContact(contactId) {
  */
 export async function updateDeviceContact(contact, { firstName, lastName, phone, email }) {
   if (!contact || isPresetId(contact.id)) return false;
+
+  const cleanFirst = String(firstName || '').trim();
+  const cleanLast = String(lastName || '').trim();
+  const cleanPhone = String(phone || '').trim();
+  const cleanEmail = String(email || '').trim();
+
+  if (!cleanFirst && !cleanLast) return false;
+
   try {
     const { status } = await Contacts.requestPermissionsAsync();
     if (status !== 'granted') return false;
 
     const updatedContact = {
       [Contacts.Fields.ID]: contact.id,
-      [Contacts.Fields.FirstName]: firstName || '',
-      [Contacts.Fields.LastName]: lastName || '',
-      [Contacts.Fields.PhoneNumbers]: phone
-        ? [{ label: 'mobile', number: phone }]
+      [Contacts.Fields.FirstName]: cleanFirst,
+      [Contacts.Fields.LastName]: cleanLast,
+      [Contacts.Fields.PhoneNumbers]: cleanPhone
+        ? [{ label: 'mobile', number: cleanPhone }]
         : [],
-      [Contacts.Fields.Emails]: email
-        ? [{ label: 'work', email }]
+      [Contacts.Fields.Emails]: cleanEmail
+        ? [{ label: 'work', email: cleanEmail }]
         : [],
     };
 

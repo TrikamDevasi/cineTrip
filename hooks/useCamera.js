@@ -15,6 +15,7 @@ export const useCamera = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
+  const [torchActive, setTorchActive] = useState(false);
   const cameraRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -28,6 +29,18 @@ export const useCamera = () => {
 
   const flip = useCallback(() => {
     setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
+  }, []);
+
+  const toggleTorch = useCallback(() => {
+    setTorchActive((prev) => !prev);
+  }, []);
+
+  const zoomIn = useCallback((step = 0.1) => {
+    setZoom((z) => Math.min(1, Math.round((z + step) * 10) / 10));
+  }, []);
+
+  const zoomOut = useCallback((step = 0.1) => {
+    setZoom((z) => Math.max(0, Math.round((z - step) * 10) / 10));
   }, []);
 
   const cycleFlash = useCallback(() => {
@@ -93,17 +106,26 @@ export const useCamera = () => {
   return {
     cameraRef,
     facing,
+    setFacing,
     flash,
+    setFlash,
     zoom,
+    setZoom,
+    zoomIn,
+    zoomOut,
+    torchActive,
+    setTorchActive,
+    toggleTorch,
     isRecording,
     recordingDuration,
+    cameraPermission,
+    micPermission,
     hasCameraPermission: cameraPermission?.granted ?? false,
     hasMicPermission: micPermission?.granted ?? false,
     requestCameraPermission,
     requestMicPermission,
     flip,
     cycleFlash,
-    setZoom,
     takePhoto,
     startRecording,
     stopRecording,

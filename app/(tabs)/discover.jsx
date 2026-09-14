@@ -32,9 +32,7 @@ import { MovieCardSkeleton } from '../../components/ui/Skeleton';
 import MoodSelector from '../../components/MoodSelector';
 import {
   searchMovies,
-  getTrendingMovies,
   getNowPlayingMovies,
-  getUpcomingMovies,
   getGenres,
   discoverMovies,
 } from '../../services/tmdb';
@@ -46,9 +44,9 @@ import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
 const FORMAT_FILTERS = ['All Formats', 'IMAX Laser', 'Dolby Cinema', '4DX', 'RealD 3D'];
 const CATEGORY_TABS = [
-  { id: 'in_theaters', label: 'Now in Theaters', icon: Film },
-  { id: 'trending', label: 'Trending', icon: TrendingUp },
-  { id: 'upcoming', label: 'Coming Soon', icon: Calendar },
+  { id: 'in_theaters', label: 'All in Theaters', icon: Film },
+  { id: 'top_rated', label: 'Top Rated', icon: TrendingUp },
+  { id: 'imax', label: 'IMAX & Premium', icon: Sparkles },
 ];
 
 const DEFAULT_FILTERS = { genreId: null, year: null, minRating: 0, language: null, sortBy: 'popularity.desc' };
@@ -121,25 +119,34 @@ export default function DiscoverScreen() {
     try {
       let results = [];
       if (hasAdvancedFilters) {
-        results = await discoverMovies({
+        const raw = await discoverMovies({
           withGenres: filters.genreId || undefined,
           year: filters.year || undefined,
           sortBy: filters.sortBy,
           voteAverageGte: filters.minRating > 0 ? filters.minRating : undefined,
           withOriginalLanguage: filters.language || undefined,
         });
+        results = (raw || []).filter((m) => catalog.ids?.has(Number(m.id)));
       } else if (filters.genreId) {
-        results = await discoverMovies({ withGenres: filters.genreId, sortBy: filters.sortBy });
+        const raw = await discoverMovies({ withGenres: filters.genreId, sortBy: filters.sortBy });
+        results = (raw || []).filter((m) => catalog.ids?.has(Number(m.id)));
       } else if (category === 'in_theaters') {
         if (catalog.hasData && page === 1) {
           results = catalog.movies;
         } else {
           results = await getNowPlayingMovies(page);
         }
-      } else if (category === 'trending') {
-        results = await getTrendingMovies(page);
-      } else if (category === 'upcoming') {
-        results = await getUpcomingMovies(page);
+      } else if (category === 'top_rated') {
+        const pool = catalog.hasData ? catalog.movies : await getNowPlayingMovies(1);
+        results = [...(pool || [])].sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
+      } else if (category === 'imax') {
+        const pool = catalog.hasData ? catalog.movies : await getNowPlayingMovies(1);
+        const actionGenreIds = [28, 878, 12, 53, 14];
+        const premium = (pool || []).filter((m) => {
+          const ids = m.genre_ids || (m.genres ? m.genres.map((g) => g.id) : []);
+          return ids.some((gid) => actionGenreIds.includes(gid));
+        });
+        results = premium.length > 0 ? premium : pool;
       }
       setMovies(Array.isArray(results) ? results : []);
       setCurrentPage(page);
@@ -156,14 +163,7 @@ export default function DiscoverScreen() {
     setLoadingMore(true);
     try {
       const nextPage = currentPage + 1;
-      let results = [];
-      if (activeCategory === 'in_theaters') {
-        results = await getNowPlayingMovies(nextPage);
-      } else if (activeCategory === 'trending') {
-        results = await getTrendingMovies(nextPage);
-      } else if (activeCategory === 'upcoming') {
-        results = await getUpcomingMovies(nextPage);
-      }
+      const results = await getNowPlayingMovies(nextPage);
       if (results && results.length > 0) {
         setMovies((prev) => [...prev, ...results]);
         setCurrentPage(nextPage);
@@ -186,8 +186,27 @@ export default function DiscoverScreen() {
     setLoading(true);
     setHasMore(false);
     try {
-      const results = await searchMovies(text);
-      setMovies(results && results.length > 0 ? results : []);
+      const queryLower = text.toLowerCase().trim();
+      const localTheatrical = (catalog.movies || []).filter(
+        (m) =>
+          m.title?.toLowerCase().includes(queryLower) ||
+          (m.overview && m.overview.toLowerCase().includes(queryLower))
+      );
+
+      const rawApiResults = await searchMovies(text);
+      const apiTheatrical = (rawApiResults || []).filter((m) =>
+        catalog.ids?.has(Number(m.id))
+      );
+
+      const seen = new Set();
+      const combined = [];
+      for (const m of [...localTheatrical, ...apiTheatrical]) {
+        if (!seen.has(m.id)) {
+          seen.add(m.id);
+          combined.push(m);
+        }
+      }
+      setMovies(combined);
     } catch {
       setMovies([]);
     } finally {
@@ -201,9 +220,7 @@ export default function DiscoverScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    if (activeCategory === 'in_theaters') {
-      await refreshCatalog();
-    }
+    await refreshCatalog();
     await loadMovies(activeCategory, 1);
     setRefreshing(false);
   };
@@ -233,6 +250,10 @@ export default function DiscoverScreen() {
   );
 
   const filteredMovies = movies.filter((movie) => {
+    // Exclusively allow movies that are in the in-theatre catalog
+    if (catalog.ids && catalog.ids.size > 0 && !catalog.ids.has(Number(movie.id))) {
+      return false;
+    }
     let matchesFormat = true;
     if (selectedFormat !== 'All Formats') {
       const f = (movie.formats || []).join(' ').toLowerCase();
@@ -256,12 +277,12 @@ export default function DiscoverScreen() {
   // Title label for the current section
   const sectionTitle = useMemo(() => {
     if (searchQuery.trim()) {
-      return `Results for "${searchQuery}" (${filteredMovies.length})`;
+      return `Theatrical Results for "${searchQuery}" (${filteredMovies.length})`;
     }
     if (activeCategory === 'in_theaters') return 'Now Showing in Theaters';
-    if (activeCategory === 'trending') return 'Trending This Week';
-    if (activeCategory === 'upcoming') return 'Upcoming Releases';
-    return 'Explore Movies';
+    if (activeCategory === 'top_rated') return 'Top Rated in Theaters';
+    if (activeCategory === 'imax') return 'IMAX & Premium Screenings';
+    return 'In Theaters';
   }, [searchQuery, activeCategory, filteredMovies.length]);
 
   // Render the unified scrollable header
@@ -274,7 +295,7 @@ export default function DiscoverScreen() {
             <Search size={18} color={searchFocused ? colors.primary : colors.textMuted} strokeWidth={2.2} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search films, directors, IMAX..."
+              placeholder="Search movies in theatres..."
               placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}

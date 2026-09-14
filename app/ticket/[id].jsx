@@ -7,7 +7,6 @@ import {
   Share,
   Modal,
   TouchableOpacity,
-  Linking,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +14,7 @@ import { showAlert } from '../../lib/alert';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronUp, WifiOff } from 'lucide-react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import TicketCard from '../../components/TicketCard';
 import QRCodeSvg from '../../components/ui/QRCodeSvg';
 import Button from '../../components/ui/Button';
