@@ -1,4 +1,3 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Modal,
+  TextInput,
+  ScrollView,
 } from 'react-native';
 // expo-av may be unavailable in Expo Go — lazy-require guards the import
 let Video = null;
@@ -30,12 +32,16 @@ import {
   RotateCcw,
   Trash2,
   AlertCircle,
+  Edit3,
+  X,
 } from 'lucide-react-native';
 import FormatBadge from './FormatBadge';
+import Rating from './ui/Rating';
+import Button from './ui/Button';
 import { useTheme } from '../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../constants/theme';
 
-export default function MemoryCard({ memory, onDelete }) {
+export default function MemoryCard({ memory, onDelete, onUpdate }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
@@ -44,6 +50,45 @@ export default function MemoryCard({ memory, onDelete }) {
   const [isBuffering, setIsBuffering] = useState(false);
   const [playbackError, setPlaybackError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Edit memory state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editStory, setEditStory] = useState(memory.story || '');
+  const [editMoment, setEditMoment] = useState(memory.favoriteMoment || '');
+  const [editSnack, setEditSnack] = useState(memory.snackHighlight || '');
+  const [editRating, setEditRating] = useState(memory.rating || 5);
+  const [editAuditorium, setEditAuditorium] = useState(memory.auditoriumRating || 5);
+  const [editSound, setEditSound] = useState(memory.soundRating || 5);
+  const [editScreen, setEditScreen] = useState(memory.screenRating || 5);
+  const [editSeat, setEditSeat] = useState(memory.seat || '');
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleSaveEdit = async () => {
+    if (!onUpdate) return;
+    setIsUpdating(true);
+    try {
+      await onUpdate(memoryId, {
+        story: editStory.trim(),
+        favoriteMoment: editMoment.trim(),
+        snackHighlight: editSnack.trim(),
+        rating: editRating,
+        personalRating: editRating,
+        auditoriumRating: editAuditorium,
+        soundRating: editSound,
+        screenRating: editScreen,
+        seat: editSeat.trim(),
+      });
+      setIsEditing(false);
+    } catch (err) {
+      if (Platform.OS === 'web') {
+        window.alert(err.message || 'Failed to update memory.');
+      } else {
+        Alert.alert('Error', err.message || 'Failed to update memory.');
+      }
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (!memory) return null;
 
@@ -279,6 +324,19 @@ export default function MemoryCard({ memory, onDelete }) {
               <Text style={styles.ratingText}>{rating}.0</Text>
             </View>
 
+            {/* Edit Button */}
+            {onUpdate && (
+              <TouchableOpacity
+                onPress={() => setIsEditing(true)}
+                style={styles.actionIconBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Edit memory"
+              >
+                <Edit3 size={15} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+
             {/* Optional Delete Button */}
             {onDelete && (
               <TouchableOpacity
@@ -303,6 +361,32 @@ export default function MemoryCard({ memory, onDelete }) {
         <View style={styles.formatRow}>
           <FormatBadge format={memory.experienceType || 'IMAX Laser'} size="small" />
         </View>
+
+        {/* Multi-Dimensional Ratings Breakdown & Seat Tag */}
+        {(memory.auditoriumRating || memory.soundRating || memory.screenRating || memory.seat) ? (
+          <View style={styles.ratingsStrip}>
+            {memory.screenRating ? (
+              <View style={styles.dimPill}>
+                <Text style={styles.dimPillText}>Screen: {memory.screenRating}★</Text>
+              </View>
+            ) : null}
+            {memory.soundRating ? (
+              <View style={styles.dimPill}>
+                <Text style={styles.dimPillText}>Sound: {memory.soundRating}★</Text>
+              </View>
+            ) : null}
+            {memory.auditoriumRating ? (
+              <View style={styles.dimPill}>
+                <Text style={styles.dimPillText}>Hall: {memory.auditoriumRating}★</Text>
+              </View>
+            ) : null}
+            {memory.seat ? (
+              <View style={[styles.dimPill, styles.seatPill]}>
+                <Text style={styles.seatPillText}>Seat: {memory.seat}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* 4. SHORT JOURNAL STORY */}
         {memory.story ? (
@@ -350,6 +434,119 @@ export default function MemoryCard({ memory, onDelete }) {
           </View>
         )}
       </View>
+
+      {/* Edit Memory Modal */}
+      <Modal
+        visible={isEditing}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsEditing(false)}
+      >
+        <View style={styles.editModalBackdrop}>
+          <View style={styles.editModalCard}>
+            <View style={styles.editModalHeader}>
+              <Text style={styles.editModalTitle}>Edit Memory Details</Text>
+              <TouchableOpacity
+                onPress={() => setIsEditing(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.editFieldLabel}>OVERALL RATING (1–5)</Text>
+              <Rating
+                rating={editRating}
+                maxRating={5}
+                onRatingChange={setEditRating}
+                showNumeric={true}
+                size={18}
+              />
+
+              <Text style={styles.editFieldLabel}>AUDITORIUM RATING</Text>
+              <Rating
+                rating={editAuditorium}
+                maxRating={5}
+                onRatingChange={setEditAuditorium}
+                showNumeric={true}
+                size={18}
+              />
+
+              <Text style={styles.editFieldLabel}>SOUND RATING</Text>
+              <Rating
+                rating={editSound}
+                maxRating={5}
+                onRatingChange={setEditSound}
+                showNumeric={true}
+                size={18}
+              />
+
+              <Text style={styles.editFieldLabel}>SCREEN RATING</Text>
+              <Rating
+                rating={editScreen}
+                maxRating={5}
+                onRatingChange={setEditScreen}
+                showNumeric={true}
+                size={18}
+              />
+
+              <Text style={styles.editFieldLabel}>SEAT POSITION</Text>
+              <TextInput
+                style={styles.editTextInput}
+                value={editSeat}
+                onChangeText={setEditSeat}
+                placeholder="e.g., Row E Seat 12"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.editFieldLabel}>AUDITORIUM VIBE / STORY</Text>
+              <TextInput
+                style={[styles.editTextInput, { minHeight: 60 }]}
+                value={editStory}
+                onChangeText={setEditStory}
+                placeholder="How was the screening?"
+                placeholderTextColor={colors.textMuted}
+                multiline
+              />
+
+              <Text style={styles.editFieldLabel}>BEST MOMENT / HIGHLIGHT</Text>
+              <TextInput
+                style={styles.editTextInput}
+                value={editMoment}
+                onChangeText={setEditMoment}
+                placeholder="Key moment or visual shift"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <Text style={styles.editFieldLabel}>CONCESSION SNACK</Text>
+              <TextInput
+                style={styles.editTextInput}
+                value={editSnack}
+                onChangeText={setEditSnack}
+                placeholder="e.g. Nachos and ICEE"
+                placeholderTextColor={colors.textMuted}
+              />
+
+              <View style={styles.editActionsRow}>
+                <Button
+                  title="Cancel"
+                  variant="surface"
+                  size="sm"
+                  onPress={() => setIsEditing(false)}
+                />
+                <Button
+                  title={isUpdating ? "Saving..." : "Save Changes"}
+                  variant="primary"
+                  size="sm"
+                  loading={isUpdating}
+                  onPress={handleSaveEdit}
+                />
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -586,5 +783,91 @@ const createStyles = (colors) =>
       ...TYPOGRAPHY.caption,
       fontSize: 11,
       color: colors.textSecondary,
+    },
+    actionIconBtn: {
+      padding: 6,
+      borderRadius: RADIUS.full,
+      backgroundColor: colors.surface,
+      marginLeft: 4,
+    },
+    ratingsStrip: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginTop: 6,
+      marginBottom: 6,
+    },
+    dimPill: {
+      backgroundColor: '#0C111C',
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: RADIUS.xs,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    dimPillText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    seatPill: {
+      borderColor: 'rgba(229, 169, 60, 0.3)',
+      backgroundColor: 'rgba(229, 169, 60, 0.08)',
+    },
+    seatPillText: {
+      fontSize: 11,
+      color: colors.primary,
+      fontWeight: '700',
+    },
+    editModalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      justifyContent: 'center',
+      padding: SPACING.lg,
+    },
+    editModalCard: {
+      backgroundColor: colors.surface,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.lg,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      maxHeight: '90%',
+    },
+    editModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.cardBorder,
+      paddingBottom: SPACING.sm,
+    },
+    editModalTitle: {
+      ...TYPOGRAPHY.h2,
+      color: colors.text,
+      fontSize: 16,
+    },
+    editFieldLabel: {
+      ...TYPOGRAPHY.captionBold,
+      color: colors.textSecondary,
+      fontSize: 11,
+      marginTop: SPACING.sm,
+      marginBottom: 4,
+    },
+    editTextInput: {
+      backgroundColor: '#090D16',
+      borderRadius: RADIUS.md,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: 8,
+      color: colors.text,
+      fontSize: 13,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+    },
+    editActionsRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
     },
   });

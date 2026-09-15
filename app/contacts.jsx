@@ -82,31 +82,33 @@ export default function ContactsScreen() {
     );
   };
 
-  const styles = createStyles(colors);
+  const [manualName, setManualName] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualSquad, setManualSquad] = useState([]);
 
-  if (permissionStatus === 'denied') {
-    return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <IconButton
-            icon="ArrowLeft"
-            variant="surface"
-            onPress={() => goBack(router, '/(tabs)/planner')}
-            accessibilityLabel="Go back"
-          />
-          <Text style={styles.headerTitle}>Contacts</Text>
-          <View style={{ width: 44 }} />
-        </View>
-        <EmptyState
-          icon="Users"
-          title="Contacts Access Required"
-          description="Allow CineTrip to access device contacts to invite friends and coordinate movie nights."
-          actionLabel="Open Device Settings"
-          onAction={() => Linking.openSettings()}
-        />
-      </SafeAreaView>
-    );
-  }
+  const handleAddManualCompanion = () => {
+    if (!manualName.trim()) {
+      showAlert('Name Required', 'Please enter a companion name.');
+      return;
+    }
+    const newCompanion = {
+      id: `manual-${Date.now()}`,
+      name: manualName.trim(),
+      initials: manualName.trim().slice(0, 2).toUpperCase(),
+      phone: manualPhone.trim() || 'Custom Squad Member',
+      status: 'invited',
+      isDemoContact: false,
+    };
+    setManualSquad([newCompanion, ...manualSquad]);
+    setSelectedContacts([newCompanion, ...selectedContacts]);
+    setManualName('');
+    setManualPhone('');
+    showAlert('Companion Added', `Added ${newCompanion.name} to squad selection.`);
+  };
+
+  const combinedContacts = [...manualSquad, ...(filtered || [])];
+
+  const styles = createStyles(colors);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -115,10 +117,10 @@ export default function ContactsScreen() {
         <IconButton
           icon="ArrowLeft"
           variant="surface"
-            onPress={() => goBack(router, '/(tabs)/planner')}
-            accessibilityLabel="Go back"
-          />
-          <Text style={styles.headerTitle}>Contacts & Movie Squad</Text>
+          onPress={() => goBack(router, '/(tabs)/planner')}
+          accessibilityLabel="Go back"
+        />
+        <Text style={styles.headerTitle}>Contacts & Movie Squad</Text>
         {selectedContacts.length > 0 ? (
           <Button
             title={`Add (${selectedContacts.length})`}
@@ -138,6 +140,45 @@ export default function ContactsScreen() {
           />
         )}
       </View>
+
+      {/* Permission Denial Notice & Manual Entry Fallback */}
+      {permissionStatus === 'denied' && (
+        <View style={styles.permissionDeniedNotice}>
+          <View style={styles.deniedNoticeTop}>
+            <Text style={styles.deniedNoticeTitle}>Contacts Access Disabled</Text>
+            <TouchableOpacity onPress={() => Linking.openSettings()} accessibilityRole="button">
+              <Text style={styles.settingsLink}>Settings ↗</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.deniedNoticeBody}>
+            Device contacts access was denied. You can manually enter your movie companions below without uploading your address book.
+          </Text>
+          <View style={styles.manualEntryRow}>
+            <TextInput
+              style={[styles.manualInput, { flex: 1.2 }]}
+              placeholder="Friend Name..."
+              placeholderTextColor={colors.textMuted}
+              value={manualName}
+              onChangeText={setManualName}
+            />
+            <TextInput
+              style={[styles.manualInput, { flex: 1 }]}
+              placeholder="Phone or @handle..."
+              placeholderTextColor={colors.textMuted}
+              value={manualPhone}
+              onChangeText={setManualPhone}
+            />
+            <Button
+              title="Add"
+              variant="primary"
+              size="sm"
+              onPress={handleAddManualCompanion}
+              accessibilityLabel="Add manual companion"
+            />
+          </View>
+        </View>
+      )}
+
 
       {/* Search Input Bar */}
       <View style={styles.searchSection}>
@@ -165,7 +206,7 @@ export default function ContactsScreen() {
 
       {/* Contacts List */}
       <FlatList
-        data={filtered}
+        data={combinedContacts}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
@@ -335,4 +376,52 @@ const createStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
+  permissionDeniedNotice: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  deniedNoticeTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.xs,
+  },
+  deniedNoticeTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: colors.warning,
+    fontSize: 13,
+  },
+  settingsLink: {
+    ...TYPOGRAPHY.captionBold,
+    color: colors.primary,
+  },
+  deniedNoticeBody: {
+    ...TYPOGRAPHY.caption,
+    color: colors.textSecondary,
+    marginBottom: SPACING.sm,
+    lineHeight: 16,
+  },
+  manualEntryRow: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    alignItems: 'center',
+  },
+  manualInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: RADIUS.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    ...TYPOGRAPHY.caption,
+    color: colors.text,
+    minHeight: 36,
+  },
 });
+

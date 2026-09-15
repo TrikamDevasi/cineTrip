@@ -10,7 +10,11 @@ export default function FormatBadge({ format = 'IMAX Laser', size = 'medium', st
   let border = 'rgba(251, 191, 36, 0.3)';
 
   const fLower = (format || '').toLowerCase();
-  if (fLower.includes('imax')) {
+  if (fLower.includes('70mm') || fLower.includes('15/70')) {
+    bg = 'rgba(245, 158, 11, 0.22)';
+    text = '#FCD34D';
+    border = 'rgba(245, 158, 11, 0.6)';
+  } else if (fLower.includes('imax')) {
     bg = 'rgba(124, 58, 237, 0.16)';
     text = '#C4B5FD';
     border = 'rgba(196, 181, 253, 0.35)';

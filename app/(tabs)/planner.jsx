@@ -35,6 +35,7 @@ import IconButton from '../../components/ui/IconButton';
 import Chip from '../../components/ui/Chip';
 import EmptyState from '../../components/ui/EmptyState';
 import InteractiveSeatMap from '../../components/ui/InteractiveSeatMap';
+import ConcessionEstimator from '../../components/ConcessionEstimator';
 import NetworkStatusBanner from '../../components/ui/NetworkStatusBanner';
 import DataSourceBadge from '../../components/DataSourceBadge';
 import { getImageUri } from '../../services/tmdb';
@@ -123,6 +124,7 @@ export default function PlannerScreen() {
     setDraftDateTime,
     setDraftShowtime,
     setDraftNotes,
+    setDraftConcessions,
     toggleDraftFriend,
     addDraftFriend,
     removeDraftFriend,
@@ -352,6 +354,8 @@ export default function PlannerScreen() {
         bookingRef,
         bookingStatus,
         snacks: draft.snacks || [],
+        concessions: draft.concessions || [],
+        concessionTotal: draft.concessionTotal || 0,
       });
 
       setIsSaving(false);
@@ -781,22 +785,15 @@ export default function PlannerScreen() {
                 </View>
               )}
 
-              {/* Snacks Concession Selector */}
-              <Text style={[styles.subStepLabel, { marginTop: SPACING.lg }]}>THEATER REFRESHMENTS</Text>
-              <View style={styles.snacksWrap}>
-                {SNACK_OPTIONS.map((snack) => {
-                  const isSelected = (draft.snacks || []).includes(snack);
-                  return (
-                    <Chip
-                      key={snack}
-                      label={snack}
-                      selected={isSelected}
-                      onPress={() => handleToggleSnack(snack)}
-                      accessibilityLabel={`Toggle snack ${snack}`}
-                    />
-                  );
-                })}
-              </View>
+              {/* Concession Refreshments Estimator */}
+              <Text style={[styles.subStepLabel, { marginTop: SPACING.lg }]}>THEATER REFRESHMENTS (BUDGET ESTIMATOR)</Text>
+              <ConcessionEstimator
+                concessions={draft.concessions || []}
+                onUpdateConcessions={(items, total) => {
+                  setDraftConcessions(items, total);
+                  setDraftNotes({ snacks: items.map((i) => `${i.name} (${i.size}) x${i.quantity}`) });
+                }}
+              />
 
               {/* Squad & Companions Hub */}
               <View style={styles.squadSectionHeader}>

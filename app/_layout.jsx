@@ -55,7 +55,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const initialized = useAuthStore((s) => s.initialized);
-  const isSignedIn = useAuthStore((s) => s.isAuthenticated && !s.isGuest && Boolean(s.user));
+  const canAccessTabs = useAuthStore((s) => s.isAuthenticated || s.isGuest);
   const { colors } = useTheme();
 
   return (
@@ -79,6 +79,14 @@ function RootNavigator() {
       />
       <Stack.Screen
         name="ticket/[id]"
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <Stack.Screen
+        name="ticket/scanner"
         options={{
           headerShown: false,
           presentation: 'modal',
@@ -133,10 +141,10 @@ function RootNavigator() {
           animation: 'slide_from_bottom',
         }}
       />
-      <Stack.Protected guard={initialized && isSignedIn}>
+      <Stack.Protected guard={initialized && canAccessTabs}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={initialized && !isSignedIn}>
+      <Stack.Protected guard={initialized && !canAccessTabs}>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>

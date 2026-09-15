@@ -4,7 +4,7 @@ import { WifiOff, RefreshCw } from 'lucide-react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SPACING } from '../../constants/theme';
 
-export default function NetworkStatusBanner({ isOffline = false, isSyncing = false, style }) {
+export default function NetworkStatusBanner({ isOffline = false, isSyncing = false, message, style }) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   if (!isOffline && !isSyncing) return null;
@@ -21,14 +21,14 @@ export default function NetworkStatusBanner({ isOffline = false, isSyncing = fal
         <>
           <WifiOff size={14} color={colors.warning} strokeWidth={2} style={styles.icon} />
           <Text style={styles.bannerText}>
-            Offline Mode — Using local cache & saved passes.
+            {message || 'Offline data — may be outdated. Using local cache.'}
           </Text>
         </>
       ) : (
         <>
           <RefreshCw size={14} color={colors.primary} strokeWidth={2} style={styles.icon} />
           <Text style={[styles.bannerText, { color: colors.primary }]}>
-            Syncing changes with cloud database...
+            {message || 'Syncing changes with cloud database...'}
           </Text>
         </>
       )}

@@ -21,6 +21,8 @@ import Button from '../../components/ui/Button';
 import IconButton from '../../components/ui/IconButton';
 import EmptyState from '../../components/ui/EmptyState';
 import { usePlannerStore } from '../../store/usePlannerStore';
+import { useAuthStore } from '../../store/useAuthStore';
+import { createTripPassPayload } from '../../services/qr';
 import { useTheme } from '../../hooks/useTheme';
 import { TYPOGRAPHY, RADIUS, SHADOWS, SPACING } from '../../constants/theme';
 import { isConfirmedPass, countdownTo, isMovieDay } from '../../services/personalization';
@@ -81,29 +83,8 @@ export default function TicketModalScreen() {
 
   const movie = plan.movie || {};
   const cinema = plan.cinema || {};
-  // QR payload: honest structured JSON. If a confirmed booking with a real ref,
-  // encode it. If a personal plan, explicitly say so — no fake booking IDs.
-  const qrValue = JSON.stringify(
-    isConfirmedPass(plan)
-      ? {
-          app: 'CineTrip',
-          type: 'BOOKING',
-          id: plan._id || plan.id,
-          ref: plan.bookingRef,
-          movie: movie.title,
-          date: plan.date,
-          cinema: cinema.name || null,
-        }
-      : {
-          app: 'CineTrip',
-          type: 'PLAN',
-          id: plan._id || plan.id,
-          movie: movie.title,
-          date: plan.date,
-          cinema: cinema.name || null,
-          note: 'Personal movie night plan \u2014 not a cinema booking',
-        }
-  );
+  const user = useAuthStore((s) => s.user);
+  const qrValue = createTripPassPayload(plan, user);
 
   const handleCopyRef = async () => {
     if (!plan.bookingRef) {
@@ -191,53 +172,55 @@ export default function TicketModalScreen() {
               onPress={() => setQrZoomed(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={isPlan ? 'View plan QR placeholder' : 'Tap to enlarge QR code'}
+              accessibilityLabel="Tap to enlarge CineTrip Trip Pass QR code"
               accessibilityHint="Opens the QR code in full screen"
             >
-              {isPlan ? (
-                <View style={styles.planQrPlaceholder}>
-                  <Text style={styles.planQrText}>QR</Text>
-                </View>
-              ) : (
-                <QRCodeSvg value={qrValue} size={180} color={colors.text} margin={4} />
-              )}
+              <QRCodeSvg value={qrValue} size={180} color={colors.text} margin={4} />
             </TouchableOpacity>
 
-            {!isPlan && (
-              <Text style={styles.tapToEnlarge}>
-                <ChevronUp size={12} color={colors.textSecondary} strokeWidth={2} /> Tap to enlarge QR
-              </Text>
-            )}
+            <Text style={styles.tapToEnlarge}>
+              <ChevronUp size={12} color={colors.textSecondary} strokeWidth={2} /> Tap to enlarge QR
+            </Text>
 
             <View style={styles.bookingRefRow}>
-              <Text style={styles.refLabel}>
-                {isPlan ? 'BOOKING STATUS' : 'BOOKING REFERENCE'}
-              </Text>
+              <Text style={styles.refLabel}>PASS CLASSIFICATION</Text>
               <Text style={styles.bookingRef}>
-                {isPlan ? 'PLAN — NOT BOOKED YET' : plan.bookingRef}
+                {isPlan ? `CineTrip Trip Pass (v${plan.tripVersion || 1})` : `Verified Booking Pass (${plan.bookingRef})`}
               </Text>
-              {isPlan ? (
-                <Text style={styles.refNote}>
-                  A live booking reference appears here once a showtime provider is connected.
-                </Text>
-              ) : null}
+              <Text style={styles.refNote}>
+                {isPlan
+                  ? 'CineTrip Trip Pass: used for squad coordination, itinerary verification, and journal memory tagging. Official turnstile admission requires direct exhibitor ticketing.'
+                  : 'Verified ticket with external booking reference.'}
+              </Text>
             </View>
 
             <View style={styles.qrActionRow}>
-              <Button
-                title="Copy Reference Code"
-                icon="Copy"
-                variant="surface"
-                size="sm"
-                onPress={handleCopyRef}
-                accessibilityLabel="Copy booking reference code"
-              />
+              {plan.bookingRef ? (
+                <Button
+                  title="Copy Pass Reference"
+                  icon="Copy"
+                  variant="surface"
+                  size="sm"
+                  onPress={handleCopyRef}
+                  accessibilityLabel="Copy booking reference code"
+                />
+              ) : null}
             </View>
           </View>
         </View>
 
           {/* Primary Bottom Actions */}
           <View style={styles.actionsWrapper}>
+            <Button
+              title="Scan Companion / Pass QR"
+              icon="QrCode"
+              variant="surface"
+              size="md"
+              onPress={() => router.push('/ticket/scanner')}
+              accessibilityLabel="Open pass QR scanner"
+              style={{ marginBottom: SPACING.sm }}
+            />
+
             <Button
               title="Add to Calendar"
               icon="Calendar"
@@ -309,21 +292,14 @@ export default function TicketModalScreen() {
               <View style={styles.qrModalCard}>
                 <Text style={styles.qrModalMovie} numberOfLines={1}>{movie.title}</Text>
                 <View style={styles.qrWhite}>
-                  {isPlan ? (
-                    <View style={[styles.planQrPlaceholder, { width: 260, height: 260, borderRadius: RADIUS.md }]}>
-                      <Text style={[styles.planQrText, { fontSize: 48 }]}>QR</Text>
-                    </View>
-                  ) : (
-                    <QRCodeSvg value={qrValue} size={260} color="#000000" margin={8} />
-                  )}
+                  <QRCodeSvg value={qrValue} size={260} color="#000000" margin={8} />
                 </View>
-                {isPlan ? (
-                  <Text style={styles.qrModalPlanNote}>
-                    This is a plan, not a confirmed booking. A scannable pass will appear once live ticketing is connected.
-                  </Text>
-                ) : (
+                <Text style={styles.qrModalPlanNote}>
+                  CineTrip Trip Pass • Version {plan.tripVersion || 1}
+                </Text>
+                {plan.bookingRef ? (
                   <Text style={styles.qrModalRef}>{plan.bookingRef}</Text>
-                )}
+                ) : null}
               </View>
             </View>
           </SafeAreaView>

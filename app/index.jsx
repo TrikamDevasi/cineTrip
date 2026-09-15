@@ -8,7 +8,7 @@ import LandingScreen from './landing';
 export default function Index() {
   const { colors } = useTheme();
   const initialized = useAuthStore((s) => s.initialized);
-  const isSignedIn = useAuthStore((s) => s.isAuthenticated && !s.isGuest && Boolean(s.user));
+  const hasAccess = useAuthStore((s) => (s.isAuthenticated || s.isGuest) && Boolean(s.user));
 
   if (!initialized) {
     return (
@@ -18,8 +18,8 @@ export default function Index() {
     );
   }
 
-  // Only users who have signed in can access the dashboard
-  if (isSignedIn) {
+  // If signed in or guest explorer, go directly to dashboard
+  if (hasAccess) {
     return <Redirect href="/(tabs)" />;
   }
 

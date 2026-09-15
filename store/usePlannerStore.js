@@ -19,6 +19,8 @@ const DEFAULT_DRAFT = {
   bookingRef: '',
   bookingStatus: 'plan',
   snacks: [],
+  concessions: [],
+  concessionTotal: 0,
 };
 
 export const usePlannerStore = create(
@@ -92,7 +94,7 @@ export const usePlannerStore = create(
           },
         })),
 
-      setDraftNotes: ({ notes, seats, bookingRef, snacks }) =>
+      setDraftNotes: ({ notes, seats, bookingRef, snacks, concessions, concessionTotal }) =>
         set((state) => ({
           draft: {
             ...state.draft,
@@ -100,6 +102,17 @@ export const usePlannerStore = create(
             seats: seats !== undefined ? seats : state.draft.seats,
             bookingRef: bookingRef !== undefined ? bookingRef : state.draft.bookingRef,
             snacks: snacks !== undefined ? snacks : state.draft.snacks,
+            concessions: concessions !== undefined ? concessions : state.draft.concessions,
+            concessionTotal: concessionTotal !== undefined ? concessionTotal : state.draft.concessionTotal,
+          },
+        })),
+
+      setDraftConcessions: (concessions, concessionTotal) =>
+        set((state) => ({
+          draft: {
+            ...state.draft,
+            concessions,
+            concessionTotal,
           },
         })),
 

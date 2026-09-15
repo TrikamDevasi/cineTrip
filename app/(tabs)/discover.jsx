@@ -29,25 +29,33 @@ import Chip from '../../components/ui/Chip';
 import EmptyState from '../../components/ui/EmptyState';
 import FilterSheet from '../../components/ui/FilterSheet';
 import { MovieCardSkeleton } from '../../components/ui/Skeleton';
-import MoodSelector from '../../components/MoodSelector';
 import {
   searchMovies,
   getNowPlayingMovies,
+  getTrendingMovies,
+  getPopularMovies,
+  getTopRatedMovies,
+  getUpcomingMovies,
   getGenres,
   discoverMovies,
+  MOODS,
 } from '../../services/tmdb';
 import { useMovieCatalog } from '../../hooks/useMovieCatalog';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useActivityStore } from '../../store/useActivityStore';
 import { useTheme } from '../../hooks/useTheme';
+import MoodSelector from '../../components/MoodSelector';
 import { RADIUS, SHADOWS, SPACING, TYPOGRAPHY } from '../../constants/theme';
 
 const FORMAT_FILTERS = ['All Formats', 'IMAX Laser', 'Dolby Cinema', '4DX', 'RealD 3D'];
 const CATEGORY_TABS = [
-  { id: 'in_theaters', label: 'All in Theaters', icon: Film },
-  { id: 'top_rated', label: 'Top Rated', icon: TrendingUp },
-  { id: 'imax', label: 'IMAX & Premium', icon: Sparkles },
+  { id: 'in_theaters', label: 'In Theatres', icon: Film },
+  { id: 'trending', label: 'Trending', icon: TrendingUp },
+  { id: 'popular', label: 'Popular', icon: Sparkles },
+  { id: 'top_rated', label: 'Top Rated', icon: Layers },
+  { id: 'upcoming', label: 'Upcoming', icon: Calendar },
 ];
+
 
 const DEFAULT_FILTERS = { genreId: null, year: null, minRating: 0, language: null, sortBy: 'popularity.desc' };
 
@@ -114,43 +122,46 @@ export default function DiscoverScreen() {
     }
   }, [debouncedSearch]);
 
+  const fetchCategoryMovies = async (category, page = 1) => {
+    switch (category) {
+      case 'in_theaters':
+        return await getNowPlayingMovies(page);
+      case 'trending':
+        return await getTrendingMovies('week', page);
+      case 'popular':
+        return await getPopularMovies(page);
+      case 'top_rated':
+        return await getTopRatedMovies(page);
+      case 'upcoming':
+        return await getUpcomingMovies(page);
+      default:
+        return await getNowPlayingMovies(page);
+    }
+  };
+
   const loadMovies = async (category, page = 1) => {
     setLoading(true);
     try {
       let results = [];
       if (hasAdvancedFilters) {
-        const raw = await discoverMovies({
+        results = await discoverMovies({
           withGenres: filters.genreId || undefined,
           year: filters.year || undefined,
           sortBy: filters.sortBy,
           voteAverageGte: filters.minRating > 0 ? filters.minRating : undefined,
           withOriginalLanguage: filters.language || undefined,
+          page,
         });
-        results = (raw || []).filter((m) => catalog.ids?.has(Number(m.id)));
       } else if (filters.genreId) {
-        const raw = await discoverMovies({ withGenres: filters.genreId, sortBy: filters.sortBy });
-        results = (raw || []).filter((m) => catalog.ids?.has(Number(m.id)));
-      } else if (category === 'in_theaters') {
-        if (catalog.hasData && page === 1) {
-          results = catalog.movies;
-        } else {
-          results = await getNowPlayingMovies(page);
-        }
-      } else if (category === 'top_rated') {
-        const pool = catalog.hasData ? catalog.movies : await getNowPlayingMovies(1);
-        results = [...(pool || [])].sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0));
-      } else if (category === 'imax') {
-        const pool = catalog.hasData ? catalog.movies : await getNowPlayingMovies(1);
-        const actionGenreIds = [28, 878, 12, 53, 14];
-        const premium = (pool || []).filter((m) => {
-          const ids = m.genre_ids || (m.genres ? m.genres.map((g) => g.id) : []);
-          return ids.some((gid) => actionGenreIds.includes(gid));
-        });
-        results = premium.length > 0 ? premium : pool;
+        results = await discoverMovies({ withGenres: filters.genreId, sortBy: filters.sortBy, page });
+      } else if (category === 'in_theaters' && catalog.hasData && page === 1) {
+        results = catalog.movies;
+      } else {
+        results = await fetchCategoryMovies(category, page);
       }
       setMovies(Array.isArray(results) ? results : []);
       setCurrentPage(page);
-      setHasMore(hasAdvancedFilters ? false : (Array.isArray(results) ? results : []).length >= 20);
+      setHasMore((Array.isArray(results) ? results : []).length >= 10);
     } catch {
       setMovies([]);
     } finally {
@@ -159,15 +170,27 @@ export default function DiscoverScreen() {
   };
 
   const loadMoreMovies = async () => {
-    if (loadingMore || !hasMore || searchQuery.trim() || loading || hasAdvancedFilters) return;
+    if (loadingMore || !hasMore || searchQuery.trim() || loading) return;
     setLoadingMore(true);
     try {
       const nextPage = currentPage + 1;
-      const results = await getNowPlayingMovies(nextPage);
+      let results = [];
+      if (hasAdvancedFilters) {
+        results = await discoverMovies({
+          withGenres: filters.genreId || undefined,
+          year: filters.year || undefined,
+          sortBy: filters.sortBy,
+          voteAverageGte: filters.minRating > 0 ? filters.minRating : undefined,
+          withOriginalLanguage: filters.language || undefined,
+          page: nextPage,
+        });
+      } else {
+        results = await fetchCategoryMovies(activeCategory, nextPage);
+      }
       if (results && results.length > 0) {
         setMovies((prev) => [...prev, ...results]);
         setCurrentPage(nextPage);
-        setHasMore(results.length >= 20);
+        setHasMore(results.length >= 10);
       } else {
         setHasMore(false);
       }
@@ -186,27 +209,8 @@ export default function DiscoverScreen() {
     setLoading(true);
     setHasMore(false);
     try {
-      const queryLower = text.toLowerCase().trim();
-      const localTheatrical = (catalog.movies || []).filter(
-        (m) =>
-          m.title?.toLowerCase().includes(queryLower) ||
-          (m.overview && m.overview.toLowerCase().includes(queryLower))
-      );
-
-      const rawApiResults = await searchMovies(text);
-      const apiTheatrical = (rawApiResults || []).filter((m) =>
-        catalog.ids?.has(Number(m.id))
-      );
-
-      const seen = new Set();
-      const combined = [];
-      for (const m of [...localTheatrical, ...apiTheatrical]) {
-        if (!seen.has(m.id)) {
-          seen.add(m.id);
-          combined.push(m);
-        }
-      }
-      setMovies(combined);
+      const results = await searchMovies(text.trim());
+      setMovies(Array.isArray(results) ? results : []);
     } catch {
       setMovies([]);
     } finally {
@@ -250,8 +254,8 @@ export default function DiscoverScreen() {
   );
 
   const filteredMovies = movies.filter((movie) => {
-    // Exclusively allow movies that are in the in-theatre catalog
-    if (catalog.ids && catalog.ids.size > 0 && !catalog.ids.has(Number(movie.id))) {
+    // Exclusively restrict to catalog when on in_theaters tab without active search
+    if (activeCategory === 'in_theaters' && !searchQuery.trim() && catalog.ids && catalog.ids.size > 0 && !catalog.ids.has(Number(movie.id))) {
       return false;
     }
     let matchesFormat = true;
@@ -265,9 +269,13 @@ export default function DiscoverScreen() {
     }
     let matchesMood = true;
     if (selectedMood) {
-      matchesMood =
-        movie.mood === selectedMood ||
-        (movie.genres && movie.genres.some((g) => g.name === 'Action' || g.name === 'Sci-Fi'));
+      const moodConfig = MOODS.find((m) => m.id === selectedMood);
+      const gIds = movie.genre_ids || (movie.genres || []).map((x) => x.id);
+      if (moodConfig && moodConfig.genreIds && gIds.length > 0) {
+        matchesMood = gIds.some((id) => moodConfig.genreIds.includes(id));
+      } else if (movie.mood) {
+        matchesMood = movie.mood === selectedMood;
+      }
     }
     return matchesFormat && matchesMood;
   });
@@ -277,12 +285,14 @@ export default function DiscoverScreen() {
   // Title label for the current section
   const sectionTitle = useMemo(() => {
     if (searchQuery.trim()) {
-      return `Theatrical Results for "${searchQuery}" (${filteredMovies.length})`;
+      return `Results for "${searchQuery}" (${filteredMovies.length})`;
     }
     if (activeCategory === 'in_theaters') return 'Now Showing in Theaters';
-    if (activeCategory === 'top_rated') return 'Top Rated in Theaters';
-    if (activeCategory === 'imax') return 'IMAX & Premium Screenings';
-    return 'In Theaters';
+    if (activeCategory === 'trending') return 'Trending This Week';
+    if (activeCategory === 'popular') return 'Popular Worldwide';
+    if (activeCategory === 'top_rated') return 'Top Rated Cinephile Picks';
+    if (activeCategory === 'upcoming') return 'Upcoming Releases';
+    return 'Browse Films';
   }, [searchQuery, activeCategory, filteredMovies.length]);
 
   // Render the unified scrollable header
@@ -336,6 +346,34 @@ export default function DiscoverScreen() {
               >
                 <Clock size={14} color={colors.textMuted} strokeWidth={2} />
                 <Text style={styles.suggestionText} numberOfLines={1}>{q}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 2b. SEARCH AUTOCOMPLETE DROPDOWN */}
+        {searchFocused && searchQuery.trim().length >= 2 && filteredMovies.length > 0 && (
+          <View style={styles.suggestionsCard}>
+            <View style={styles.suggestionsHeader}>
+              <Text style={styles.suggestionsTitle}>MATCHING TITLES</Text>
+              <Text style={styles.clearHistoryText}>{filteredMovies.length} found</Text>
+            </View>
+            {filteredMovies.slice(0, 5).map((m) => (
+              <TouchableOpacity
+                key={`sugg-${m.id}`}
+                style={styles.suggestionRow}
+                onPress={() => {
+                  recordSearch(m.title);
+                  setSearchQuery(m.title);
+                  setSearchFocused(false);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${m.title}`}
+              >
+                <Film size={14} color={colors.primary} strokeWidth={2} />
+                <Text style={styles.suggestionText} numberOfLines={1}>
+                  {m.title} {m.release_date ? `(${m.release_date.slice(0, 4)})` : ''}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>

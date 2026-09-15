@@ -10,6 +10,7 @@ const plannerRoutes = require('./routes/planner');
 const watchlistRoutes = require('./routes/watchlist');
 const profileRoutes = require('./routes/profile');
 const uploadRoutes = require('./routes/upload');
+const formatsRoutes = require('./routes/formats');
 
 const app = express();
 
@@ -102,6 +103,7 @@ app.use('/api/plans', plannerRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/formats', formatsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

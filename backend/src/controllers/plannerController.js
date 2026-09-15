@@ -57,6 +57,9 @@ const createPlan = async (req, res, next) => {
       bookingStatus,
       bookingRef,
       snacks,
+      concessions,
+      concessionTotal,
+      passType,
       status,
     } = req.body;
 
@@ -96,6 +99,10 @@ const createPlan = async (req, res, next) => {
       notes: notes || '',
       seats: seats || '',
       snacks: snacks || [],
+      concessions: concessions || [],
+      concessionTotal: concessionTotal || 0,
+      tripVersion: 1,
+      passType: passType || 'cinetrip_pass',
       status: status || 'upcoming',
       bookingStatus: 'plan',
       bookingRef: '',
@@ -112,7 +119,24 @@ const createPlan = async (req, res, next) => {
 // PUT /api/plans/:id
 const updatePlan = async (req, res, next) => {
   try {
-    const allowed = ['movie', 'cinema', 'date', 'time', 'slotName', 'friends', 'notes', 'seats', 'snacks', 'status', 'bookingStatus', 'bookingRef', 'showtimeId', 'ticketingConnected'];
+    const allowed = [
+      'movie',
+      'cinema',
+      'date',
+      'time',
+      'slotName',
+      'friends',
+      'notes',
+      'seats',
+      'snacks',
+      'concessions',
+      'concessionTotal',
+      'status',
+      'bookingStatus',
+      'bookingRef',
+      'showtimeId',
+      'ticketingConnected',
+    ];
     const changes = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) changes[key] = req.body[key];
@@ -141,15 +165,92 @@ const updatePlan = async (req, res, next) => {
     }
     delete changes.ticketingConnected;
 
+    // Increment version on update to invalidate tampered/stale cached passes
     const plan = await Plan.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
-      { $set: changes },
+      { $set: changes, $inc: { tripVersion: 1 } },
       { new: true, runValidators: true }
     );
     if (!plan) {
       return res.status(404).json({ message: 'Plan not found.' });
     }
     res.json({ message: 'Plan updated.', data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/plans/verify-pass
+// Verifies QR code payloads from CineTrip Passes
+const verifyPass = async (req, res, next) => {
+  try {
+    const { tripId, userId, tripVersion } = req.body;
+    if (!tripId) {
+      return res.status(400).json({
+        valid: false,
+        status: 'invalid_payload',
+        message: 'Missing tripId in QR code payload.',
+      });
+    }
+
+    const plan = await Plan.findById(tripId).populate('user', 'name email').lean();
+    if (!plan) {
+      return res.status(404).json({
+        valid: false,
+        status: 'not_found',
+        message: 'Trip pass not found or has been deleted.',
+      });
+    }
+
+    if (plan.status === 'cancelled') {
+      return res.status(200).json({
+        valid: false,
+        status: 'cancelled',
+        message: 'This movie night was cancelled.',
+        plan: {
+          _id: plan._id,
+          movie: plan.movie,
+          status: plan.status,
+        },
+      });
+    }
+
+    // Verify trip ownership if userId is included in pass payload
+    if (userId && String(plan.user._id || plan.user) !== String(userId)) {
+      return res.status(200).json({
+        valid: false,
+        status: 'tampered',
+        message: 'Pass creator ID does not match database record.',
+      });
+    }
+
+    // Version verification (tamper / stale check)
+    const currentVersion = plan.tripVersion || 1;
+    const passVersion = Number(tripVersion) || 1;
+    const isOutdated = passVersion < currentVersion;
+
+    return res.status(200).json({
+      valid: true,
+      status: isOutdated ? 'stale_version' : 'valid',
+      message: isOutdated
+        ? `Pass details are outdated (v${passVersion} vs active v${currentVersion}). Latest details loaded.`
+        : 'Valid CineTrip Pass.',
+      data: {
+        _id: plan._id,
+        movie: plan.movie,
+        cinema: plan.cinema,
+        date: plan.date,
+        time: plan.time,
+        seats: plan.seats,
+        concessions: plan.concessions,
+        concessionTotal: plan.concessionTotal,
+        friends: plan.friends,
+        status: plan.status,
+        passType: plan.passType || 'cinetrip_pass',
+        tripVersion: currentVersion,
+        organizer: plan.user?.name || 'CineTrip Organizer',
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -258,4 +359,6 @@ module.exports = {
   createPlan,
   updatePlan,
   deletePlan,
+  verifyPass,
 };
+

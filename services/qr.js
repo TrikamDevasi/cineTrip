@@ -511,3 +511,74 @@ export function qrModulesToSvgPath(matrix, margin = 4) {
   }
   return cells.join(' ');
 }
+
+/**
+ * Generate a standardized, secure CineTrip Pass payload for QR encoding.
+ * Never stores sensitive passwords or auth tokens in the QR payload.
+ */
+export function createTripPassPayload(plan, user) {
+  if (!plan) return '';
+  const payload = {
+    app: 'CineTrip',
+    tripId: String(plan._id || plan.id || ''),
+    userId: user?.id || (user?._id ? String(user._id) : 'guest'),
+    tripVersion: plan.tripVersion || 1,
+    movie: plan.movie?.title || 'Screening',
+    cinema: plan.cinema?.name || 'Cinema',
+    date: plan.date || '',
+    time: plan.time || '',
+    seats: plan.seats || '',
+    format: plan.cinema?.screenType || plan.format || 'Standard',
+    status: plan.status || 'upcoming',
+    passType: 'cinetrip_pass',
+  };
+  return JSON.stringify(payload);
+}
+
+/**
+ * Parse and validate a scanned QR code payload.
+ * Verifies structure, signature markers, and required trip attributes.
+ */
+export function decodeAndValidatePassPayload(rawString) {
+  if (!rawString || typeof rawString !== 'string') {
+    return { success: false, error: 'Empty or invalid QR code data.' };
+  }
+
+  try {
+    const data = JSON.parse(rawString);
+    if (!data || typeof data !== 'object') {
+      return { success: false, error: 'QR code does not contain structured JSON data.' };
+    }
+
+    if (data.app !== 'CineTrip') {
+      return { success: false, error: 'Not a recognized CineTrip Pass (missing app signature).' };
+    }
+
+    if (!data.tripId && !data.id) {
+      return { success: false, error: 'Invalid CineTrip Pass: missing trip identifier.' };
+    }
+
+    return {
+      success: true,
+      data: {
+        tripId: data.tripId || data.id,
+        userId: data.userId || null,
+        tripVersion: data.tripVersion || data.v || 1,
+        movie: data.movie || data.movieTitle || 'Screening',
+        cinema: data.cinema || data.cinemaName || 'Cinema',
+        date: data.date || '',
+        time: data.time || '',
+        seats: data.seats || '',
+        format: data.format || 'Standard',
+        status: data.status || 'confirmed',
+        passType: data.passType || (data.type === 'PLAN' ? 'cinetrip_pass' : 'cinetrip_pass'),
+      },
+    };
+  } catch {
+    return {
+      success: false,
+      error: 'Unreadable or corrupt QR code payload format.',
+    };
+  }
+}
+

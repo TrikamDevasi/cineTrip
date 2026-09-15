@@ -58,7 +58,23 @@ const planSchema = new mongoose.Schema(
     notes: { type: String, default: '' },
     seats: { type: String, default: '' },
     bookingRef: { type: String, default: '' },
+    tripVersion: { type: Number, default: 1 },
+    passType: {
+      type: String,
+      enum: ['cinetrip_pass', 'official_ticket'],
+      default: 'cinetrip_pass',
+    },
     snacks: [{ type: String }],
+    concessions: [
+      {
+        name: { type: String },
+        size: { type: String, default: 'Regular' },
+        quantity: { type: Number, default: 1 },
+        unitPrice: { type: Number, default: 0 },
+        subtotal: { type: Number, default: 0 },
+      },
+    ],
+    concessionTotal: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ['upcoming', 'completed', 'cancelled'],
@@ -68,4 +84,8 @@ const planSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+planSchema.index({ user: 1, date: 1 });
+planSchema.index({ user: 1, status: 1 });
+
 module.exports = mongoose.model('Plan', planSchema);
+

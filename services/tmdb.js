@@ -174,11 +174,14 @@ export const FALLBACK_GENRES = [
 ];
 
 export const MOODS = [
-  { id: 'epic', label: 'Adrenaline & Epic', icon: 'Flame', gradient: ['#E11D48', '#E5A93C'] },
-  { id: 'mindbending', label: 'Mind Benders', icon: 'Sparkles', gradient: ['#8B5CF6', '#E5A93C'] },
-  { id: 'laughs', label: 'Pure Laughs', icon: 'Smile', gradient: ['#E5A93C', '#F59E0B'] },
-  { id: 'cozy', label: 'Cozy & Chill', icon: 'Coffee', gradient: ['#D97706', '#92400E'] },
-  { id: 'date', label: 'Date Night', icon: 'Heart', gradient: ['#E11D48', '#8B5CF6'] },
+  { id: 'feel_good', label: 'Feel Good', icon: 'Smile', genreIds: [35, 10751, 16], gradient: ['#F59E0B', '#E5A93C'] },
+  { id: 'thriller', label: 'Thriller', icon: 'Eye', genreIds: [53, 9648, 80], gradient: ['#6366F1', '#4F46E5'] },
+  { id: 'emotional', label: 'Emotional', icon: 'Heart', genreIds: [18], gradient: ['#EC4899', '#DB2777'] },
+  { id: 'action', label: 'Action', icon: 'Zap', genreIds: [28, 12], gradient: ['#EF4444', '#DC2626'] },
+  { id: 'comedy', label: 'Comedy', icon: 'Smile', genreIds: [35], gradient: ['#E5A93C', '#D97706'] },
+  { id: 'horror', label: 'Horror', icon: 'Flame', genreIds: [27], gradient: ['#7F1D1D', '#991B1B'] },
+  { id: 'romance', label: 'Romance', icon: 'Heart', genreIds: [10749], gradient: ['#F43F5E', '#BE123C'] },
+  { id: 'scifi', label: 'Sci-Fi', icon: 'Sparkles', genreIds: [878], gradient: ['#8B5CF6', '#6D28D9'] },
 ];
 
 
@@ -223,6 +226,34 @@ export async function getNowPlayingMovies(page = 1) {
   }
 }
 
+export async function getPopularMovies(page = 1) {
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/movie/popular?api_key=${API_KEY}&page=${page}`
+      : `${TMDB_BASE_URL}/movie/popular?page=${page}`;
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB Popular fetch failed:', e.message);
+    return [];
+  }
+}
+
+export async function getTopRatedMovies(page = 1) {
+  if (!isApiConfigured) return [];
+  try {
+    const url = API_KEY
+      ? `${TMDB_BASE_URL}/movie/top_rated?api_key=${API_KEY}&page=${page}`
+      : `${TMDB_BASE_URL}/movie/top_rated?page=${page}`;
+    const data = await fetchJson(url, getHeaders());
+    return data.results || [];
+  } catch (e) {
+    console.warn('TMDB Top Rated fetch failed:', e.message);
+    return [];
+  }
+}
+
 export async function getUpcomingMovies(page = 1) {
   if (!isApiConfigured) return [];
   try {
@@ -236,6 +267,7 @@ export async function getUpcomingMovies(page = 1) {
     return [];
   }
 }
+
 
 export async function searchMovies(query) {
   if (!query || !query.trim()) return [];

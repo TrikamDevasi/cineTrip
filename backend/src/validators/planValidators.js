@@ -51,7 +51,21 @@ const createPlanSchema = z.object({
   notes: z.string().max(1000).optional(),
   seats: z.union([z.string().max(200), z.array(z.string()).max(60)]).optional(),
   bookingRef: z.string().max(100).optional(),
+  tripVersion: z.number().optional(),
+  passType: z.string().optional(),
   snacks: z.array(z.string()).optional(),
+  concessions: z
+    .array(
+      z.object({
+        name: z.string(),
+        size: z.string().optional(),
+        quantity: z.number().optional(),
+        unitPrice: z.number().optional(),
+        subtotal: z.number().optional(),
+      })
+    )
+    .optional(),
+  concessionTotal: z.number().optional(),
   status: z.enum(['upcoming', 'completed', 'cancelled']).optional(),
 });
 

@@ -18,7 +18,14 @@ const memorySchema = new mongoose.Schema(
     watchedDate: { type: String, required: true },
     experienceType: { type: String, default: 'Standard' },
     cinemaName: { type: String, default: '' },
-    rating: { type: Number, min: 1, max: 5, default: 5 },
+    rating: { type: Number, min: 1, max: 10, default: 5 },
+    personalRating: { type: Number, min: 1, max: 10, default: null },
+    auditoriumRating: { type: Number, min: 1, max: 10, default: null },
+    soundRating: { type: Number, min: 1, max: 10, default: null },
+    screenRating: { type: Number, min: 1, max: 10, default: null },
+    experience: { type: Number, min: 1, max: 10, default: null },
+    seat: { type: String, default: '' },
+    notes: { type: String, default: '' },
     story: { type: String, default: '' },
     favoriteMoment: { type: String, default: '' },
     companions: [
@@ -39,4 +46,7 @@ const memorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+memorySchema.index({ user: 1, watchedDate: -1 });
+
 module.exports = mongoose.model('Memory', memorySchema);
+

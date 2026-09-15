@@ -31,6 +31,7 @@ export default function MemoriesScreen() {
     loadNextPage,
     hasNextPage,
     deleteMemory,
+    updateMemory,
   } = useMemoryStore();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isGuest = useAuthStore((s) => s.isGuest);
@@ -150,6 +151,7 @@ export default function MemoriesScreen() {
                 key={m._id || m.id || `mem-${idx}`}
                 memory={m}
                 onDelete={deleteMemory}
+                onUpdate={updateMemory}
               />
             ))}
 

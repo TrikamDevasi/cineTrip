@@ -133,8 +133,11 @@ export default function CreateMemoryScreen() {
   // Form state
   const [selectedMovie, setSelectedMovie] = useState(APP_CONFIG.DEMO_MODE ? FALLBACK_MOVIES[0] : null);
   const [cinemaName, setCinemaName] = useState(params.cinemaName ? String(params.cinemaName) : '');
-  const [experienceType, setExperienceType] = useState(params.screenType ? String(params.screenType) : 'IMAX Laser 3D');
   const [rating, setRating] = useState(5);
+  const [auditoriumRating, setAuditoriumRating] = useState(5);
+  const [soundRating, setSoundRating] = useState(5);
+  const [screenRating, setScreenRating] = useState(5);
+  const [seat, setSeat] = useState(params.seats ? String(params.seats) : '');
   const [story, setStory] = useState('');
   const [favoriteMoment, setFavoriteMoment] = useState('');
   const [snackHighlight, setSnackHighlight] = useState('');
@@ -354,6 +357,11 @@ export default function CreateMemoryScreen() {
         cinemaName: cinemaName.trim() || (selectedMovie ? 'Cinema' : ''),
         experienceType,
         rating,
+        personalRating: rating,
+        auditoriumRating,
+        soundRating,
+        screenRating,
+        seat: seat.trim(),
         story: story.trim(),
         favoriteMoment: favoriteMoment.trim(),
         snackHighlight: snackHighlight.trim(),
@@ -665,15 +673,61 @@ export default function CreateMemoryScreen() {
             />
           </View>
 
-          {/* 4. RATING */}
+          {/* 4. MULTI-DIMENSIONAL RATINGS & SEAT */}
           <View style={styles.formSection}>
-            <Text style={styles.sectionHeading}>YOUR RATING</Text>
-            <Rating
-              rating={rating}
-              maxRating={5}
-              onRatingChange={setRating}
-              showNumeric={true}
-              size={22}
+            <Text style={styles.sectionHeading}>CINEPHILE RATINGS (1–5 STARS)</Text>
+
+            <View style={styles.ratingRowWrapper}>
+              <Text style={styles.ratingSubLabel}>Film / Overall</Text>
+              <Rating
+                rating={rating}
+                maxRating={5}
+                onRatingChange={setRating}
+                showNumeric={true}
+                size={20}
+              />
+            </View>
+
+            <View style={styles.ratingRowWrapper}>
+              <Text style={styles.ratingSubLabel}>Auditorium & Ambience</Text>
+              <Rating
+                rating={auditoriumRating}
+                maxRating={5}
+                onRatingChange={setAuditoriumRating}
+                showNumeric={true}
+                size={20}
+              />
+            </View>
+
+            <View style={styles.ratingRowWrapper}>
+              <Text style={styles.ratingSubLabel}>Sound Immersion</Text>
+              <Rating
+                rating={soundRating}
+                maxRating={5}
+                onRatingChange={setSoundRating}
+                showNumeric={true}
+                size={20}
+              />
+            </View>
+
+            <View style={styles.ratingRowWrapper}>
+              <Text style={styles.ratingSubLabel}>Screen Clarity / Projection</Text>
+              <Rating
+                rating={screenRating}
+                maxRating={5}
+                onRatingChange={setScreenRating}
+                showNumeric={true}
+                size={20}
+              />
+            </View>
+
+            <Text style={[styles.sectionHeading, { marginTop: SPACING.md }]}>SEAT POSITION</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g., Row F Seat 14 (Center Sweet Spot)"
+              placeholderTextColor={colors.textMuted}
+              value={seat}
+              onChangeText={setSeat}
             />
           </View>
 
@@ -702,7 +756,33 @@ export default function CreateMemoryScreen() {
 
           {/* 6. COMPANIONS & SNACKS */}
           <View style={styles.formSection}>
-            <Text style={styles.sectionHeading}>CONCESSION SNACK</Text>
+            <Text style={styles.sectionHeading}>MOVIE SQUAD COMPANIONS</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACING.sm }}>
+              {(contacts && contacts.length > 0 ? contacts : [
+                { id: '1', name: 'Alex' },
+                { id: '2', name: 'Jordan' },
+                { id: '3', name: 'Sam' },
+                { id: '4', name: 'Taylor' },
+              ]).map((c) => {
+                const isSelected = selectedCompanions.some((item) => item.name === c.name);
+                return (
+                  <Chip
+                    key={c.id || c.name}
+                    label={c.name}
+                    selected={isSelected}
+                    onPress={() => {
+                      setSelectedCompanions((prev) =>
+                        isSelected
+                          ? prev.filter((item) => item.name !== c.name)
+                          : [...prev, { id: c.id, name: c.name }]
+                      );
+                    }}
+                  />
+                );
+              })}
+            </ScrollView>
+
+            <Text style={[styles.sectionHeading, { marginTop: SPACING.sm }]}>CONCESSION SNACK</Text>
             <TextInput
               style={styles.textInput}
               placeholder="e.g., Large Butter Popcorn + Cold Brew"
@@ -733,6 +813,20 @@ const createStyles = (colors) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  ratingRowWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  ratingSubLabel: {
+    ...TYPOGRAPHY.body,
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   cameraSafeArea: {
     flex: 1,
